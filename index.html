@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>pro Aničku ♡</title>
+<meta name="description" content="tvůj první dopis do nového bytu">
+<meta property="og:title" content="pro Aničku ♡">
+<meta property="og:description" content="tvůj první dopis do nového bytu">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#2b0c15">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="pro Aničku">
+<meta name="format-detection" content="telephone=no, date=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1 0 26 23'%3E%3Cpath fill='%23ff8fa8' d='M12 21C5 16 1 12 1 7.5 1 4 3.6 1.5 6.8 1.5c2.2 0 4 1.2 5.2 3 1.2-1.8 3-3 5.2-3C20.4 1.5 23 4 23 7.5 23 12 19 16 12 21Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@500;700&family=Karla:wght@400;600;700&display=swap">
+<style>
+/* Layout: one scene at a time, a letter read by candlelight, then a trail of four date badges; single dark theme by choice */
+:root{
+  --wine:#2b0c15; --rose:#ff8fa8; --rose-deep:#d9475f;
+  --candle:#f4cf96; --ink:#fbe9ec; --muted:#cfa0ac;
+  --paper:#f2d6c8; --paper-2:#eac4b3; --paper-3:#dfb19c; --sheet:#fff6ef; --paper-ink:#4a1a26;
+  --display:"Gloock", Georgia, "Times New Roman", serif;
+  --hand:"Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --body:"Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 112%, rgba(244,207,150,.20), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 15% -10%, rgba(255,143,168,.10), transparent 70%),
+    var(--wine);
+  background-attachment:fixed;
+  color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.55;
+  -webkit-tap-highlight-color:transparent;
+}
+.stage{
+  min-height:100%; display:grid; place-items:center; box-sizing:border-box;
+  padding-block:28px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.scene{grid-area:1/1; width:100%; max-width:34rem; display:flex; flex-direction:column; gap:18px}
+.scene.enter{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.center{align-items:center; text-align:center}
+
+.eyebrow{font-family:var(--hand); font-size:1.6rem; color:var(--candle); line-height:1; margin:0}
+h1,h2{font-family:var(--display); font-weight:400; margin:0; text-wrap:balance; letter-spacing:-.01em; line-height:1.08}
+h1{font-size:clamp(2.3rem, 9vw, 3.4rem)}
+h2{font-size:clamp(1.9rem, 7.5vw, 2.6rem)}
+h1:focus,h2:focus{outline:none}
+p{margin:0; color:var(--muted); max-width:62ch}
+p.lead{color:var(--ink); font-size:1.1rem}
+
+.btn{
+  font:700 1rem/1 var(--body); border:0; cursor:pointer; border-radius:999px;
+  padding:15px 28px; background:var(--rose); color:var(--wine);
+  transition:transform .15s ease, background .2s ease; align-self:flex-start;
+}
+.center .btn{align-self:center}
+.btn:hover{background:#ffa5ba}
+.btn:active{transform:scale(.96)}
+.btn.ghost{background:transparent; color:var(--muted); border:1px solid rgba(207,160,172,.4)}
+.btn:focus-visible,.seal:focus-visible,.badge-btn:focus-visible{outline:2px solid var(--candle); outline-offset:4px}
+
+/* ---------- Scene 0: envelope ---------- */
+.env{position:relative; width:min(320px, 82vw); max-width:100%; aspect-ratio:3/2; margin:40px auto 0; perspective:900px}
+.env .back{position:absolute; inset:0; background:var(--paper-3); border-radius:6px; box-shadow:0 30px 60px -18px rgba(0,0,0,.65)}
+.env .letter{
+  position:absolute; inset:6% 7% 8%; background:var(--sheet); border-radius:4px; z-index:1;
+  padding:14px 16px; box-sizing:border-box; color:var(--paper-ink); font-family:var(--hand); font-size:1.35rem; line-height:1.1;
+  background-image:repeating-linear-gradient(transparent 0 23px, rgba(217,71,95,.18) 23px 24px);
+  transition:transform .65s cubic-bezier(.3,.8,.25,1) .3s;
+}
+.env .letter small{display:block; font-size:1rem; opacity:.6; margin-top:6px}
+.env .front{position:absolute; inset:0; background:var(--paper); border-radius:6px; z-index:2;
+  clip-path:polygon(0 0, 50% 56%, 100% 0, 100% 100%, 0 100%)}
+.env .flap{position:absolute; left:0; right:0; top:0; height:62%; background:var(--paper-2); z-index:3;
+  clip-path:polygon(0 0, 100% 0, 50% 100%); transform-origin:top; transition:transform .45s ease, z-index 0s .22s}
+.env .to{position:absolute; left:0; right:0; bottom:5%; z-index:4; text-align:center; font-family:var(--hand); font-size:1.7rem; color:var(--paper-ink)}
+.seal{
+  position:absolute; left:50%; top:52%; z-index:5; width:66px; height:66px; margin:-33px 0 0 -33px;
+  border-radius:50%; border:0; cursor:pointer; background:radial-gradient(circle at 35% 30%, #ee6a80, var(--rose-deep) 60%, #a52a42);
+  color:#ffe3e8; font:400 1.9rem/1 var(--display); box-shadow:0 4px 10px rgba(0,0,0,.35), inset 0 0 0 5px rgba(0,0,0,.08);
+  transition:opacity .3s ease; animation:breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe{50%{transform:scale(1.07)}}
+.env.open .flap{transform:rotateX(180deg); z-index:0}
+.env.open .seal{opacity:0; pointer-events:none; animation:none}
+.env.open .letter{transform:translateY(-62%)}
+.env.pull .back,.env.pull .front,.env.pull .flap,.env.pull .to{opacity:0; transform:translateY(60px); transition:opacity .5s ease, transform .5s ease}
+.env.pull .flap{transform:translateY(60px) rotateX(180deg)}
+.env.pull .letter{transform:translateY(-30%) scale(1.3); transition:transform .35s ease}
+.env.pull .back,.env.pull .front,.env.pull .flap,.env.pull .to{transition-duration:.35s}
+.hint{font-size:.9rem; color:var(--muted)}
+
+/* ---------- Scene 1: the letter ---------- */
+.sheet{
+  background:var(--sheet); color:var(--paper-ink); border-radius:6px; padding:28px 24px 26px;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.7); transform:rotate(-.8deg);
+  background-image:repeating-linear-gradient(transparent 0 31px, rgba(217,71,95,.13) 31px 32px);
+  display:flex; flex-direction:column; gap:14px; font-size:1.02rem; line-height:1.6;
+}
+.scene.enter .sheet{animation:unfold .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes unfold{from{transform:scale(.82) translateY(-30px) rotate(-2deg); opacity:.6}to{transform:rotate(-.8deg); opacity:1}}
+.attach{position:relative; margin-top:4px; padding-top:14px; border-top:1.5px dashed rgba(217,71,95,.35); display:flex; flex-direction:column; gap:10px}
+.attach .clip{position:absolute; left:46%; top:-30px; width:20px; height:52px; transform:rotate(-10deg)}
+.attach .lbl{font-family:var(--hand); font-size:1.35rem; line-height:1; color:var(--rose-deep)}
+.attach-hint{align-self:center; font:700 .85rem/1 var(--body); color:var(--rose-deep); background:rgba(217,71,95,.1); padding:8px 14px; border-radius:999px}
+.attach button.next svg{animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.08)}}
+.attach button.next::after{content:""; position:absolute; inset:-4px; border-radius:50%; border:2px solid var(--rose-deep); animation:ring 1.6s ease-out infinite}
+@keyframes ring{0%{opacity:.8; transform:scale(.9)}100%{opacity:0; transform:scale(1.25)}}
+.attach button{position:relative}
+.attach .row{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px}
+.attach button{background:none; border:0; padding:0; cursor:pointer; display:flex; justify-content:center; transition:transform .2s ease}
+.attach button:hover{transform:translateY(-3px) rotate(0)!important}
+.attach button:focus-visible{outline:2px solid var(--rose-deep); outline-offset:3px; border-radius:50%}
+.attach button svg{width:100%; max-width:76px; height:auto; filter:drop-shadow(0 4px 6px rgba(74,26,38,.25))}
+.attach button.locked svg{filter:grayscale(.45) opacity(.85) drop-shadow(0 4px 6px rgba(74,26,38,.2))}
+.attach button:nth-child(odd){transform:rotate(-5deg)}
+.attach button:nth-child(even){transform:rotate(4deg)}
+.scene.enter .attach button{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+.scene.enter .attach button:nth-child(1){animation-delay:.45s}
+.scene.enter .attach button:nth-child(2){animation-delay:.55s}
+.scene.enter .attach button:nth-child(3){animation-delay:.65s}
+.scene.enter .attach button:nth-child(4){animation-delay:.75s}
+.sheet p{color:var(--paper-ink)}
+.sheet .when{font-family:var(--hand); font-size:1.25rem; color:var(--rose-deep); align-self:flex-end}
+.sheet .dear{font-family:var(--hand); font-size:2.2rem; line-height:1; color:var(--paper-ink)}
+.sheet .sig{font-family:var(--hand); font-size:1.9rem; line-height:1; align-self:flex-end; color:var(--rose-deep)}
+
+/* ---------- Trail ---------- */
+.trail{display:flex; align-items:center; justify-content:center; gap:0; width:100%; max-width:21rem}
+.heart-node{flex:none; width:34px; height:31px; display:grid; place-items:center}
+.heart-node svg{width:100%; height:100%; overflow:visible}
+.heart-node.done{animation:hpop .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes hpop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.heart-node.now svg{animation:beat 1.2s ease-in-out infinite}
+.heart-node.last{width:40px; height:36px}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.18)}30%{transform:scale(.96)}45%{transform:scale(1.1)}}
+.trail .line{flex:1; height:0; border-top:2px dotted rgba(207,160,172,.4); margin:0 3px}
+.trail .line.done{border-top:2px solid var(--rose)}
+.back-btn{position:fixed; z-index:20; top:calc(env(safe-area-inset-top, 0px) + 12px); left:max(12px, env(safe-area-inset-left, 0px));
+  width:42px; height:42px; border-radius:50%; border:1px solid rgba(207,160,172,.35); background:rgba(43,12,21,.7);
+  color:var(--ink); font:700 1.2rem/1 var(--body); cursor:pointer; display:grid; place-items:center; backdrop-filter:blur(6px)}
+.back-btn:focus-visible{outline:2px solid var(--candle); outline-offset:3px}
+.tap-pill{font:700 .95rem/1 var(--body); color:var(--wine); background:var(--candle); border:0; border-radius:999px; padding:13px 22px; cursor:pointer}
+.stop.is-locked{cursor:pointer}
+.trail .node{flex:none; width:40px; height:40px; border-radius:50%; display:grid; place-items:center;
+  border:1.5px dashed rgba(207,160,172,.5); font:700 .85rem/1 var(--body); color:var(--muted); box-sizing:border-box}
+.trail .node svg{width:44px; height:44px}
+.trail .node.got{border:0}
+.trail .node.now{border:2px solid var(--candle); color:var(--candle); animation:breathe 1.8s ease-in-out infinite}
+.trail .line{flex:1; height:0; border-top:2px dotted rgba(207,160,172,.4)}
+.trail .line.done{border-top-color:var(--rose)}
+
+/* ---------- Date stops ---------- */
+.badge-btn{background:none; border:0; padding:0; cursor:pointer; width:min(230px, 62vw); position:relative}
+.badge-btn svg{display:block; width:100%; height:auto; filter:drop-shadow(0 18px 24px rgba(0,0,0,.45))}
+.badge-btn.locked svg{filter:grayscale(1) brightness(.5) drop-shadow(0 10px 18px rgba(0,0,0,.4))}
+.badge-btn.locked{animation:wiggle 2.6s ease-in-out infinite}
+@keyframes wiggle{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(-6deg)}88%{transform:rotate(6deg)}92%{transform:rotate(-3deg)}}
+.badge-btn.locked::after{content:"?"; position:absolute; inset:0; display:grid; place-items:center; font:400 4.5rem/1 var(--display); color:rgba(251,233,236,.85)}
+.badge-btn.got{animation:pop .7s cubic-bezier(.3,1.6,.5,1) both; cursor:default}
+@keyframes pop{0%{transform:scale(.75) rotate(-12deg)}100%{transform:scale(1) rotate(-3deg)}}
+.reveal{display:flex; flex-direction:column; align-items:center; gap:12px}
+.reveal.show{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.kicker{font:700 .78rem/1 var(--body); letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+.chip{font:700 .85rem/1 var(--body); color:var(--wine); background:var(--candle); padding:7px 12px; border-radius:999px; transform:rotate(-2deg)}
+
+/* ---------- Collection ---------- */
+.shelf{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 18px; width:100%; max-width:22rem}
+.shelf figure{margin:0; display:flex; flex-direction:column; align-items:center; gap:6px}
+.shelf svg{width:100%; max-width:150px; height:auto; filter:drop-shadow(0 12px 16px rgba(0,0,0,.4))}
+.shelf figure:nth-child(odd) svg{transform:rotate(-4deg)}
+.shelf figure:nth-child(even) svg{transform:rotate(3deg)}
+.shelf figcaption{font-family:var(--hand); font-size:1.25rem; color:var(--candle); line-height:1}
+.scene.enter .shelf figure{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.scene.enter .shelf figure:nth-child(2){animation-delay:.12s}
+.scene.enter .shelf figure:nth-child(3){animation-delay:.24s}
+.scene.enter .shelf figure:nth-child(4){animation-delay:.36s}
+
+/* ---------- Question ---------- */
+.arena{position:relative; width:100%; height:240px}
+.arena .yes{position:absolute; left:50%; top:30%; transform:translate(-50%,-50%) scale(var(--s,1)); transition:transform .3s cubic-bezier(.3,1.6,.5,1); font-size:1.15rem; padding:16px 38px}
+.arena .no{position:absolute; left:calc(50% - 30px); top:66%; transition:left .25s ease, top .25s ease}
+
+/* ---------- Yes ---------- */
+.final-badge{width:min(190px, 52vw)}
+.final-badge svg{display:block; width:100%; height:auto; filter:drop-shadow(0 18px 24px rgba(0,0,0,.45))}
+.scene.enter .final-badge{animation:pop .9s cubic-bezier(.3,1.6,.5,1) .2s both}
+.clock{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; width:100%; max-width:26rem}
+.clock div{display:flex; flex-direction:column; align-items:center; padding:12px 4px; border:1px solid rgba(207,160,172,.28); border-radius:10px}
+.clock b{font:400 clamp(1.7rem, 7vw, 2.3rem)/1 var(--display); color:var(--ink); font-variant-numeric:tabular-nums}
+.clock span{font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-top:6px}
+.mini-row{display:flex; gap:6px; justify-content:center}
+.mini-row svg{width:46px; height:46px}
+.sig{font-family:var(--hand); font-size:1.9rem; color:var(--candle); line-height:1}
+#fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10}
+
+/* ---------- Lock ---------- */
+#lock{position:fixed; top:0; left:0; right:0; bottom:0; width:100%; z-index:30; overflow-y:auto; box-sizing:border-box;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:calc(env(safe-area-inset-top, 0px) + 24px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  background:radial-gradient(ellipse 80% 55% at 50% 112%, rgba(244,207,150,.20), transparent 70%), var(--wine);
+  transition:opacity .5s ease}
+#lock.open{opacity:0; pointer-events:none}
+.lock-inner{width:100%; max-width:300px; margin:auto; display:flex; flex-direction:column; align-items:center; text-align:center}
+.lock-seal{width:58px; height:58px; border-radius:50%; display:grid; place-items:center; margin-bottom:18px;
+  background:radial-gradient(circle at 35% 30%, #ee6a80, var(--rose-deep) 60%, #a52a42); color:#ffe3e8;
+  font:400 1.7rem/1 var(--display); box-shadow:0 6px 18px rgba(0,0,0,.4), inset 0 0 0 5px rgba(0,0,0,.08); animation:breathe 2.4s ease-in-out infinite}
+.lock-inner .eyebrow{margin-bottom:6px}
+.pin{display:flex; justify-content:center; gap:18px; margin-top:22px}
+.pin span{width:16px; height:16px; border-radius:50%; border:2px solid var(--muted); transition:background .15s ease, border-color .15s ease, transform .15s ease}
+.pin span.on{background:var(--rose); border-color:var(--rose); transform:scale(1.1)}
+.pin.ok span{background:var(--candle); border-color:var(--candle)}
+#lockHint{height:1.4em; margin:12px 0 14px; font-size:.9rem; color:var(--rose)}
+.lock-inner.shake{animation:shake .45s ease}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.pad{display:grid; grid-template-columns:repeat(3, 72px); justify-content:center; gap:16px 22px; width:100%}
+.pad button{width:72px; height:72px; border-radius:50%; border:1px solid rgba(207,160,172,.3); background:rgba(255,143,168,.07);
+  color:var(--ink); font:400 1.8rem/1 var(--display); cursor:pointer; padding:0; transition:background .15s ease, transform .1s ease}
+.pad button:active{background:rgba(255,143,168,.25); transform:scale(.94)}
+.pad button:focus-visible{outline:2px solid var(--candle); outline-offset:3px}
+.pad button[data-del]{font:400 1.4rem/1 var(--body); border-color:transparent; background:none; color:var(--muted)}
+@media (max-height:620px){ .lock-seal{display:none} .pad{gap:12px 20px} .pad button{width:64px; height:64px} .pad{grid-template-columns:repeat(3, 64px)} }
+
+
+/* ---------- Phone friendliness ---------- */
+html{-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:none}
+.stage{min-height:100vh; min-height:100dvh; position:relative; z-index:1;
+  --pt:64px; --pb:28px;
+  padding-top:calc(env(safe-area-inset-top, 0px) + var(--pt)); padding-bottom:calc(env(safe-area-inset-bottom, 0px) + var(--pb))}
+button{touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+.btn,.tap-pill{min-height:48px}
+@media (max-width:380px){
+  body{font-size:16px}
+  .sheet{padding:22px 18px 22px; gap:12px}
+  .sheet .dear{font-size:2rem}
+  .attach .row{gap:6px}
+  .eyebrow{font-size:1.45rem}
+  .shelf{gap:10px 12px}
+  .clock{gap:6px}
+  .clock div{padding:10px 2px}
+}
+@media (max-height:700px){ .stage{--pt:58px; --pb:22px} .scene{gap:14px} .badge-btn{width:min(200px, 56vw)} }
+
+/* ---------- Cute motion ---------- */
+.floaties{position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0}
+.floaties.fixed{position:fixed}
+.floaties i{position:absolute; bottom:-40px; width:calc(16px * var(--s)); color:var(--rose); opacity:0; animation:drift var(--t) linear var(--d) infinite}
+.floaties svg{display:block; width:100%; fill:currentColor}
+@keyframes drift{0%{opacity:0; transform:translate(0,0) rotate(-12deg)} 12%{opacity:.22} 50%{transform:translate(16px,-55vh) rotate(10deg)} 88%{opacity:.16} 100%{opacity:0; transform:translate(-8px,-115vh) rotate(-8deg)}}
+.lock-inner{position:relative; z-index:1; transition:transform .5s ease}
+#lock.open .lock-inner{transform:scale(.92)}
+#fx.top{z-index:35}
+
+.tap-heart{position:fixed; z-index:40; width:22px; pointer-events:none; animation:tapup .9s ease-out forwards}
+.tap-heart svg{display:block; width:100%; fill:currentColor}
+@keyframes tapup{0%{opacity:1; transform:translate(-50%,-50%) scale(.3)} 30%{opacity:1; transform:translate(-50%,-110%) scale(1.15)} 100%{opacity:0; transform:translate(calc(-50% + var(--dx)), -320%) scale(.85)}}
+
+.pin span.on{animation:dotpop .35s cubic-bezier(.3,1.8,.5,1)}
+@keyframes dotpop{0%{transform:scale(.4)} 100%{transform:scale(1.1)}}
+.pin.ok span{animation:dotpop .4s cubic-bezier(.3,1.8,.5,1) both}
+.pin.ok span:nth-child(2){animation-delay:.05s} .pin.ok span:nth-child(3){animation-delay:.1s} .pin.ok span:nth-child(4){animation-delay:.15s}
+
+.env:not(.open){animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-7px) rotate(-1deg)}}
+[data-s="env"] .hint{animation:fadepulse 2.4s ease-in-out infinite}
+@keyframes fadepulse{50%{opacity:.45}}
+
+.scene.enter .sheet > *{animation:rise .55s cubic-bezier(.2,.7,.2,1) both}
+.scene.enter .sheet > :nth-child(1){animation-delay:.25s}
+.scene.enter .sheet > :nth-child(2){animation-delay:.35s}
+.scene.enter .sheet > :nth-child(3){animation-delay:.5s}
+.scene.enter .sheet > :nth-child(4){animation-delay:.65s}
+.scene.enter .sheet > :nth-child(5){animation-delay:.8s}
+.scene.enter .sheet > .sig{animation:write 1s ease-out 1s both}
+.scene.enter .sheet > .attach{animation-delay:1.2s}
+.scene.enter .attach button:nth-child(1){animation-delay:1.35s}
+.scene.enter .attach button:nth-child(2){animation-delay:1.45s}
+.scene.enter .attach button:nth-child(3){animation-delay:1.55s}
+.scene.enter .attach button:nth-child(4){animation-delay:1.65s}
+@keyframes write{from{clip-path:inset(-10% 100% -10% 0)} to{clip-path:inset(-10% 0 -10% 0)}}
+
+.badge-btn.got::after{content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.5) 50%, transparent 62%) no-repeat;
+  background-size:300% 100%; background-position:120% 0; animation:shine 3s ease-in-out .9s infinite}
+@keyframes shine{0%{background-position:120% 0} 35%,100%{background-position:-20% 0}}
+.badge-btn.got svg,.final-badge svg{animation:bobY 3.4s ease-in-out .7s infinite}
+.shelf svg,.mini-row svg{animation:bobY 3.2s ease-in-out infinite}
+.shelf figure:nth-child(2) svg,.mini-row svg:nth-child(2){animation-delay:-.8s}
+.shelf figure:nth-child(3) svg,.mini-row svg:nth-child(3){animation-delay:-1.6s}
+.shelf figure:nth-child(4) svg,.mini-row svg:nth-child(4){animation-delay:-2.4s}
+@keyframes bobY{0%,100%{translate:0 0} 50%{translate:0 -6px}}
+.arena .yes{animation:glow 1.8s ease-out infinite}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(255,143,168,.55)} 100%{box-shadow:0 0 0 16px rgba(255,143,168,0)}}
+
+
+/* ---------- Fixed rhythm: trail on top, badge, text, one button slot at the bottom ---------- */
+.scene.full{min-height:calc(100vh - var(--pt) - var(--pb) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height:calc(100dvh - var(--pt) - var(--pb) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))}
+.slot{width:100%; display:flex; flex-direction:column; align-items:center}
+.peek{font-family:var(--hand); font-size:1.5rem; color:var(--muted); margin-top:6px; animation:fadepulse 2.4s ease-in-out infinite}
+.actions{margin-top:auto; padding-top:10px; width:100%; display:flex; justify-content:center}
+.actions > button{width:min(270px, 100%); height:54px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font:700 1rem/1 var(--body)}
+@media (max-height:700px){ .shelf svg{max-width:124px} .shelf{gap:8px 12px} }
+.actions > [data-next]:not([hidden]){animation:rise .5s cubic-bezier(.2,.7,.2,1) .15s both}
+
+/* ---------- iPhone Safari ---------- */
+html{background:#2b0c15; touch-action:manipulation}
+@supports (-webkit-touch-callout:none){ body{background-attachment:scroll} }
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important; transition-duration:.01ms!important; transition-delay:0s!important}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="arc" d="M22 80 A58 58 0 0 1 138 80"/>
+    <clipPath id="inner"><circle cx="80" cy="80" r="66"/></clipPath>
+    <filter id="neon" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+</svg>
+<canvas id="fx" aria-hidden="true"></canvas>
+<button class="back-btn" id="back" aria-label="Zpět" hidden>←</button>
+
+<!-- lock screen: 4-digit code before anything else -->
+<div id="lock" role="dialog" aria-label="Zadej heslo">
+  <div class="lock-inner" id="lockInner">
+    <div class="lock-seal" aria-hidden="true">M</div>
+    <p class="eyebrow">jen pro Aničku</p>
+    <h2>Zadej heslo</h2>
+    <div class="pin" id="pin" aria-live="polite">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <p id="lockHint" aria-live="polite"></p>
+    <div class="pad" id="pad">
+      <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
+      <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
+      <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
+      <span></span><button data-d="0">0</button><button data-del aria-label="Smazat">⌫</button>
+    </div>
+  </div>
+</div>
+<main class="stage" id="stage">
+
+  <!-- 0: envelope -->
+  <section class="scene center" data-s="env">
+    <p class="eyebrow">tvůj první dopis do nového bytu</p>
+    <div class="env" id="env">
+      <div class="back"></div>
+      <div class="letter">Milá Aničko,<small>tohle je pro tebe ♡</small></div>
+      <div class="front"></div>
+      <div class="flap"></div>
+      <div class="to">pro Aničku</div>
+      <button class="seal" id="seal" aria-label="Otevřít obálku">M</button>
+    </div>
+    <p class="hint">Klepni na pečeť</p>
+  </section>
+
+  <!-- 1: the letter -->
+  <section class="scene" data-s="letter" hidden>
+    <div class="sheet">
+      <span class="when">neděle 18. října 2026</span>
+      <span class="dear">Milá Aničko,</span>
+      <p>chtěl jsem se tě zeptat nějak speciálně, ale večer už jsem to nevydržel.</p>
+      <p>Miluju to, jaká jsi, jak dobře vaříš a to, jak mě podporuješ. A i když jsme spolu byli teprve na čtyřech rande, vím, že už se na tuhle otázku nechci ptát nikoho jiného.</p>
+      <p>Proto chci, abys to měla speciální. Protože ty jsi pro mě speciální.</p>
+      <span class="sig">tvůj Marek</span>
+      <div class="attach">
+        <svg class="clip" viewBox="0 0 24 60" aria-hidden="true"><path d="M8 16V46a6 6 0 0 0 12 0V10a9 9 0 0 0-18 0V50" fill="none" stroke="#9c8a86" stroke-width="2.6" stroke-linecap="round"/></svg>
+        <span class="lbl">přílohy (4): naše rande</span>
+        <div class="row" id="attachRow"></div>
+        <span class="attach-hint" id="attachHint">↑ klepni na přílohu a otevři ji</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2–5: date stops are generated here -->
+  <template id="stopTpl">
+    <section class="scene center stop full" hidden>
+      <div class="trail"></div>
+      <p class="eyebrow"></p>
+      <button class="badge-btn locked" aria-label="Získat odznak"></button>
+      <div class="slot">
+        <p class="peek">co je uvnitř? ♡</p>
+        <div class="reveal" hidden>
+          <h2></h2>
+          <p class="lead"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="tap tap-pill">Otevřít odznak ♡</button>
+        <button class="btn" data-next hidden>Další rande</button>
+      </div>
+    </section>
+  </template>
+
+  <!-- 6: collection -->
+  <section class="scene center full" data-s="shelf" hidden>
+    <div class="trail"></div>
+    <p class="eyebrow">všechny přílohy otevřené</p>
+    <h2>Naše první čtyři rande</h2>
+    <div class="shelf" id="shelf"></div>
+    <div class="actions"><button class="btn" data-next>Už zbývá jen jedno</button></div>
+  </section>
+
+  <!-- 7: the question -->
+  <section class="scene center" data-s="ask" hidden>
+    <div class="trail"></div>
+    <p class="eyebrow">Ještě jednou oficiálně:</p>
+    <h1>Budeš moje přítelkyně?</h1>
+    <div class="arena" id="arena">
+      <button class="btn yes" id="yes">Ano</button>
+      <button class="btn ghost no" id="no">Ne</button>
+    </div>
+  </section>
+
+  <!-- 8: yes -->
+  <section class="scene center" data-s="yes" hidden>
+    <p class="eyebrow">nový odznak odemčen</p>
+    <div class="final-badge" id="finalBadge"></div>
+    <h1>Oficiálně spolu.</h1>
+    <p class="lead">Spolu od <span id="sinceLabel"></span></p>
+    <div class="clock">
+      <div><b id="cd">0</b><span id="cdl">dní</span></div>
+      <div><b id="ch">0</b><span id="chl">hodin</span></div>
+      <div><b id="cm">00</b><span>min</span></div>
+      <div><b id="cs">00</b><span>s</span></div>
+    </div>
+    <div class="mini-row" id="miniRow"></div>
+    <p class="lead">Vrať se sem 18. 11. 2026 ♡</p>
+    <p class="sig">tvůj Marek ♡</p>
+    <button class="btn ghost" id="replay">Projít to znovu</button>
+  </section>
+
+</main>
+
+<script>
+/* ===== Uprav tady ===== */
+const CONFIG = {
+  since: "2026-10-18T00:00:00",   // kdy ses jí zeptal (místní čas)
+  sinceLabel: "18. 10. 2026",
+  dates: [
+    { title:"Pizza date",
+      text:"Tréma, pizza a noční procházka po Praze. Byla to jen chvilka a já se hned těšil, až tě zase uvidím." },
+    { title:"Neon minigolf",
+      text:"1v1 v minigolfu, limča z australského stánku, Five Guys a první pusa." },
+    { title:"Sushi date night",
+      text:"Sushi, večer jen pro nás dva a první noc, která byla až moc krátká. Stejně nejlepší bylo se ráno probudit a mít tě vedle sebe." },
+    { title:"Laser show date",
+      text:"Na celém večeru se mi nejvíc líbilo, že jsem tě mohl držet za ruku a všichni mě vedle tebe mohli vidět. PS: tacos a štrůdl byly boží!" }
+  ],
+  noLines: ["Ne", "Určitě?", "Fakt určitě?", "Rozmysli si to", "Marek pláče", "Poslední šance", "Tak jo, ano"]
+};
+/* ====================== */
+
+document.documentElement.lang = "cs";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} };
+
+/* ---------- badge art ---------- */
+/* tiny kawaii face: eyes, smile, blush, centred at (x, y) */
+const face = (x, y, k = 1, ink = "#4a1a26", blush = "#ff8fa0") => `
+  <g transform="translate(${x} ${y}) scale(${k})">
+    <ellipse cx="-7" cy="0" rx="2" ry="2.6" fill="${ink}"/><ellipse cx="7" cy="0" rx="2" ry="2.6" fill="${ink}"/>
+    <circle cx="-6.3" cy="-.9" r=".7" fill="#fff"/><circle cx="7.7" cy="-.9" r=".7" fill="#fff"/>
+    <path d="M-3 3.2 q3 3 6 0" stroke="${ink}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-11.5" cy="4" rx="3.2" ry="1.9" fill="${blush}" opacity=".85"/><ellipse cx="11.5" cy="4" rx="3.2" ry="1.9" fill="${blush}" opacity=".85"/>
+  </g>`;
+const sparkle = (x, y, s, c) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 -6 L1.6 -1.6 6 0 1.6 1.6 0 6 -1.6 1.6 -6 0 -1.6 -1.6Z" fill="${c}"/>`;
+const BADGES = [
+  { label:"PIZZA DATE", bg:"#ef6a4c", ring:"#fff6ef", text:"#fff6ef", art:`
+    <circle cx="80" cy="80" r="66" fill="#fff6ef" opacity=".08"/>
+    ${sparkle(40, 66, 1, "#ffd66e")}${sparkle(122, 104, .8, "#fff6ef")}${sparkle(116, 52, .6, "#ffd66e")}
+    <path d="M42 58 Q80 38 118 58 L114 68 Q80 50 46 68 Z" fill="#d98a3d"/>
+    <path d="M47 57 Q80 42 113 57" stroke="#f0b06a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M46 67 Q80 51 114 67 L84 128 Q80 134 76 128 Z" fill="#ffd66e"/>
+    <path d="M65 112 q1 9 -2 13" stroke="#ffd66e" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <circle cx="62" cy="72" r="6" fill="#d9473a"/><circle cx="99" cy="73" r="5.5" fill="#d9473a"/><circle cx="80" cy="113" r="4.5" fill="#d9473a"/>
+    <circle cx="60" cy="70.5" r="1.6" fill="#ff8a7a"/><circle cx="97" cy="71.5" r="1.4" fill="#ff8a7a"/>
+    ${face(80, 88, 1.05)}
+    <path d="M100 98 q4 -3 6 1" stroke="#5c9a3b" stroke-width="2.4" stroke-linecap="round" fill="none"/>` },
+  { label:"NEON MINIGOLF", bg:"#1b1035", ring:"#ff4fd8", text:"#6ff7ff", glow:true, art:`
+    ${sparkle(46, 56, .8, "#6ff7ff")}${sparkle(126, 96, .6, "#ff4fd8")}${sparkle(60, 44, .5, "#fffbe0")}
+    <g filter="url(#neon)">
+      <line x1="100" y1="54" x2="100" y2="118" stroke="#6ff7ff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M100 55 L124 63 L100 71 Z" fill="none" stroke="#ff4fd8" stroke-width="3" stroke-linejoin="round"/>
+      <ellipse cx="100" cy="120" rx="15" ry="4.5" fill="none" stroke="#6ff7ff" stroke-width="2.5"/>
+      <path d="M34 128 Q80 112 126 128" stroke="#ff4fd8" stroke-width="2" fill="none" opacity=".7"/>
+      <circle cx="54" cy="104" r="12" fill="#ff9a3c"/>
+      <circle cx="80" cy="112" r="10" fill="#5dff8a"/>
+    </g>
+    <circle cx="50" cy="99" r="3" fill="#ffd2a8" opacity=".8"/><circle cx="77" cy="108" r="2.4" fill="#c9ffd8" opacity=".8"/>
+    ${face(54, 104, .62, "#3a1405", "#ff5f4a")}${face(80, 112, .52, "#0f3a1e", "#2fcf62")}
+    <path d="M65 86 c-2 -3 -6 -1 -4.5 2 l4.5 4.5 4.5 -4.5 c1.5 -3 -2.5 -5 -4.5 -2z" fill="#ff4fd8" filter="url(#neon)"/>` },
+  { label:"SUSHI DATE NIGHT", bg:"#b9a6ff", ring:"#fff6ef", text:"#2d2266", art:`
+    <circle cx="112" cy="54" r="11" fill="#fff6c9"/><circle cx="118" cy="49" r="10" fill="#b9a6ff"/>
+    ${sparkle(48, 54, 1, "#fff6c9")}${sparkle(66, 44, .5, "#fff6c9")}${sparkle(96, 64, .55, "#fff6c9")}
+    <ellipse cx="80" cy="126" rx="44" ry="7" fill="#2d2266" opacity=".18"/>
+    <rect x="42" y="92" width="76" height="32" rx="16" fill="#fffaf2" stroke="#2d2266" stroke-width="1.5"/>
+    <path d="M38 100 Q42 76 80 76 Q118 76 122 100 Q80 91 38 100 Z" fill="#ff9a76"/>
+    <path d="M56 84 l7 9 M74 79 l6 10 M93 80 l5 9 M108 86 l3 6" stroke="#ffd2c2" stroke-width="3" stroke-linecap="round"/>
+    <rect x="74" y="80" width="12" height="44" fill="#23303a"/>
+    <ellipse cx="62" cy="106" rx="2.2" ry="2.8" fill="#2d2266"/><ellipse cx="98" cy="106" rx="2.2" ry="2.8" fill="#2d2266"/>
+    <circle cx="62.8" cy="105" r=".8" fill="#fff"/><circle cx="98.8" cy="105" r=".8" fill="#fff"/>
+    <ellipse cx="54" cy="112" rx="4" ry="2.2" fill="#ff9aa8"/><ellipse cx="106" cy="112" rx="4" ry="2.2" fill="#ff9aa8"/>
+    <path d="M66 113 q3 3 6 0 M88 113 q3 3 6 0" stroke="#2d2266" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <line x1="112" y1="66" x2="136" y2="96" stroke="#c98b4e" stroke-width="3" stroke-linecap="round"/>
+    <line x1="118" y1="62" x2="140" y2="90" stroke="#c98b4e" stroke-width="3" stroke-linecap="round"/>` },
+  { label:"LASER SHOW", bg:"#13213f", ring:"#ffd36b", text:"#ffd36b", art:`
+    <polygon points="56,112 22,38 40,30" fill="#ff4fd8" opacity=".45"/>
+    <polygon points="80,104 70,22 90,22" fill="#6ff7ff" opacity=".4"/>
+    <polygon points="104,112 120,30 138,38" fill="#ffd36b" opacity=".45"/>
+    ${sparkle(48, 60, .7, "#fff6c9")}${sparkle(112, 58, .6, "#fff6c9")}${sparkle(80, 40, .5, "#fff6c9")}
+    <path d="M80 56 c-5 -7 -15 -3 -11 5 l11 11 11 -11 c4 -8 -6 -12 -11 -5z" fill="#ff8fa8"/>
+    <rect x="30" y="100" width="20" height="44" fill="#0a1228"/><rect x="110" y="98" width="22" height="46" fill="#0a1228"/>
+    <rect x="50" y="88" width="22" height="56" rx="2" fill="#24386b"/><rect x="92" y="94" width="20" height="50" rx="2" fill="#24386b"/>
+    <rect x="70" y="80" width="24" height="64" rx="3" fill="#2f4a8a"/>
+    <path d="M70 80 l12 -10 12 10z" fill="#2f4a8a"/>
+    <rect x="54" y="94" width="4" height="5" rx="1" fill="#ff4fd8"/><rect x="63" y="94" width="4" height="5" rx="1" fill="#ffd36b"/>
+    <rect x="54" y="104" width="4" height="5" rx="1" fill="#6ff7ff"/><rect x="96" y="100" width="4" height="5" rx="1" fill="#ffd36b"/>
+    <rect x="104" y="100" width="4" height="5" rx="1" fill="#ff4fd8"/><rect x="96" y="110" width="4" height="5" rx="1" fill="#6ff7ff"/>
+    <rect x="35" y="108" width="3" height="4" fill="#ffd36b"/><rect x="42" y="116" width="3" height="4" fill="#6ff7ff"/>
+    <rect x="116" y="106" width="3" height="4" fill="#ff4fd8"/><rect x="124" y="114" width="3" height="4" fill="#ffd36b"/>
+    ${face(82, 100, .85, "#fff6ef", "#ff8fa8")}` },
+  { label:"ANIČKA + MAREK", bg:"#ff8fa8", ring:"#fff6ef", text:"#4a1a26", art:`
+    <path d="M80 132 C48 110 36 94 36 76 C36 62 47 52 60 52 C69 52 76 57 80 64 C84 57 91 52 100 52 C113 52 124 62 124 76 C124 94 112 110 80 132 Z" fill="#d9475f"/>
+    <path d="M56 66 q6 -6 12 -3" stroke="#ffd0da" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <text x="80" y="98" text-anchor="middle" font-family="Gloock, Georgia, serif" font-size="18" fill="#fff6ef">18. 10.</text>` }
+];
+function badgeSVG(i){
+  const b = BADGES[i];
+  return `<svg viewBox="0 0 160 160" aria-hidden="true">
+    <circle cx="80" cy="80" r="79" fill="${b.ring}"/>
+    <circle cx="80" cy="80" r="73" fill="${b.bg}"/>
+    <circle cx="80" cy="80" r="69" fill="none" stroke="${b.text}" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="2 4"/>
+    <g clip-path="url(#inner)">${b.art}</g>
+    <text font-family="Karla, system-ui, sans-serif" font-weight="700" font-size="10" letter-spacing="1.6" fill="${b.text}" ${b.glow ? 'filter="url(#neon)"' : ''}>
+      <textPath href="#arc" startOffset="50%" text-anchor="middle">${b.label}</textPath></text>
+  </svg>`;
+}
+
+/* ---------- build date stops ---------- */
+const tpl = $("stopTpl"), shelfScene = document.querySelector('[data-s="shelf"]');
+CONFIG.dates.forEach((d, i) => {
+  const s = tpl.content.firstElementChild.cloneNode(true);
+  s.dataset.stop = i;
+  s.querySelector(".eyebrow").textContent = `rande ${i + 1} ze 4`;
+  const btn = s.querySelector(".badge-btn");
+  btn.innerHTML = badgeSVG(i);
+  s.querySelector("h2").textContent = d.title;
+  s.querySelector(".lead").textContent = d.text;
+  if (i === CONFIG.dates.length - 1) s.querySelector("[data-next]").textContent = "Ukázat všechny odznaky";
+  s.classList.add("is-locked");
+  /* tapping anywhere on a locked stop opens its badge */
+  s.addEventListener("click", () => collect(i, s, btn));
+  shelfScene.before(s);
+});
+$("shelf").innerHTML = CONFIG.dates.map((d, i) => `<figure>${badgeSVG(i)}<figcaption>${d.title}</figcaption></figure>`).join("");
+$("finalBadge").innerHTML = badgeSVG(4);
+$("miniRow").innerHTML = [0,1,2,3].map(badgeSVG).join("");
+$("sinceLabel").textContent = CONFIG.sinceLabel;
+
+let got = [false, false, false, false];
+const HEART = "M12 21C5 16 1 12 1 7.5 1 4 3.6 1.5 6.8 1.5c2.2 0 4 1.2 5.2 3 1.2-1.8 3-3 5.2-3C20.4 1.5 23 4 23 7.5 23 12 19 16 12 21Z";
+function trailHTML(here){
+  /* 4 date hearts + a final heart for the question */
+  return [0,1,2,3,4].map(i => {
+    const done = i < 4 ? got[i] : false, now = i === here;
+    const fill = done ? BADGES[i].bg : "none";
+    const stroke = done ? BADGES[i].ring : now ? "var(--candle)" : "rgba(207,160,172,.55)";
+    const node = `<span class="heart-node ${done ? "done" : ""} ${now ? "now" : ""} ${i === 4 ? "last" : ""}" aria-label="${i < 4 ? CONFIG.dates[i].title : "Otázka"}${done ? ", hotovo" : ""}">
+      <svg viewBox="-1 0 26 23"><path d="${HEART}" fill="${fill}" stroke="${stroke}" stroke-width="2" ${!done && !now ? 'stroke-dasharray="3 2.5"' : ""}/>
+      ${done ? '<path d="M7 7.5 q1.5 -2.5 4 -2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/>' : ""}</svg></span>`;
+    return node + (i < 4 ? `<span class="line ${done ? "done" : ""}"></span>` : "");
+  }).join("");
+}
+function renderTrails(){
+  document.querySelectorAll(".stop").forEach(s => { s.querySelector(".trail").innerHTML = trailHTML(+s.dataset.stop); });
+  document.querySelector('[data-s="shelf"] .trail').innerHTML = trailHTML(4);
+  document.querySelector('[data-s="ask"] .trail').innerHTML = trailHTML(4);
+  const next = got.indexOf(false);
+  $("attachRow").innerHTML = CONFIG.dates.map((d, i) =>
+    `<button class="${got[i] ? "" : "locked"} ${i === next ? "next" : ""}" aria-label="Příloha ${i + 1}: ${d.title}">${badgeSVG(i)}</button>`).join("");
+  $("attachHint").textContent = next < 0 ? "↑ klikni tam a pokračuj" : next === 0 ? "↑ klikni tam" : "↑ klikni na další";
+}
+$("attachRow").addEventListener("click", e => {
+  if (!e.target.closest("button")) return;
+  const next = got.indexOf(false);
+  go(next < 0 ? scenes.findIndex(s => s.dataset.s === "shelf") : 2 + next);
+});
+renderTrails();
+
+function collect(i, s, btn){
+  if (got[i]) return;
+  got[i] = true;
+  s.classList.remove("is-locked");
+  btn.classList.remove("locked"); btn.classList.add("got");
+  btn.setAttribute("aria-label", "Odznak získán: " + CONFIG.dates[i].title);
+  s.querySelector(".tap").hidden = true; s.querySelector(".peek").hidden = true;
+  s.querySelector("[data-next]").hidden = false;
+  const r = s.querySelector(".reveal"); r.hidden = false; r.classList.add("show");
+  renderTrails();
+  const b = btn.getBoundingClientRect();
+  burst(b.left + b.width / 2, b.top + b.height / 2, 46);
+  buzz([25, 40, 25]);
+}
+
+/* ---------- navigation ---------- */
+const scenes = [...document.querySelectorAll(".scene")];
+let cur = 0;
+function go(i){
+  scenes[cur].hidden = true;
+  cur = i;
+  const s = scenes[cur];
+  s.hidden = false;
+  s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter");
+  window.scrollTo(0, 0);
+  $("back").hidden = !(cur >= 2 && s.dataset.s !== "yes");
+  const h = s.querySelector("h1,h2,.dear,.eyebrow");
+  if (h){ h.tabIndex = -1; h.focus({preventScroll:true}); }
+  if (s.dataset.s === "yes") celebrate();
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-next]")) go(cur + 1); });
+$("back").addEventListener("click", () => { if (cur >= 2) go(cur - 1); });
+
+/* lock screen */
+const PIN = "1810";
+let entered = "";
+const pinDots = [...$("pin").children];
+function drawPin(){ pinDots.forEach((d, i) => d.classList.toggle("on", i < entered.length)); }
+function press(d){
+  if (entered.length >= 4 || $("lock").classList.contains("open")) return;
+  entered += d; drawPin(); buzz(8);
+  if (entered.length < 4) return;
+  if (entered === PIN){
+    $("pin").classList.add("ok"); buzz([20, 40, 20]);
+    const pr = $("pin").getBoundingClientRect();
+    $("fx").classList.add("top"); burst(pr.left + pr.width / 2, pr.top + pr.height / 2, 40);
+    setTimeout(() => $("fx").classList.remove("top"), 2200);
+    setTimeout(() => { $("lock").classList.add("open"); $("seal").focus({preventScroll:true}); }, 350);
+    setTimeout(() => { $("lock").hidden = true; }, 900);
+  } else {
+    const box = $("lockInner");
+    box.classList.remove("shake"); void box.offsetWidth; box.classList.add("shake");
+    $("lockHint").textContent = "to není ono, zkus to znovu ♡";
+    buzz([60, 40, 60]);
+    setTimeout(() => { entered = ""; drawPin(); }, 450);
+  }
+}
+$("pad").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.hasAttribute("data-del")){ entered = entered.slice(0, -1); drawPin(); }
+  else press(b.dataset.d);
+});
+document.addEventListener("keydown", e => {
+  if ($("lock").hidden) return;
+  if (/^[0-9]$/.test(e.key)) press(e.key);
+  else if (e.key === "Backspace"){ entered = entered.slice(0, -1); drawPin(); }
+});
+
+/* envelope: flap opens, letter slides out, envelope falls away */
+$("seal").addEventListener("click", () => {
+  const env = $("env");
+  env.classList.add("open"); buzz(20);
+  if (reduce){ setTimeout(() => go(1), 200); return; }
+  setTimeout(() => env.classList.add("pull"), 950);
+  setTimeout(() => go(1), 1300);
+});
+
+/* ---------- the question ---------- */
+const yes = $("yes"), no = $("no"), arena = $("arena");
+let tries = 0;
+const noIsYes = () => tries >= CONFIG.noLines.length - 1;
+const yesIndex = scenes.findIndex(s => s.dataset.s === "yes");
+function dodge(){
+  if (noIsYes()) return;
+  tries++;
+  no.textContent = CONFIG.noLines[tries];
+  yes.style.setProperty("--s", Math.min(1 + tries * 0.14, 1.9));
+  if (noIsYes()){
+    no.classList.remove("ghost");
+    no.style.left = "calc(50% - " + no.offsetWidth / 2 + "px)";
+    no.style.top = "72%";
+    return;
+  }
+  const W = arena.clientWidth - no.offsetWidth, H = arena.clientHeight - no.offsetHeight;
+  let x, y, k = 0;
+  do { x = Math.random() * W; y = Math.random() * H; k++; }
+  while (k < 20 && Math.abs(x + no.offsetWidth / 2 - arena.clientWidth / 2) < 120 && y < H * 0.55);
+  no.style.left = x + "px"; no.style.top = y + "px";
+  buzz(15);
+}
+no.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") dodge(); });
+no.addEventListener("pointerdown", e => { if (!noIsYes()){ e.preventDefault(); dodge(); } });
+no.addEventListener("click", () => { if (noIsYes()) go(yesIndex); else dodge(); });
+yes.addEventListener("click", () => go(yesIndex));
+
+/* ---------- counter ---------- */
+const plural = (n, f) => n === 1 ? f[0] : (n >= 2 && n <= 4) ? f[1] : f[2];
+let clockTimer = null;
+function updateClock(){
+  const s = Math.floor(Math.max(0, Date.now() - new Date(CONFIG.since).getTime()) / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600);
+  $("cd").textContent = d; $("cdl").textContent = plural(d, ["den", "dny", "dní"]);
+  $("ch").textContent = h; $("chl").textContent = plural(h, ["hodina", "hodiny", "hodin"]);
+  $("cm").textContent = String(Math.floor(s % 3600 / 60)).padStart(2, "0");
+  $("cs").textContent = String(s % 60).padStart(2, "0");
+}
+
+/* ---------- hearts ---------- */
+const cv = $("fx"), cx = cv.getContext("2d");
+const COLS = ["#ff8fa8", "#d9475f", "#f4cf96", "#fbe9ec", "#ffb3c4"];
+let parts = [], fxRaf = null;
+function size(){ const d = devicePixelRatio || 1; cv.width = innerWidth * d; cv.height = innerHeight * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener("resize", size); size();
+function heartPath(s){
+  const y = -s / 2;
+  cx.beginPath();
+  cx.moveTo(0, y + s * .3);
+  cx.bezierCurveTo(0, y, -s * .5, y, -s * .5, y + s * .3);
+  cx.bezierCurveTo(-s * .5, y + s * .6, 0, y + s * .8, 0, y + s);
+  cx.bezierCurveTo(0, y + s * .8, s * .5, y + s * .6, s * .5, y + s * .3);
+  cx.bezierCurveTo(s * .5, y, 0, y, 0, y + s * .3);
+  cx.fill();
+}
+function burst(x, y, n, power = 9){
+  if (reduce) return;
+  for (let i = 0; i < n; i++){
+    const a = Math.random() * Math.PI * 2, v = power * (.4 + Math.random() * .8);
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4, s: 7 + Math.random() * 12,
+      r: Math.random() * 6, vr: (Math.random() - .5) * .2, c: COLS[i % COLS.length] });
+  }
+  if (!fxRaf) fxRaf = requestAnimationFrame(step);
+}
+function celebrate(){
+  updateClock(); clearInterval(clockTimer); clockTimer = setInterval(updateClock, 1000);
+  buzz([40, 80, 40, 80, 120]);
+  if (reduce) return;
+  for (let i = 0; i < 170; i++){
+    parts.push({ x: innerWidth / 2 + (Math.random() - .5) * 80, y: innerHeight * .75,
+      vx: (Math.random() - .5) * 13, vy: -Math.random() * 15 - 6, s: 8 + Math.random() * 16,
+      r: Math.random() * 6, vr: (Math.random() - .5) * .2, c: COLS[i % COLS.length] });
+  }
+  let n = 0;
+  const rain = setInterval(() => {
+    for (let i = 0; i < 3; i++) parts.push({ x: Math.random() * innerWidth, y: -20, vx: (Math.random() - .5), vy: 1 + Math.random() * 2,
+      s: 8 + Math.random() * 12, r: 0, vr: (Math.random() - .5) * .05, c: COLS[(Math.random() * COLS.length) | 0], slow: true });
+    if (++n > 60) clearInterval(rain);
+  }, 120);
+  if (!fxRaf) fxRaf = requestAnimationFrame(step);
+}
+function step(){
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  parts = parts.filter(p => p.y < innerHeight + 40);
+  for (const p of parts){
+    if (p.slow) p.vx += Math.sin(p.y / 40) * .03; else { p.vy += .32; p.vx *= .99; }
+    p.x += p.vx; p.y += p.vy; p.r += p.vr;
+    cx.save(); cx.globalAlpha = .9; cx.fillStyle = p.c; cx.translate(p.x, p.y); cx.rotate(p.r); heartPath(p.s); cx.restore();
+  }
+  fxRaf = parts.length ? requestAnimationFrame(step) : null;
+}
+
+/* ---------- replay ---------- */
+$("replay").addEventListener("click", () => {
+  $("env").classList.remove("open", "pull");
+  got = [false, false, false, false];
+  document.querySelectorAll(".stop").forEach(s => {
+    const b = s.querySelector(".badge-btn"); b.classList.remove("got"); b.classList.add("locked"); b.setAttribute("aria-label", "Získat odznak");
+    s.querySelector(".tap").hidden = false; s.querySelector(".reveal").hidden = true;
+    s.querySelector(".peek").hidden = false; s.querySelector("[data-next]").hidden = true; s.classList.add("is-locked");
+  });
+  renderTrails();
+  parts = []; clearInterval(clockTimer);
+  tries = 0; no.textContent = CONFIG.noLines[0]; no.classList.add("ghost"); no.style.left = ""; no.style.top = ""; yes.style.removeProperty("--s");
+  go(0);
+});
+
+/* ---------- cute extras: drifting hearts + a heart wherever she taps ---------- */
+function floaties(host, n, fixed){
+  const f = document.createElement("div");
+  f.className = "floaties" + (fixed ? " fixed" : ""); f.setAttribute("aria-hidden", "true");
+  f.innerHTML = Array.from({length:n}, () => {
+    const t = 11 + Math.random() * 9;
+    return `<i style="left:${Math.random() * 94}%;--s:${(.6 + Math.random() * 1.1).toFixed(2)};--t:${t.toFixed(1)}s;--d:${(-Math.random() * t).toFixed(1)}s;color:${COLS[(Math.random() * COLS.length) | 0]}"><svg viewBox="-1 0 26 23"><path d="${HEART}"/></svg></i>`;
+  }).join("");
+  host.prepend(f);
+}
+if (!reduce){ floaties(document.body, 12, true); floaties($("lock"), 10); }
+document.addEventListener("pointerdown", e => {
+  if (reduce) return;
+  const h = document.createElement("span");
+  h.className = "tap-heart";
+  h.style.left = e.clientX + "px"; h.style.top = e.clientY + "px";
+  h.style.setProperty("--dx", (Math.random() * 36 - 18).toFixed(0) + "px");
+  h.style.color = COLS[(Math.random() * 3) | 0];
+  h.innerHTML = `<svg viewBox="-1 0 26 23"><path d="${HEART}"/></svg>`;
+  document.body.appendChild(h);
+  setTimeout(() => h.remove(), 950);
+}, {passive:true});
+</script>
+</body>
+</html>
