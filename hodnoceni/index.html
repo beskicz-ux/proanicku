@@ -62,14 +62,20 @@ h2{font-size:1.6rem}
 .stamp{position:absolute; top:22px; padding:6px 14px; border-radius:12px; font-weight:700; font-size:1.3rem; border:3px solid; opacity:0; transform:rotate(-12deg); background:rgba(255,255,255,.9)}
 .stamp.yes{left:18px; color:var(--rose-deep); border-color:var(--rose-deep)}
 .stamp.no{right:18px; color:#6b5560; border-color:#6b5560; transform:rotate(12deg)}
-.tiers{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+.stamp.maybe{left:50%; top:auto; bottom:110px; color:#b8915a; border-color:#b8915a; transform:translateX(-50%)}
+.match{position:fixed; inset:0; z-index:50; display:none; place-items:center; background:rgba(43,12,21,.82); backdrop-filter:blur(6px); text-align:center; padding:24px}
+.match.on{display:grid; animation:fadein .25s}
+.match .box{max-width:340px}
+.match img{width:200px; height:200px; object-fit:contain; background:#fff; border-radius:24px; margin:14px auto; display:block; box-shadow:0 0 0 4px var(--t0), 0 20px 60px rgba(255,93,122,.45)}
+.match h1{font-size:2.8rem; color:var(--rose)}
+@keyframes fadein{from{opacity:0; transform:scale(.94)}to{opacity:1; transform:none}}
+.tiers{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
 .tiers button{border-radius:18px; padding:12px 4px 10px; background:var(--wine-2); display:flex; flex-direction:column; align-items:center; gap:4px; font-weight:700; font-size:.85rem; border:2px solid transparent}
 .tiers button span{font-size:1.6rem; line-height:1}
 .tiers button:active{transform:scale(.95)}
 .tiers button[data-t="0"]{border-color:var(--t0)}
 .tiers button[data-t="1"]{border-color:var(--t1)}
-.tiers button[data-t="2"]{border-color:var(--t2)}
-.tiers button[data-t="3"]{border-color:var(--t3)}
+.tiers button[data-t="2"]{border-color:var(--t3)}
 .hint{text-align:center; font-size:.8rem; margin-top:10px}
 
 /* Waiting / reveal */
@@ -122,12 +128,11 @@ h2{font-size:1.6rem}
     <h1>49 poloh.<br>Žádné kecy.</h1>
     <p class="muted" style="line-height:1.5;margin-top:14px">Každou ohodnoť jedním tapnutím. Ten druhý tvoje odpovědi neuvidí, dokud nedohodnotíte oba. Pak se ukáže, kde se shodnete.</p>
     <div class="legend" style="justify-content:flex-start;margin-top:18px">
-      <span style="background:var(--t0)">🔥 Chci</span>
-      <span style="background:#b8915a">👀 Zkusit</span>
-      <span style="background:var(--t2)">🤔 Možná</span>
-      <span style="background:var(--t3)">✋ Ne</span>
+      <span style="background:var(--t0)">→ 🔥 Ano</span>
+      <span style="background:#b8915a">↑ 🤔 Možná</span>
+      <span style="background:var(--t3)">← ✋ Ne</span>
     </div>
-    <p class="muted" style="font-size:.85rem;margin-top:14px">Tip: swipe doprava = 🔥, doleva = ✋</p>
+    <p class="muted" style="font-size:.85rem;margin-top:14px">Swipe doprava = ano, doleva = ne, nahoru = možná. Když dáte oba ano, hned uvidíte shodu ♡</p>
     <button class="big-btn" id="go">Jdeme na to</button>
   </div>
 </section>
@@ -144,14 +149,14 @@ h2{font-size:1.6rem}
       <div class="pic"><img id="cardImg" alt=""></div>
       <div class="name"><small id="cardNum"></small><b id="cardName"></b></div>
     </div>
-    <div class="stamp yes" id="stYes">🔥 CHCI</div>
+    <div class="stamp yes" id="stYes">🔥 ANO</div>
     <div class="stamp no" id="stNo">✋ NE</div>
+    <div class="stamp maybe" id="stMaybe">🤔 MOŽNÁ</div>
   </div>
   <div class="tiers" id="tiers">
-    <button data-t="0"><span>🔥</span>Chci</button>
-    <button data-t="1"><span>👀</span>Zkusit</button>
-    <button data-t="2"><span>🤔</span>Možná</button>
-    <button data-t="3"><span>✋</span>Ne</button>
+    <button data-t="2"><span>✋</span>Ne</button>
+    <button data-t="1"><span>🤔</span>Možná</button>
+    <button data-t="0"><span>🔥</span>Ano</button>
   </div>
   <p class="hint muted" id="saveState">&nbsp;</p>
 </section>
@@ -183,14 +188,21 @@ h2{font-size:1.6rem}
     <button data-tab="all">Všechno</button>
   </div>
   <div class="legend">
-    <span style="background:var(--t0)">🔥 Chci</span>
-    <span style="background:#b8915a">👀 Zkusit</span>
-    <span style="background:var(--t2)">🤔 Možná</span>
+    <span style="background:var(--t0)">🔥 Ano</span>
+    <span style="background:#b8915a">🤔 Možná</span>
     <span style="background:var(--t3)">✋ Ne</span>
   </div>
   <div class="grid" id="grid"></div>
   <button class="ghost" id="reedit2" style="margin-top:22px">Upravit moje odpovědi</button>
 </section>
+
+<div class="match" id="match"><div class="box">
+  <p class="hand">oba jste swipnuli doprava</p>
+  <h1>Shoda! 🔥</h1>
+  <img id="matchImg" alt="">
+  <h2 id="matchName"></h2>
+  <button class="big-btn" id="matchOk">Pokračovat</button>
+</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -221,10 +233,9 @@ const POS = [
 ];
 const N = POS.length;
 const TIER = [
-  {e:"🔥", l:"Chci",   c:"var(--t0)"},
-  {e:"👀", l:"Zkusit", c:"#b8915a"},
-  {e:"🤔", l:"Možná",  c:"var(--t2)"},
-  {e:"✋", l:"Ne",     c:"var(--t3)"}
+  {e:"🔥", l:"Ano",   c:"var(--t0)"},
+  {e:"🤔", l:"Možná", c:"#b8915a"},
+  {e:"✋", l:"Ne",    c:"var(--t3)"}
 ];
 const $ = id => document.getElementById(id);
 const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p) }catch(e){} };
@@ -251,6 +262,13 @@ async function saveOne(who, pos, tier){
   }
   const rows = local.get().filter(r => !(r.who === who && r.pos === pos));
   rows.push({ who, pos, tier }); local.set(rows);
+}
+async function theirTier(who, pos){
+  if (sb){
+    const { data } = await sb.from("rankings").select("tier").match({ who, pos }).maybeSingle();
+    return data ? data.tier : undefined;
+  }
+  const r = local.get().find(x => x.who === who && x.pos === pos); return r ? r.tier : undefined;
 }
 async function removeOne(who, pos){
   if (sb){ await sb.from("rankings").delete().match({ who, pos }); return; }
@@ -345,15 +363,22 @@ async function rate(tier, dir){
   busy = true;
   const pos = current + 1;
   const card = $("card");
-  const dx = dir === "left" ? -1 : dir === "right" ? 1 : (tier <= 1 ? 1 : -1);
-  card.style.transform = `translateX(${dx * 120}%) rotate(${dx * 14}deg)`;
+  if (tier === 1) card.style.transform = "translateY(-130%) rotate(-4deg)";
+  else { const dx = tier === 0 ? 1 : -1; card.style.transform = `translateX(${dx * 120}%) rotate(${dx * 14}deg)`; }
   card.style.opacity = "0";
   buzz(tier === 0 ? [10, 20, 10] : 10);
   mine[pos] = tier; history.push(pos);
   drawProgress();
   saveOne(me.id, pos, tier).then(() => alertSave("")).catch(() => alertSave("⚠︎ neuloženo – zkus to znovu s internetem"));
-  setTimeout(() => { $("stYes").style.opacity = 0; $("stNo").style.opacity = 0; busy = false; nextCard(); }, 260);
+  if (tier === 0) theirTier(other.id, pos).then(t => { if (t !== undefined) theirs[pos] = t; if (t === 0) showMatch(pos); }).catch(() => {});
+  setTimeout(() => { ["stYes","stNo","stMaybe"].forEach(id => $(id).style.opacity = 0); busy = false; nextCard(); }, 260);
 }
+function showMatch(pos){
+  $("matchImg").src = "img/" + POS[pos - 1][1];
+  $("matchName").textContent = POS[pos - 1][0];
+  $("match").classList.add("on"); buzz([30, 60, 30, 60, 80]);
+}
+$("matchOk").onclick = () => $("match").classList.remove("on");
 function alertSave(msg){ $("saveState").innerHTML = msg || "&nbsp;"; }
 $("tiers").addEventListener("click", e => {
   const b = e.target.closest("button"); if (b) rate(+b.dataset.t);
@@ -377,20 +402,25 @@ function nextCardAt(i){
 /* swipe */
 (() => {
   const card = $("card"); let x0 = null, y0 = 0, dx = 0;
-  card.addEventListener("pointerdown", e => { if (busy) return; x0 = e.clientX; y0 = e.clientY; dx = 0; card.style.transition = "none"; card.setPointerCapture(e.pointerId); });
+  let dy = 0;
+  card.style.touchAction = "none";
+  card.addEventListener("pointerdown", e => { if (busy) return; x0 = e.clientX; y0 = e.clientY; dx = 0; dy = 0; card.style.transition = "none"; card.setPointerCapture(e.pointerId); });
   card.addEventListener("pointermove", e => {
     if (x0 === null) return;
-    dx = e.clientX - x0; const dy = e.clientY - y0;
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 10) return;
-    card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
-    $("stYes").style.opacity = Math.max(0, Math.min(1, dx / 90));
-    $("stNo").style.opacity = Math.max(0, Math.min(1, -dx / 90));
+    dx = e.clientX - x0; dy = e.clientY - y0;
+    const up = Math.max(0, -dy);
+    card.style.transform = `translate(${dx}px, ${Math.min(dy, 0)}px) rotate(${dx / 18}deg)`;
+    const vert = up > Math.abs(dx);
+    $("stYes").style.opacity = vert ? 0 : Math.max(0, Math.min(1, dx / 90));
+    $("stNo").style.opacity = vert ? 0 : Math.max(0, Math.min(1, -dx / 90));
+    $("stMaybe").style.opacity = vert ? Math.min(1, up / 90) : 0;
   });
   const end = () => {
     if (x0 === null) return; x0 = null; card.style.transition = "";
-    if (dx > 90) rate(0, "right");
-    else if (dx < -90) rate(3, "left");
-    else { card.style.transform = ""; $("stYes").style.opacity = 0; $("stNo").style.opacity = 0; }
+    if (-dy > 90 && -dy > Math.abs(dx)) rate(1);
+    else if (dx > 90) rate(0);
+    else if (dx < -90) rate(2);
+    else { card.style.transform = ""; ["stYes","stNo","stMaybe"].forEach(id => $(id).style.opacity = 0); }
   };
   card.addEventListener("pointerup", end); card.addEventListener("pointercancel", end);
 })();
@@ -427,14 +457,14 @@ function showReveal(){
   show("s-reveal"); buzz([20, 60, 20, 60, 40]);
   const m = matches();
   $("matchCount").textContent = m.length;
-  const fire = m.filter(i => mine[i] === 0 && theirs[i] === 0).length;
-  $("bothFire").textContent = fire ? `z toho ${fire}× oba 🔥` : "";
+  let almost = 0; for (let i = 1; i <= N; i++) if (mine[i] + theirs[i] === 1) almost++;
+  $("bothFire").textContent = almost ? `+ ${almost}× ano a možná 👀` : "";
   drawGrid();
 }
 function matches(){
   const out = [];
-  for (let i = 1; i <= N; i++) if (mine[i] <= 1 && theirs[i] <= 1) out.push(i);
-  return out.sort((a, b) => (mine[a] + theirs[a]) - (mine[b] + theirs[b]));
+  for (let i = 1; i <= N; i++) if (mine[i] === 0 && theirs[i] === 0) out.push(i);
+  return out;
 }
 function drawGrid(){
   const list = tab === "match" ? matches() : POS.map((_, i) => i + 1);
