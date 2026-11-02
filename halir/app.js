@@ -5,6 +5,7 @@
 /* ===== NASTAVENÍ ===== */
 const AGENT_ID = "agent_4601m6ett2qefv7vzde4710n5656";            // ElevenLabs Conversational AI agent id (Halíř hlas). Prázdné = jen offline vyhledávání v poznámkách.
 const DEFAULT_EXAM_DAYS = 14;
+const EXAM_DATE = "2026-11-16";  // zkouška 1MT300
 /* ===================== */
 
 const LS = "halir.v1";
@@ -30,7 +31,7 @@ const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ
 /* ---------- state ---------- */
 function defaults() {
   const t = today();
-  return { v: 1, examDate: addDays(t, DEFAULT_EXAM_DAYS), start: t, cards: {}, q: {}, read: {}, xp: {}, goal: 150, sound: true,
+  return { v: 1, examDate: EXAM_DATE > t ? EXAM_DATE : addDays(t, DEFAULT_EXAM_DAYS), start: t, cards: {}, q: {}, read: {}, xp: {}, goal: 150, sound: true,
     feyn: {}, lists: {}, done: {}, exams: [], planFor: null, onlyRead: false };
 }
 let S = (() => { try { return Object.assign(defaults(), JSON.parse(localStorage.getItem(LS) || "{}")); } catch (e) { return defaults(); } })();
@@ -236,17 +237,19 @@ const DAYTYPE = {
 function buildPlan(fromDate, n, unread) {
   const days = [];
   if (n <= 0) return days;
-  let learnDays = unread.length ? Math.min(unread.length, Math.max(1, Math.ceil(n * .6))) : 0;
+  // posledních ~5 dní před zkouškou = jen opakování a simulace, nová látka musí být hotová dřív
+  const review = n >= 9 ? 5 : Math.max(1, Math.floor(n * .4));
+  let learnDays = unread.length ? Math.min(unread.length, Math.max(1, n - review)) : 0;
   if (n <= 2 && unread.length) learnDays = n;
   let k = 0, j = 0;
-  const cyc = ["mix", "weak", "exam"];
+  const cyc = ["mix", "exam", "weak", "exam", "mix", "weak"];
   for (let d = 0; d < n; d++) {
     const date = addDays(fromDate, d);
     if (d < learnDays) {
       const take = Math.ceil((unread.length - k) / (learnDays - d));
       days.push({ date, type: "learn", ids: unread.slice(k, k + take) }); k += take;
     } else if (n - d === 1 && n > 1) days.push({ date, type: "final", ids: [] });
-    else days.push({ date, type: cyc[j++ % 3], ids: [] });
+    else days.push({ date, type: cyc[j++ % cyc.length], ids: [] });
   }
   return days;
 }
@@ -275,7 +278,10 @@ function missions() {
   } else if (p.type === "mix" || p.type === "final") {
     list.push({ k: "quiz", ico: ic.bolt, t: "Prokládaný kvíz", s: "20 otázek ze všech lekcí najednou", href: "#/kviz?mix=1&n=20&m=quiz", done: (dt.quiz || 0) >= 1 });
     list.push({ k: "explain", ico: ic.brain, t: "Vysvětli Halířovi", s: "2 zkouškové otázky vlastními slovy", href: "#/otazky?pick=1", done: (dt.explain || 0) >= 2 });
-    if (p.type === "final") list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Jen to, co ti ještě nejde", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
+    if (p.type === "final") {
+      list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Jen to, co ti ještě nejde", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
+      list.push({ k: "tahak", ico: ic.book, t: "Tahák: projeď celý kurz", s: "Velký obraz, vzorce a seznamy všech 12 přednášek", href: "#/tahak", done: !!dt.tahak });
+    }
   } else if (p.type === "weak") {
     list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Otázky a kartičky, kde chybuješ", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
     list.push({ k: "lists", ico: ic.list, t: "Vyjmenuj to", s: "3 seznamy, které se na zkoušce vyjmenovávají", href: "#/seznamy?pick=1", done: (dt.lists || 0) >= 3 });
@@ -314,7 +320,7 @@ async function render() {
   const map = {
     "": viewToday, mapa: viewMap, lekce: viewLecture, uc: viewLearn, karty: viewCards, kviz: viewQuiz, zkouska: viewExam,
     otazky: viewQuestions, otazka: viewFeynman, seznamy: viewLists, priklady: viewProblems, grafy: viewGraphs,
-    halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch,
+    halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch, tahak: viewCheat,
   };
   setNav({ "": "dnes", mapa: "mapa", lekce: "mapa", uc: "mapa", karty: "karty", kviz: "dnes", halir: "halir", plan: "plan", jak: "plan" }[r] || "");
   (map[r] || viewToday)(parts, q);
@@ -860,7 +866,7 @@ function viewPlan() {
     <div class="row wrap" style="margin-top:12px"><label style="flex:1;min-width:160px"><b>Denní cíl</b><p class="small muted">XP za den (≈ 1 XP = 6 s učení)</p></label>
       <select id="goal">${[80, 150, 250, 400].map(g => `<option value="${g}" ${S.goal === g ? "selected" : ""}>${g} XP${g === 80 ? " · lehký" : g === 150 ? " · normální" : g === 250 ? " · intenzivní" : " · šílený"}</option>`).join("")}</select></div>
     <div class="row wrap" style="margin-top:12px"><b style="flex:1">Zvuky</b><button class="btn ghost sm" id="snd">${ic.sound} ${S.sound ? "Zapnuto" : "Vypnuto"}</button></div></div>
-    <div class="sec-title"><h2>${n > 0 ? `${n} ${plural(n, "den", "dny", "dní")}` : "Hotovo"}</h2><span class="small muted">60 % nová látka · 40 % opakování</span></div>
+    <div class="sec-title"><h2>${n > 0 ? `${n} ${plural(n, "den", "dny", "dní")}` : "Hotovo"}</h2><span class="small muted">${(() => { const last = [...p].reverse().find(d => d.type === "learn"); return last ? `nová látka hotová do ${parseD(last.date).getDate()}. ${parseD(last.date).getMonth() + 1}., pak jen opakování` : "už jen opakování a simulace"; })()}</span></div>
     <div class="card">${p.map((d, i) => {
       const dd = parseD(d.date); const ty = DAYTYPE[d.type];
       const what = d.type === "learn" ? d.ids.map(id => `<b>${id} ${esc(LEC[id].title)}</b>`).join("") + `<span>čtení + kontroly + kartičky, k tomu opakování</span>`
@@ -881,6 +887,21 @@ function viewPlan() {
   $("#exp").onclick = () => { const b = new Blob([JSON.stringify(S)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `halir-zaloha-${today()}.json`; a.click(); };
   $("#imp").onchange = async e => { try { const d = JSON.parse(await e.target.files[0].text()); if (!d.cards) throw 0; S = Object.assign(defaults(), d); save(); toast("Záloha nahrána ♡"); render(); } catch (err) { toast("Tohle není záloha Halíře."); } };
   $("#rst").onclick = () => { if (confirm("Opravdu smazat celý postup?")) { localStorage.removeItem(LS); S = defaults(); save(); render(); } };
+}
+
+/* =================================================================== */
+/* TAHÁK — rychlý přehled celého kurzu na poslední den                 */
+/* =================================================================== */
+function viewCheat() {
+  const dt = doneToday(); if (!dt.tahak) { dt.tahak = 1; addXP(20); save(); }
+  view().innerHTML = `${topbar("#/")}<h1>Tahák celého kurzu</h1>
+    <p class="muted" style="margin:6px 0 14px">Na poslední den: žádná nová látka, jen si projeď velký obraz, vzorce a seznamy. U každé přednášky si nejdřív zkus říct nahlas, o čem je — až pak čti.</p>
+    ${lectures().map(l => `<details class="card dark" style="margin-bottom:10px"><summary style="cursor:pointer"><b>${l.id} · ${esc(l.title)}</b> <span class="small dim">${Math.round(mastery(l.id) * 100)} % upevněno</span></summary>
+      <div class="md" style="margin-top:10px">${md(l.bigPicture)}</div>
+      ${l.formulas?.length ? `<p class="hand" style="margin-top:12px">Vzorce</p>` + l.formulas.map(f => `<div class="formula"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div></div>`).join("") : ""}
+      ${l.lists?.length ? `<p class="hand" style="margin-top:12px">Vyjmenuj</p>` + l.lists.map(x => `<div style="margin:6px 0"><b class="small">${esc(x.title)}</b><div class="md small">${x.items.map(i => mdi(i)).join(" · ")}</div></div>`).join("") : ""}
+      ${l.pitfalls?.length ? `<p class="hand" style="margin-top:12px">Pozor na</p><ul class="md small">${l.pitfalls.map(x => `<li>${mdi(x)}</li>`).join("")}</ul>` : ""}
+      <a class="btn ghost sm" style="margin-top:10px" href="#/kviz?l=${l.id}&n=8">${ic.bolt} 8 otázek z ${l.id}</a></details>`).join("")}`;
 }
 
 /* =================================================================== */
