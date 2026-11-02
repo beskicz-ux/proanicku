@@ -6,6 +6,7 @@
 const AGENT_ID = "agent_4601m6ett2qefv7vzde4710n5656";            // ElevenLabs Conversational AI agent id (Halíř hlas). Prázdné = jen offline vyhledávání v poznámkách.
 const DEFAULT_EXAM_DAYS = 14;
 const EXAM_DATE = "2026-11-16";  // zkouška 1MT300
+const START_DATE = "2026-11-11"; // Anička chce začít 11. 11. (dá se změnit v Plánu nebo tlačítkem „Začít dřív“)
 /* ===================== */
 
 const LS = "halir.v1";
@@ -31,8 +32,8 @@ const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ
 /* ---------- state ---------- */
 function defaults() {
   const t = today();
-  return { v: 1, examDate: EXAM_DATE > t ? EXAM_DATE : addDays(t, DEFAULT_EXAM_DAYS), start: t, cards: {}, q: {}, read: {}, xp: {}, goal: 150, sound: true,
-    feyn: {}, lists: {}, done: {}, exams: [], planFor: null, onlyRead: false };
+  return { v: 1, examDate: EXAM_DATE > t ? EXAM_DATE : addDays(t, DEFAULT_EXAM_DAYS), essays: {}, essayDraft: {}, start: t, cards: {}, q: {}, read: {}, xp: {}, goal: 150, sound: true,
+    feyn: {}, lists: {}, done: {}, exams: [], planFor: null, onlyRead: false, startDate: START_DATE };
 }
 let S = (() => { try { return Object.assign(defaults(), JSON.parse(localStorage.getItem(LS) || "{}")); } catch (e) { return defaults(); } })();
 function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) { } }
@@ -213,6 +214,13 @@ const isDue = id => S.cards[id] && S.cards[id].due <= Date.now();
 const dueIds = () => Object.keys(S.cards).filter(id => CARD[id] && isDue(id));
 const lecCards = id => LEC[id].flashcards.map(c => c.id);
 
+// Kartičky z přečtené části jdou všechny do opakování (Anička chce umět úplně všechno); mechanismy a definice první.
+const TYPE_PRIO = { "mechanismus": 0, "proč": 1, "definice": 2, "srovnání": 3, "vzorec": 4, "seznam": 5, "příklad": 6, "fakt": 7 };
+function sectionCards(l, secId) {
+  const cs = l.flashcards.filter(c => c.section === secId && !S.cards[c.id]);
+  return [...cs].sort((a, b) => (TYPE_PRIO[a.type] ?? 9) - (TYPE_PRIO[b.type] ?? 9));
+}
+
 /* ---------- progress ---------- */
 const sectionsRead = id => LEC[id].sections.filter(s => S.read[s.id]).length;
 const lectureRead = id => sectionsRead(id) === LEC[id].sections.length;
@@ -238,11 +246,11 @@ function buildPlan(fromDate, n, unread) {
   const days = [];
   if (n <= 0) return days;
   // posledních ~5 dní před zkouškou = jen opakování a simulace, nová látka musí být hotová dřív
-  const review = n >= 9 ? 5 : Math.max(1, Math.floor(n * .4));
+  const review = n >= 9 ? 5 : n >= 7 ? 2 : 1;
   let learnDays = unread.length ? Math.min(unread.length, Math.max(1, n - review)) : 0;
   if (n <= 2 && unread.length) learnDays = n;
   let k = 0, j = 0;
-  const cyc = ["mix", "exam", "weak", "exam", "mix", "weak"];
+  const cyc = review <= 2 ? ["exam"] : ["mix", "exam", "weak", "exam", "mix", "weak"];
   for (let d = 0; d < n; d++) {
     const date = addDays(fromDate, d);
     if (d < learnDays) {
@@ -253,7 +261,11 @@ function buildPlan(fromDate, n, unread) {
   }
   return days;
 }
+const planStart = () => (S.startDate && S.startDate > today()) ? S.startDate : today();
+const beforeStart = () => planStart() > today();
+const cram = () => diffDays(planStart(), S.examDate) <= 7;   // zhuštěný režim: málo dní na všechno
 function plan() {
+  if (beforeStart()) { const n = diffDays(planStart(), S.examDate); return n > 0 ? buildPlan(planStart(), n, lectures().map(l => l.id).filter(id => !lectureRead(id))) : []; }
   const t = today(); const n = daysToExam();
   if (n <= 0) return [];
   const unread = lectures().map(l => l.id).filter(id => !lectureRead(id));
@@ -267,6 +279,7 @@ function plan() {
 }
 
 function missions() {
+  if (beforeStart()) return [];
   const p = plan()[0]; const dt = doneToday(); const list = [];
   const due = dueIds().length; const anyCards = Object.keys(S.cards).length > 0;
   const readIds = lectures().map(l => l.id).filter(id => sectionsRead(id) > 0);
@@ -274,11 +287,14 @@ function missions() {
   if (!p) return list;
   if (p.type === "learn") {
     for (const id of p.ids) list.push({ k: "learn", ico: ic.book, t: `Nauč se ${id}: ${LEC[id].title}`, s: `${LEC[id].sections.length} částí · čtení + rychlé kontroly + kartičky`, href: `#/uc/${id}`, done: lectureRead(id) });
-    if (readIds.length) list.push({ k: "quiz", ico: ic.bolt, t: "Mini mix kvíz", s: "10 otázek napříč probranou látkou", href: "#/kviz?mix=1&n=10&m=quiz", done: (dt.quiz || 0) >= 1 });
+    if (readIds.length) list.push({ k: "quiz", ico: ic.bolt, t: "Mini mix kvíz", s: "10 otázek a/b/c/d napříč probranou látkou", href: "#/kviz?mix=1&n=10&m=quiz", done: (dt.quiz || 0) >= 1 });
+    const fullyRead = lectures().map(l => l.id).filter(lectureRead);
+    const e = pickEssay(fullyRead); if (e && e.lectures.every(id => fullyRead.includes(id))) list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", s: e.title, href: `#/esej/${e.id}`, done: (dt.essay || 0) >= 1 });
   } else if (p.type === "mix" || p.type === "final") {
     list.push({ k: "quiz", ico: ic.bolt, t: "Prokládaný kvíz", s: "20 otázek ze všech lekcí najednou", href: "#/kviz?mix=1&n=20&m=quiz", done: (dt.quiz || 0) >= 1 });
-    list.push({ k: "explain", ico: ic.brain, t: "Vysvětli Halířovi", s: "2 zkouškové otázky vlastními slovy", href: "#/otazky?pick=1", done: (dt.explain || 0) >= 2 });
+    if (p.type !== "final") list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", s: "Propojí víc přednášek — jako na zkoušce", href: `#/esej/${(pickEssay(lectures().map(l => l.id)) || {}).id}`, done: (dt.essay || 0) >= 1 });
     if (p.type === "final") {
+      if (cram()) list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", s: "30× a/b/c/d + esej — ráno, s čistou hlavou", href: "#/zkouska", done: !!dt.exam });
       list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Jen to, co ti ještě nejde", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
       list.push({ k: "tahak", ico: ic.book, t: "Tahák: projeď celý kurz", s: "Velký obraz, vzorce a seznamy všech 12 přednášek", href: "#/tahak", done: !!dt.tahak });
     }
@@ -286,8 +302,8 @@ function missions() {
     list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Otázky a kartičky, kde chybuješ", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
     list.push({ k: "lists", ico: ic.list, t: "Vyjmenuj to", s: "3 seznamy, které se na zkoušce vyjmenovávají", href: "#/seznamy?pick=1", done: (dt.lists || 0) >= 3 });
   } else if (p.type === "exam") {
-    list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", s: "24 otázek na čas + 2 otevřené", href: "#/zkouska", done: !!dt.exam });
-    list.push({ k: "explain", ico: ic.brain, t: "Rozbor: vysvětli Halířovi", s: "2 otázky z lekcí, kde jsi chybovala", href: "#/otazky?pick=1", done: (dt.explain || 0) >= 2 });
+    list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", s: "30× a/b/c/d + esej, na čas", href: "#/zkouska", done: !!dt.exam });
+    list.push({ k: "essay", ico: ic.pen, t: "Druhá esej", s: "Jiné téma než v simulaci", href: "#/esej", done: (dt.essay || 0) >= 2 });
   }
   return list;
 }
@@ -319,7 +335,7 @@ async function render() {
   window.onkeydown = null;
   const map = {
     "": viewToday, mapa: viewMap, lekce: viewLecture, uc: viewLearn, karty: viewCards, kviz: viewQuiz, zkouska: viewExam,
-    otazky: viewQuestions, otazka: viewFeynman, seznamy: viewLists, priklady: viewProblems, grafy: viewGraphs,
+    otazky: viewQuestions, otazka: viewFeynman, esej: viewEssays, seznamy: viewLists, priklady: viewProblems, grafy: viewGraphs,
     halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch, tahak: viewCheat,
   };
   setNav({ "": "dnes", mapa: "mapa", lekce: "mapa", uc: "mapa", karty: "karty", kviz: "dnes", halir: "halir", plan: "plan", jak: "plan" }[r] || "");
@@ -331,6 +347,7 @@ async function render() {
 /* DNES                                                                 */
 /* =================================================================== */
 function viewToday() {
+  if (beforeStart()) return viewWaiting();
   const n = daysToExam(); const ms = missions(); const xp = xpToday();
   const pct = Math.min(100, Math.round(xp / S.goal * 100));
   const next = ms.find(m => !m.done);
@@ -353,12 +370,26 @@ function viewToday() {
   <div class="grid2">
     <a class="mission" href="#/kviz?mix=1&n=10"><div class="ico">${ic.bolt}</div><div class="txt"><b>Kvíz</b><span>10 otázek mix</span></div></a>
     <a class="mission" href="#/zkouska"><div class="ico">${ic.trophy}</div><div class="txt"><b>Zkouška</b><span>simulace</span></div></a>
-    <a class="mission" href="#/otazky"><div class="ico">${ic.brain}</div><div class="txt"><b>Vysvětli</b><span>otevřené otázky</span></div></a>
+    <a class="mission" href="#/esej"><div class="ico">${ic.pen}</div><div class="txt"><b>Esej</b><span>na čas, jako u zkoušky</span></div></a>
     <a class="mission" href="#/grafy"><div class="ico">${ic.graph}</div><div class="txt"><b>Grafy</b><span>IS · MP · AD–AS</span></div></a>
     <a class="mission" href="#/seznamy"><div class="ico">${ic.list}</div><div class="txt"><b>Vyjmenuj</b><span>seznamy</span></div></a>
     <a class="mission" href="#/hledat"><div class="ico">${ic.search}</div><div class="txt"><b>Hledat</b><span>pojem v látce</span></div></a>
+    <a class="mission" href="#/otazky"><div class="ico">${ic.brain}</div><div class="txt"><b>Vysvětli</b><span>krátké otevřené otázky</span></div></a>
+    <a class="mission" href="#/tahak"><div class="ico">${ic.book}</div><div class="txt"><b>Tahák</b><span>celý kurz na 1 stránce</span></div></a>
   </div>
   <p class="small dim" style="text-align:center;margin-top:22px"><a class="link" href="#/jak">Proč se takhle učíme?</a></p>`;
+}
+
+function viewWaiting() {
+  const st = parseD(planStart()); const d = diffDays(today(), planStart()); const p = plan();
+  view().innerHTML = `${topbar()}
+  <div class="hero">${ham("happy", "idle")}<div class="bubble"><span class="hand">start ${st.getDate()}. ${st.getMonth() + 1}.</span>Učení začíná za ${d} ${plural(d, "den", "dny", "dní")}. Plán je připravený: 4 dny nová látka (3 přednášky denně), poslední den simulace zkoušky a opakování.</div></div>
+  <div class="card"><b>Jak to bude vypadat</b><div style="margin-top:8px">${p.map(x => { const dd = parseD(x.date); const ty = DAYTYPE[x.type];
+    return `<div class="dayrow"><div class="d"><b>${dd.getDate()}.</b><span>${DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${x.ids.length ? `<b>${x.ids.join(" · ")}</b>` : ""}</div></div>`; }).join("")}</div></div>
+  <div class="card" style="margin-top:12px"><b>Tip od Halíře</b><p class="muted small" style="margin-top:4px">Každý den dřív = méně látky na den. I 20 minut dnes (třeba lekce 1A) ti pak ulehčí ty nejnabitější dny.</p>
+    <button class="btn block" id="early" style="margin-top:12px">${ic.play} Začít dřív — už dnes</button></div>
+  <p class="small dim" style="text-align:center;margin-top:16px">Mezitím můžeš kdykoli nahlédnout do <a class="link" href="#/mapa">lekcí</a>.</p>`;
+  $("#early").onclick = () => { S.startDate = today(); S.planFor = null; save(); render(); };
 }
 
 /* =================================================================== */
@@ -458,7 +489,7 @@ function viewLearn(parts) {
     $("#goCheck").onclick = () => {
       const pool = Object.values(QZ).filter(x => x.lec === id && x.section === s.id);
       const unseen = pool.filter(x => !S.q[x.id]);
-      st.checks = shuffle(unseen.length >= 2 ? unseen : pool).slice(0, pool.length > 3 ? 3 : pool.length);
+      const nChecks = cram() ? 2 : 3; st.checks = shuffle(unseen.length >= 2 ? unseen : pool).slice(0, Math.min(nChecks, pool.length));
       st.ci = 0;
       if (!st.checks.length) return finishSection();
       st.phase = "check"; render();
@@ -471,7 +502,7 @@ function viewLearn(parts) {
   function finishSection() {
     if (!S.read[s.id]) { S.read[s.id] = Date.now(); addXP(15); }
     // karty z této části vstupují do opakování
-    l.flashcards.filter(c => c.section === s.id && !S.cards[c.id]).forEach(c => { S.cards[c.id] = { reps: 0, ease: 2.4, ivl: 0, lapses: 0, due: Date.now() }; });
+    sectionCards(l, s.id).forEach(c => { S.cards[c.id] = { reps: 0, ease: 2.4, ivl: 0, lapses: 0, due: Date.now() }; });
     save();
     if (st.si + 1 < l.sections.length) { st.si++; st.phase = "read"; render(); }
     else {
@@ -569,7 +600,10 @@ function viewQuiz(parts, q) {
   const key = location.hash;
   if (!SESSION || SESSION.kind !== "quiz" || SESSION.key !== key) {
     const n = +(q.get("n") || 10);
-    let items = prioritize(quizPool(q), n);
+    const pool = quizPool(q);
+    const nTF = Math.floor(n * .2);
+    let items = [...prioritize(pool.filter(x => x.t === "mc"), n - nTF), ...prioritize(pool.filter(x => x.t === "tf"), nTF)];
+    if (items.length < n) items = prioritize(pool, n);
     if (!q.get("l")) items = interleave(items);
     items.forEach(i => delete i._order);
     SESSION = { kind: "quiz", key, items, i: 0, ok: 0, total: items.length, retried: new Set(), m: q.get("m"), title: q.get("l") ? `Kvíz ${q.get("l")}` : q.get("weak") ? "Slabá místa" : "Mix kvíz" };
@@ -663,49 +697,133 @@ function cardsDone(st) {
 /* =================================================================== */
 /* SIMULACE ZKOUŠKY                                                     */
 /* =================================================================== */
+const EXAM_MC = 30, ESSAY_MIN = 20;
 function viewExam(parts, q) {
   if (!SESSION || SESSION.kind !== "exam") {
-    view().innerHTML = `${topbar("#/")}<div class="hero">${ham("open", "idle")}<div class="bubble"><span class="hand">simulace zkoušky</span>24 otázek ze všech přednášek, bez nápověd. Výsledky a vysvětlení až na konci. Pak 2 otevřené otázky.</div></div>
-      <div class="card"><label class="check" style="margin:0"><input type="checkbox" id="onlyRead" ${S.onlyRead ? "checked" : ""}><span>Jen z lekcí, které už mám přečtené</span></label></div>
-      <button class="btn block" id="startExam" style="margin-top:16px">${ic.play} Začít</button>`;
+    view().innerHTML = `${topbar("#/")}<div class="hero">${ham("open", "idle")}<div class="bubble"><span class="hand">simulace zkoušky</span>Přesně jako u zkoušky: ${EXAM_MC} otázek a/b/c/d ze všech přednášek, pak esej (${ESSAY_MIN} min). Bez nápověd, vyhodnocení až na konci.</div></div>
+      <div class="card"><label class="check" style="margin:0"><input type="checkbox" id="onlyRead" ${S.onlyRead ? "checked" : ""}><span>Jen z lekcí, které už mám přečtené</span></label>
+      <p class="small dim" style="margin-top:8px">Tip: telefon pryč, papír a tužku k ruce na grafy do eseje.</p></div>
+      <button class="btn block" id="startExam" style="margin-top:16px">${ic.play} Začít zkoušku</button>`;
     $("#startExam").onclick = () => {
       S.onlyRead = $("#onlyRead").checked; save();
       let ls = lectures().map(l => l.id); if (S.onlyRead) { const r = ls.filter(id => sectionsRead(id) > 0); if (r.length) ls = r; }
-      const per = Math.max(2, Math.ceil(24 / ls.length));
+      const per = Math.max(2, Math.ceil(EXAM_MC / ls.length));
       let items = [];
-      for (const id of ls) items.push(...prioritize(Object.values(QZ).filter(x => x.lec === id), per));
-      items = shuffle(items).slice(0, 24); items.forEach(i => delete i._order);
-      const open = shuffle(Object.values(EXQ).filter(e => ls.includes(e.lec))).slice(0, 2);
-      SESSION = { kind: "exam", items, i: 0, ans: [], open, t0: Date.now() };
+      for (const id of ls) items.push(...prioritize(Object.values(QZ).filter(x => x.lec === id && x.t === "mc"), per));
+      items = shuffle(items).slice(0, EXAM_MC); items.forEach(i => delete i._order);
+      const essay = pickEssay(ls);
+      SESSION = { kind: "exam", items, i: 0, ans: [], essay, t0: Date.now(), phase: "mc" };
       render();
     };
     return;
   }
   const st = SESSION;
-  if (st.i >= st.items.length) return examDone(st);
+  if (st.phase === "mc" && st.i >= st.items.length) { st.phase = st.essay ? "essay" : "done"; st.te = Date.now(); }
+  if (st.phase === "essay") {
+    view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar ok"><i style="width:100%"></i></div><span class="small muted">esej</span></div><div id="ebox"></div>`;
+    $("#quitExam").onclick = () => { if (confirm("Ukončit simulaci?")) { SESSION = null; nav("#/"); } };
+    renderEssay($("#ebox"), st.essay, { minutes: ESSAY_MIN, exam: true, onDone: sc => { st.essayScore = sc; st.phase = "done"; render(); } });
+    return;
+  }
+  if (st.phase === "done") return examDone(st);
   const item = st.items[st.i];
   const el = Math.floor((Date.now() - st.t0) / 1000);
   view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar ok"><i style="width:${st.i / st.items.length * 100}%"></i></div><span class="small muted" id="clock">${Math.floor(el / 60)}:${pad(el % 60)}</span></div>
-    <p class="hand" style="margin-bottom:8px">Otázka ${st.i + 1} / ${st.items.length}</p><div id="qbox"></div>`;
+    <p class="hand" style="margin-bottom:8px">Část A · otázka ${st.i + 1} / ${st.items.length}</p><div id="qbox"></div>`;
   $("#quitExam").onclick = () => { if (confirm("Ukončit simulaci?")) { SESSION = null; nav("#/"); } };
   clearInterval(window._clk); window._clk = setInterval(() => { const c = $("#clock"); if (!c) return clearInterval(window._clk); const e = Math.floor((Date.now() - st.t0) / 1000); c.textContent = `${Math.floor(e / 60)}:${pad(e % 60)}`; }, 1000);
   renderQuestion($("#qbox"), item, (ok, v) => { st.ans.push({ id: item.id, ok, v }); recordQ(item, ok); setTimeout(() => { st.i++; render(); }, 350); }, { exam: true });
 }
 function examDone(st) {
-  clearInterval(window._clk);
-  const ok = st.ans.filter(a => a.ok).length; const pct = Math.round(ok / st.ans.length * 100);
-  const mins = Math.round((Date.now() - st.t0) / 60000);
-  if (!st.saved) { S.exams.push({ ts: Date.now(), pct }); doneToday().exam = 1; save(); st.saved = 1; sfx.done(); if (pct >= 70) confetti(); }
+  clearInterval(window._clk); clearInterval(window._etimer);
+  const ok = st.ans.filter(a => a.ok).length; const pct = Math.round(ok / Math.max(1, st.ans.length) * 100);
+  const mins = Math.round(((st.te || Date.now()) - st.t0) / 60000);
+  if (!st.saved) { S.exams.push({ ts: Date.now(), pct, essay: st.essayScore ?? null }); doneToday().exam = 1; save(); st.saved = 1; sfx.done(); if (pct >= 70) confetti(); }
   const byL = {}; st.ans.forEach(a => { const l = QZ[a.id].lec; byL[l] = byL[l] || [0, 0]; byL[l][1]++; if (a.ok) byL[l][0]++; });
   const wrong = st.ans.filter(a => !a.ok).map(a => QZ[a.id]);
+  const prev = S.exams.slice(0, -1).slice(-1)[0];
   view().innerHTML = `${topbar("#/")}<div class="done-screen" style="padding-top:0">${ham(pct >= 60 ? "happy" : "open", "bounce")}
-    <div class="big-num">${pct}%</div><p class="muted">${ok} / ${st.ans.length} správně · ${mins} min</p></div>
-    <div class="card"><b>Podle přednášek</b><div class="stack" style="gap:7px;margin-top:10px">${Object.keys(byL).sort().map(l => `<div class="row small"><a href="#/lekce/${l}" style="width:34px;color:var(--ink);font-weight:700">${l}</a><div class="bar ${byL[l][0] / byL[l][1] >= .7 ? "ok" : ""}" style="flex:1"><i style="width:${byL[l][0] / byL[l][1] * 100}%"></i></div><span>${byL[l][0]}/${byL[l][1]}</span></div>`).join("")}</div></div>
-    ${wrong.length ? `<div class="sec-title"><h2>Rozbor chyb</h2></div>` + wrong.map(w => `<div class="card dark"><p class="small dim">${w.lec}</p><b>${mdi(w.t === "tf" ? w.s : w.q)}</b>
-      <p style="margin-top:6px;color:var(--ok)">✓ ${w.t === "tf" ? (w.true ? "Pravda" : "Nepravda") : mdi(w.options[w.correct])}</p><div class="md small" style="margin-top:6px">${md(w.explain || "")}</div></div>`).join("") : ""}
-    ${st.open.length ? `<div class="sec-title"><h2>Otevřené otázky</h2></div><p class="muted small" style="margin-bottom:10px">Odpověz vlastními slovy, pak porovnej s klíčovými body.</p>` + st.open.map(e => `<a class="hit" href="#/otazka/${e.id}"><b>${mdi(e.q)}</b><span>${e.lec} · ${esc(LEC[e.lec].title)}</span></a>`).join("") : ""}
+    <div class="grid2" style="margin-top:6px"><div><div class="big-num">${pct}%</div><p class="muted small">část A · ${ok}/${st.ans.length} · ${mins} min</p></div>
+    <div><div class="big-num">${st.essayScore == null ? "–" : Math.round(st.essayScore * 100) + "%"}</div><p class="muted small">esej · klíčové body</p></div></div>
+    ${prev ? `<p class="small dim" style="margin-top:8px">Minule: ${prev.pct} % v části A${prev.essay != null ? `, esej ${Math.round(prev.essay * 100)} %` : ""}</p>` : ""}</div>
+    <div class="card"><b>Část A podle přednášek</b><div class="stack" style="gap:7px;margin-top:10px">${Object.keys(byL).sort().map(l => `<div class="row small"><a href="#/lekce/${l}" style="width:34px;color:var(--ink);font-weight:700">${l}</a><div class="bar ${byL[l][0] / byL[l][1] >= .7 ? "ok" : ""}" style="flex:1"><i style="width:${byL[l][0] / byL[l][1] * 100}%"></i></div><span>${byL[l][0]}/${byL[l][1]}</span></div>`).join("")}</div></div>
+    ${wrong.length ? `<div class="sec-title"><h2>Rozbor chyb</h2></div>` + wrong.map(w => `<div class="card dark"><p class="small dim">${w.lec}</p><b>${mdi(w.q)}</b>
+      <p style="margin-top:6px;color:var(--ok)">✓ ${mdi(w.options[w.correct])}</p><div class="md small" style="margin-top:6px">${md(w.explain || "")}</div></div>`).join("") : ""}
     <a class="btn block" style="margin-top:18px" href="#/">Hotovo</a>`;
   SESSION = null;
+}
+
+/* =================================================================== */
+/* ESEJ — psaní na čas, osnova, klíčové body, vzor, hodnocení Halířem   */
+/* =================================================================== */
+const ESSAYS = () => C.essays || [];
+function pickEssay(ls) {
+  const pool = ESSAYS().filter(e => e.lectures.every(id => ls.includes(id)));
+  const pl = pool.length ? pool : ESSAYS();
+  const sc = e => (S.essays?.[e.id] ? 1 + S.essays[e.id].score : 0) + Math.random() * .5;
+  return [...pl].sort((a, b) => sc(a) - sc(b))[0] || null;
+}
+function renderEssay(box, e, opts = {}) {
+  S.essayDraft = S.essayDraft || {};
+  const draft = opts.exam ? "" : (S.essayDraft[e.id] || "");
+  box.innerHTML = `<p class="hand">${opts.exam ? "Část B · esej" : "Esej"} · ${e.lectures.join(" + ")}</p><h2 style="margin:4px 0 8px">${esc(e.title)}</h2>
+    <div class="sheet" style="padding:16px 18px"><div class="md">${md(e.prompt)}</div></div>
+    <div class="row" style="margin:12px 0 8px"><span class="pill" id="etime">${ic.plan} ${opts.minutes || 15}:00</span><span class="small dim" id="ewc">0 slov</span><div class="sp" style="flex:1"></div>
+      ${opts.exam ? "" : `<button class="link small" id="eout">osnova</button>`}</div>
+    <div id="eoutline" hidden class="card dark" style="margin-bottom:10px"><b class="small">Doporučená osnova</b><ol class="md small" style="margin-top:6px">${(e.outline || []).map(o => `<li>${mdi(o)}</li>`).join("")}</ol></div>
+    <p class="small muted" style="margin-bottom:8px">Nejdřív si 2 minuty naplánuj body (teze → mechanismus → graf → příklad → závěr). Grafy si kresli na papír.</p>
+    <div class="row" style="align-items:flex-end"><textarea class="answer" id="etext" style="min-height:260px" placeholder="Piš esej…">${esc(draft)}</textarea><button class="mic" id="emic">${ic.mic}</button></div>
+    <button class="btn block" id="edone" style="margin-top:12px">Odevzdat a vyhodnotit</button><div id="eres"></div>`;
+  const ta = $("#etext", box); dictation($("#emic", box), ta);
+  const wc = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; $("#ewc", box).textContent = `${n} slov`; if (!opts.exam) { S.essayDraft[e.id] = ta.value; save(); } };
+  ta.oninput = wc; wc();
+  const ob = $("#eout", box); if (ob) ob.onclick = () => { $("#eoutline", box).hidden = !$("#eoutline", box).hidden; };
+  let left = (opts.minutes || 15) * 60;
+  clearInterval(window._etimer);
+  window._etimer = setInterval(() => {
+    const t = $("#etime", box); if (!t) return clearInterval(window._etimer);
+    left--; t.innerHTML = `${ic.plan} ${left < 0 ? "-" : ""}${Math.floor(Math.abs(left) / 60)}:${pad(Math.abs(left) % 60)}`;
+    if (left === 0) { t.style.color = "var(--bad)"; toast("Čas! Dopiš větu a odevzdej."); }
+  }, 1000);
+  $("#edone", box).onclick = () => {
+    clearInterval(window._etimer); if (REC) REC.stop();
+    const a = ta.value.trim(); const kp = e.keyPoints || [];
+    $("#edone", box).remove(); ta.readOnly = true;
+    $("#eres", box).innerHTML = `<div class="sec-title"><h2>Klíčové body</h2><span class="small muted">odškrtni, co v eseji máš</span></div>
+      ${kp.map(p => `<label class="check ${a && keyMatch(a, p) ? "on" : ""}"><input type="checkbox" ${a && keyMatch(a, p) ? "checked" : ""}><span class="md">${mdi(p)}</span></label>`).join("")}
+      ${(e.graphs || []).length ? `<p class="hand" style="margin:12px 0 6px">Grafy, které tam patří</p>` + e.graphs.map(g => `<label class="check"><input type="checkbox"><span class="md">${mdi(g)}</span></label>`).join("") : ""}
+      <details class="card dark" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Vzorová esej</summary><div class="md" style="margin-top:8px">${md(e.modelAnswer)}</div></details>
+      <div class="stack" style="margin-top:14px"><button class="btn" id="esave">${opts.exam ? "Pokračovat na výsledky" : "Uložit výsledek"}</button>
+      ${a && AGENT_ID ? `<button class="btn ghost" id="egrade">${ham("open")} Ať esej ohodnotí Halíř</button>` : ""}</div>`;
+    $$(".check input", box).forEach(c => c.onchange = () => c.closest(".check").classList.toggle("on", c.checked));
+    $("#esave", box).onclick = () => {
+      const got = $$("#eres .check input:checked", box).length, tot = $$("#eres .check input", box).length;
+      const score = tot ? got / tot : 1;
+      S.essays = S.essays || {}; S.essays[e.id] = { score, ts: Date.now() }; const dt = doneToday(); dt.essay = (dt.essay || 0) + 1;
+      if (!opts.exam) delete S.essayDraft[e.id];
+      addXP(40); save(); sfx.done(); if (score >= .7) confetti();
+      if (opts.onDone) opts.onDone(score); else { toast(`Uloženo: ${Math.round(score * 100)} %`); setTimeout(() => nav("#/esej"), 700); }
+    };
+    const g = $("#egrade", box);
+    if (g) g.onclick = () => nav(`#/halir?ctx=${encodeURIComponent("Esej: " + e.title)}&q=${encodeURIComponent(`Ohodnoť mou esej jako zkoušející. Zadání: „${e.prompt}“. Řekni, co je dobře, co chybí (mechanismy, grafy, příklady) a co bych měla doplnit, a dej známku. Moje esej: ${a}`)}`);
+  };
+}
+function viewEssays(parts) {
+  if (parts[1]) {
+    const e = ESSAYS().find(x => x.id === parts[1]); if (!e) return nav("#/esej");
+    view().innerHTML = `${topbar("#/esej")}<div id="ebox"></div>`;
+    renderEssay($("#ebox"), e, { minutes: 15 });
+    return;
+  }
+  view().innerHTML = `${topbar("#/")}<h1>Esej</h1><p class="muted" style="margin:6px 0 14px">Na zkoušce bude esej. Každá tady propojuje víc přednášek — piš na čas (15 min), pak porovnej s klíčovými body a vzorem, nebo ať ji ohodnotí Halíř.</p>
+    <div class="card dark" style="margin-bottom:14px"><b>Jak napsat esej na výbornou</b><ol class="md small" style="margin-top:6px">
+      <li><strong>Teze hned v první větě</strong> — odpověz na otázku, pak to rozveď.</li>
+      <li><strong>Mechanismus řetězem</strong> „X ↑ → Y ↑ → Z ↓, protože…“ — za to jsou body.</li>
+      <li><strong>Graf</strong> s popsanými osami, výchozí a posunutou křivkou a šipkou.</li>
+      <li><strong>Příklad</strong> z přednášky (ČNB, Fed, ECB, krize 2008, covid…).</li>
+      <li><strong>Pojmy přesně</strong> (reálná vs. nominální sazba, pohyb po křivce vs. posun).</li>
+      <li><strong>Krátký závěr</strong> — shrň odpověď jednou dvěma větami.</li></ol></div>
+    ${ESSAYS().map(e => { const r = S.essays?.[e.id]; return `<a class="hit" href="#/esej/${e.id}"><b>${esc(e.title)}</b><span>${e.lectures.join(" + ")} · ${r ? `naposledy ${Math.round(r.score * 100)} %` : "nenapsáno"}</span></a>`; }).join("")}`;
 }
 
 /* =================================================================== */
@@ -863,10 +981,11 @@ function viewPlan() {
   const p = plan(); const n = daysToExam();
   view().innerHTML = `${topbar()}<h1>Plán do zkoušky</h1>
     <div class="card" style="margin-top:14px"><div class="row wrap"><label style="flex:1;min-width:160px"><b>Datum zkoušky</b><p class="small muted">Plán se podle něj sám přepočítá.</p></label><input type="date" id="ed" value="${S.examDate}" min="${today()}"></div>
+    <div class="row wrap" style="margin-top:12px"><label style="flex:1;min-width:160px"><b>Začátek učení</b><p class="small muted">Dřívější start = méně látky na den.</p></label><input type="date" id="sd" value="${planStart()}" min="${today()}" max="${S.examDate}"></div>
     <div class="row wrap" style="margin-top:12px"><label style="flex:1;min-width:160px"><b>Denní cíl</b><p class="small muted">XP za den (≈ 1 XP = 6 s učení)</p></label>
       <select id="goal">${[80, 150, 250, 400].map(g => `<option value="${g}" ${S.goal === g ? "selected" : ""}>${g} XP${g === 80 ? " · lehký" : g === 150 ? " · normální" : g === 250 ? " · intenzivní" : " · šílený"}</option>`).join("")}</select></div>
     <div class="row wrap" style="margin-top:12px"><b style="flex:1">Zvuky</b><button class="btn ghost sm" id="snd">${ic.sound} ${S.sound ? "Zapnuto" : "Vypnuto"}</button></div></div>
-    <div class="sec-title"><h2>${n > 0 ? `${n} ${plural(n, "den", "dny", "dní")}` : "Hotovo"}</h2><span class="small muted">${(() => { const last = [...p].reverse().find(d => d.type === "learn"); return last ? `nová látka hotová do ${parseD(last.date).getDate()}. ${parseD(last.date).getMonth() + 1}., pak jen opakování` : "už jen opakování a simulace"; })()}</span></div>
+    <div class="sec-title"><h2>${p.length ? `${p.length} ${plural(p.length, "den", "dny", "dní")}` : "Hotovo"}</h2><span class="small muted">${(() => { const last = [...p].reverse().find(d => d.type === "learn"); return last ? `nová látka hotová do ${parseD(last.date).getDate()}. ${parseD(last.date).getMonth() + 1}., pak jen opakování` : "už jen opakování a simulace"; })()}</span></div>
     <div class="card">${p.map((d, i) => {
       const dd = parseD(d.date); const ty = DAYTYPE[d.type];
       const what = d.type === "learn" ? d.ids.map(id => `<b>${id} ${esc(LEC[id].title)}</b>`).join("") + `<span>čtení + kontroly + kartičky, k tomu opakování</span>`
@@ -874,7 +993,7 @@ function viewPlan() {
         : d.type === "weak" ? `<b>Slabá místa + vyjmenovávání</b><span>cílíme přesně na chyby</span>`
         : d.type === "exam" ? `<b>Simulace zkoušky + rozbor chyb</b><span>na čas, bez nápověd</span>`
         : `<b>Lehké opakování slabých míst</b><span>žádná nová látka, večer brzo spát (spánek ukládá paměť)</span>`;
-      return `<div class="dayrow ${i === 0 ? "today" : ""}"><div class="d"><b>${dd.getDate()}.</b><span>${i === 0 ? "dnes" : DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${what}</div></div>`;
+      return `<div class="dayrow ${d.date === today() ? "today" : ""}"><div class="d"><b>${dd.getDate()}.</b><span>${d.date === today() ? "dnes" : DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${what}</div></div>`;
     }).join("") || `<p class="empty">Nastav datum zkoušky.</p>`}
     <div class="dayrow"><div class="d"><b>${parseD(S.examDate).getDate()}.</b><span>${DOW[parseD(S.examDate).getDay()]}</span></div><div class="what"><span class="tag exam">Zkouška</span><b>Ty to dáš ♡</b></div></div></div>
     <div class="sec-title"><h2>Záloha</h2></div>
@@ -883,6 +1002,7 @@ function viewPlan() {
     <p class="small dim" style="text-align:center;margin-top:20px"><a class="link" href="#/jak">Proč se učíme takhle?</a></p>`;
   $("#ed").onchange = e => { if (e.target.value) { S.examDate = e.target.value; S.planFor = null; save(); render(); } };
   $("#goal").onchange = e => { S.goal = +e.target.value; save(); };
+  $("#sd").onchange = e => { if (e.target.value) { S.startDate = e.target.value; S.planFor = null; save(); render(); } };
   $("#snd").onclick = () => { S.sound = !S.sound; save(); render(); };
   $("#exp").onclick = () => { const b = new Blob([JSON.stringify(S)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `halir-zaloha-${today()}.json`; a.click(); };
   $("#imp").onchange = async e => { try { const d = JSON.parse(await e.target.files[0].text()); if (!d.cards) throw 0; S = Object.assign(defaults(), d); save(); toast("Záloha nahrána ♡"); render(); } catch (err) { toast("Tohle není záloha Halíře."); } };
