@@ -1,9 +1,9 @@
-/* Halíř — studijní parťák pro 1MT300 Měnová teorie a politika.
+/* Penny — studijní parťák pro 1MT300 Měnová teorie a politika.
    Learning engine: retrieval practice (kvízy, kartičky), spaced repetition (SRS), interleaving (mix),
-   self-explanation (Vysvětli Halířovi), worked examples (příklady krok za krokem), dual coding (grafy). */
+   self-explanation (Vysvětli to Penny), worked examples (příklady krok za krokem), dual coding (grafy). */
 
 /* ===== NASTAVENÍ ===== */
-const AGENT_ID = "agent_4601m6ett2qefv7vzde4710n5656";            // ElevenLabs Conversational AI agent id (Halíř hlas). Prázdné = jen offline vyhledávání v poznámkách.
+const AGENT_ID = "agent_4601m6ett2qefv7vzde4710n5656";            // ElevenLabs Conversational AI agent id (Penny hlas). Prázdné = jen offline vyhledávání v poznámkách.
 const DEFAULT_EXAM_DAYS = 14;
 const EXAM_DATE = "2026-11-16";  // zkouška 1MT300
 const START_DATE = "2026-11-11"; // Anička chce začít 11. 11. (dá se změnit v Plánu nebo tlačítkem „Začít dřív“)
@@ -109,7 +109,7 @@ const ic = {
   info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
 };
 
-/* ---------- Halíř (křeček) ---------- */
+/* ---------- Penny (křeček) ---------- */
 function ham(mood = "open", cls = "") {
   return `<svg class="ham m-${mood} ${cls}" viewBox="0 0 200 200" aria-hidden="true">
 <defs><radialGradient id="fur" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#f6bf7a"/><stop offset="1" stop-color="#d98a43"/></radialGradient>
@@ -130,10 +130,10 @@ function ham(mood = "open", cls = "") {
 <ellipse class="mouth-o" cx="100" cy="117" rx="6" ry="7" fill="#4a1a26"/>
 <g stroke="#4a1a26" stroke-width="2" stroke-linecap="round" opacity=".45"><path d="M34 106l-18-4M34 114l-18 2M166 106l18-4M166 114l18 2"/></g>
 <circle cx="100" cy="148" r="22" fill="url(#coin)" stroke="#b9822c" stroke-width="3"/>
-<text x="100" y="155" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-weight="700" fill="#8a5a17">h</text>
+<text x="100" y="155" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-weight="700" fill="#8a5a17">P</text>
 <ellipse cx="80" cy="148" rx="10" ry="8" fill="#f6c99a"/><ellipse cx="120" cy="148" rx="10" ry="8" fill="#f6c99a"/>
 <ellipse cx="74" cy="183" rx="14" ry="7" fill="#f6c99a"/><ellipse cx="126" cy="183" rx="14" ry="7" fill="#f6c99a"/>
-<g transform="rotate(-8 100 34)"><path d="M58 30l42-18 42 18-42 17z" fill="#d9475f"/><path d="M75 37v12q25 11 50 0V37l-25 10z" fill="#a82e45"/><path d="M142 30v22" stroke="#f4cf96" stroke-width="3"/><circle cx="142" cy="54" r="4.5" fill="#f4cf96"/></g>
+<g transform="rotate(-8 100 34)"><path d="M58 30l42-18 42 18-42 17z" fill="#7a5ae6"/><path d="M75 37v12q25 11 50 0V37l-25 10z" fill="#5a3cc4"/><path d="M142 30v22" stroke="#f4cf96" stroke-width="3"/><circle cx="142" cy="54" r="4.5" fill="#f4cf96"/></g>
 </g></svg>`;
 }
 function hamReact(el, mood) {
@@ -172,7 +172,7 @@ const sfx = {
 };
 function confetti() {
   const box = document.createElement("div"); box.className = "confetti";
-  const cols = ["#ff8fa8", "#f4cf96", "#8fd6a8", "#fff6ef", "#d9475f"];
+  const cols = ["#ffc24b", "#3ccb94", "#40c9cf", "#a98bff", "#ff7e6e", "#fff4e6"];
   for (let i = 0; i < 70; i++) {
     const p = document.createElement("i");
     p.style.left = Math.random() * 100 + "vw"; p.style.background = pick(cols);
@@ -234,13 +234,39 @@ function overall() {
   const ls = lectures(); return ls.reduce((a, l) => a + (sectionsRead(l.id) / l.sections.length) * .3 + mastery(l.id) * .7, 0) / ls.length;
 }
 
+/* ---------- připravenost na zkoušku (odhad z toho, co umí, ne z aktivity) ---------- */
+function readiness(id) {
+  const l = LEC[id];
+  const read = sectionsRead(id) / l.sections.length;
+  const mem = mastery(id);
+  const items = [...l.quiz, ...(l.trueFalse || [])];
+  const answered = items.filter(q => S.q[q.id]);
+  const acc = answered.length ? answered.filter(q => S.q[q.id].lastOk).length / answered.length : 0;
+  const cover = items.length ? answered.length / items.length : 0;
+  const quiz = acc * Math.min(1, cover / .5);          // přesnost se počítá naplno, až když máš za sebou aspoň půlku otázek
+  return { read, mem, acc, cover, quiz, score: .15 * read + .4 * mem + .45 * quiz };
+}
+function essayReady() {
+  const es = ESSAYS(); const done = es.filter(e => S.essays?.[e.id]);
+  const avg = done.length ? done.reduce((a, e) => a + S.essays[e.id].score, 0) / done.length : 0;
+  return { done: done.length, n: es.length, avg };
+}
+function overallReady() {
+  const ls = lectures(); const lec = ls.reduce((a, l) => a + readiness(l.id).score, 0) / ls.length;
+  const es = essayReady();
+  const essay = es.done ? es.avg * Math.min(1, es.done / 3) : 0;   // 3 napsané eseje = plná váha
+  return { lec, essay, score: .8 * lec + .2 * essay };
+}
+const LEVELS = [[85, "Připravená na výbornou"], [65, "Skoro tam"], [40, "Rozjeté"], [15, "Začátek"], [0, "Ještě jsme nezačali"]];
+const levelOf = pct => LEVELS.find(([t]) => pct >= t)[1];
+
 /* ---------- plan ---------- */
 const DAYTYPE = {
   learn: { tag: "learn", name: "Nová látka" },
   mix: { tag: "mix", name: "Prokládaný mix" },
-  weak: { tag: "mix", name: "Slabá místa" },
+  weak: { tag: "weak", name: "Slabá místa" },
   exam: { tag: "exam", name: "Simulace zkoušky" },
-  final: { tag: "exam", name: "Poslední den" },
+  final: { tag: "final", name: "Poslední den" },
 };
 function buildPlan(fromDate, n, unread) {
   const days = [];
@@ -283,27 +309,27 @@ function missions() {
   const p = plan()[0]; const dt = doneToday(); const list = [];
   const due = dueIds().length; const anyCards = Object.keys(S.cards).length > 0;
   const readIds = lectures().map(l => l.id).filter(id => sectionsRead(id) > 0);
-  if (anyCards) list.push({ k: "review", ico: ic.cards, t: "Opakování kartiček", s: due ? `${due} ${plural(due, "kartička čeká", "kartičky čekají", "kartiček čeká")}` : "Na dnešek vše zopakováno", href: "#/karty", done: due === 0 });
+  if (anyCards) list.push({ k: "review", ico: ic.cards, t: "Opakování kartiček", c: `Zopakovat ${due} ${plural(due, "kartičku", "kartičky", "kartiček")}`, s: due ? `${due} ${plural(due, "kartička čeká", "kartičky čekají", "kartiček čeká")}` : "Na dnešek vše zopakováno", href: "#/karty", done: due === 0 });
   if (!p) return list;
   if (p.type === "learn") {
-    for (const id of p.ids) list.push({ k: "learn", ico: ic.book, t: `Nauč se ${id}: ${LEC[id].title}`, s: `${LEC[id].sections.length} částí · čtení + rychlé kontroly + kartičky`, href: `#/uc/${id}`, done: lectureRead(id) });
-    if (readIds.length) list.push({ k: "quiz", ico: ic.bolt, t: "Mini mix kvíz", s: "10 otázek a/b/c/d napříč probranou látkou", href: "#/kviz?mix=1&n=10&m=quiz", done: (dt.quiz || 0) >= 1 });
+    for (const id of p.ids) { const n = LEC[id].sections.length, rd = sectionsRead(id); list.push({ k: "learn", ico: ic.book, t: `Nauč se ${id}: ${LEC[id].title}`, c: rd ? `Pokračovat v ${id} · zbývá ${n - rd}` : `Začít ${id} · ${n} ${plural(n, "část", "části", "částí")}`, s: `${LEC[id].sections.length} částí · čtení + rychlé kontroly + kartičky`, href: `#/uc/${id}`, done: lectureRead(id) }); }
+    if (readIds.length) list.push({ k: "quiz", ico: ic.bolt, t: "Mini mix kvíz", c: "Spustit kvíz · 10 otázek", s: "10 otázek a/b/c/d napříč probranou látkou", href: "#/kviz?mix=1&n=10&m=quiz", done: (dt.quiz || 0) >= 1 });
     const fullyRead = lectures().map(l => l.id).filter(lectureRead);
-    const e = pickEssay(fullyRead); if (e && e.lectures.every(id => fullyRead.includes(id))) list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", s: e.title, href: `#/esej/${e.id}`, done: (dt.essay || 0) >= 1 });
+    const e = pickEssay(fullyRead); if (e && e.lectures.every(id => fullyRead.includes(id))) list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", c: "Psát esej · 15 min", s: e.title, href: `#/esej/${e.id}`, done: (dt.essay || 0) >= 1 });
   } else if (p.type === "mix" || p.type === "final") {
-    list.push({ k: "quiz", ico: ic.bolt, t: "Prokládaný kvíz", s: "20 otázek ze všech lekcí najednou", href: "#/kviz?mix=1&n=20&m=quiz", done: (dt.quiz || 0) >= 1 });
-    if (p.type !== "final") list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", s: "Propojí víc přednášek — jako na zkoušce", href: `#/esej/${(pickEssay(lectures().map(l => l.id)) || {}).id}`, done: (dt.essay || 0) >= 1 });
+    list.push({ k: "quiz", ico: ic.bolt, t: "Prokládaný kvíz", c: "Spustit kvíz · 20 otázek", s: "20 otázek ze všech lekcí najednou", href: "#/kviz?mix=1&n=20&m=quiz", done: (dt.quiz || 0) >= 1 });
+    if (p.type !== "final") list.push({ k: "essay", ico: ic.pen, t: "Esej na 15 minut", c: "Psát esej · 15 min", s: "Propojí víc přednášek — jako na zkoušce", href: `#/esej/${(pickEssay(lectures().map(l => l.id)) || {}).id}`, done: (dt.essay || 0) >= 1 });
     if (p.type === "final") {
-      if (cram()) list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", s: "30× a/b/c/d + esej — ráno, s čistou hlavou", href: "#/zkouska", done: !!dt.exam });
-      list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Jen to, co ti ještě nejde", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
-      list.push({ k: "tahak", ico: ic.book, t: "Tahák: projeď celý kurz", s: "Velký obraz, vzorce a seznamy všech 12 přednášek", href: "#/tahak", done: !!dt.tahak });
+      if (cram()) list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", c: "Začít simulaci · 30 otázek + esej", s: "30× a/b/c/d + esej — ráno, s čistou hlavou", href: "#/zkouska", done: !!dt.exam });
+      list.push({ k: "weak", ico: ic.target, t: "Slabá místa", c: "Procvičit slabá místa · 20 otázek", s: "Jen to, co ti ještě nejde", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
+      list.push({ k: "tahak", ico: ic.book, t: "Tahák: projeď celý kurz", c: "Otevřít tahák · 12 přednášek", s: "Velký obraz, vzorce a seznamy všech 12 přednášek", href: "#/tahak", done: !!dt.tahak });
     }
   } else if (p.type === "weak") {
-    list.push({ k: "weak", ico: ic.target, t: "Slabá místa", s: "Otázky a kartičky, kde chybuješ", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
-    list.push({ k: "lists", ico: ic.list, t: "Vyjmenuj to", s: "3 seznamy, které se na zkoušce vyjmenovávají", href: "#/seznamy?pick=1", done: (dt.lists || 0) >= 3 });
+    list.push({ k: "weak", ico: ic.target, t: "Slabá místa", c: "Procvičit slabá místa · 20 otázek", s: "Otázky a kartičky, kde chybuješ", href: "#/kviz?weak=1&n=20&m=weak", done: !!dt.weak });
+    list.push({ k: "lists", ico: ic.list, t: "Vyjmenuj to", c: "Vyjmenovat 3 seznamy", s: "3 seznamy, které se na zkoušce vyjmenovávají", href: "#/seznamy?pick=1", done: (dt.lists || 0) >= 3 });
   } else if (p.type === "exam") {
-    list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", s: "30× a/b/c/d + esej, na čas", href: "#/zkouska", done: !!dt.exam });
-    list.push({ k: "essay", ico: ic.pen, t: "Druhá esej", s: "Jiné téma než v simulaci", href: "#/esej", done: (dt.essay || 0) >= 2 });
+    list.push({ k: "exam", ico: ic.trophy, t: "Simulace zkoušky", c: "Začít simulaci · 30 otázek + esej", s: "30× a/b/c/d + esej, na čas", href: "#/zkouska", done: !!dt.exam });
+    list.push({ k: "essay", ico: ic.pen, t: "Druhá esej", c: "Psát esej · 15 min", s: "Jiné téma než v simulaci", href: "#/esej", done: (dt.essay || 0) >= 2 });
   }
   return list;
 }
@@ -318,10 +344,10 @@ function route() {
 }
 function setNav(k) { $$(".nav a").forEach(a => a.classList.toggle("on", a.dataset.k === k)); }
 function topbar(back = null, right = "") {
-  const st = streak();
+  const rd = C ? Math.round(overallReady().score * 100) : 0;
   return `<div class="topbar">${back ? `<button class="back" data-back="${esc(back)}">${ic.left}<span>Zpět</span></button>` :
-    `<a class="brand" href="#/">${ham("happy")}<b>Halíř</b></a>`}<div class="sp"></div>${right}
-    <span class="pill" title="Dny v řadě" style="color:var(--rose)">${ic.flame}${st}</span></div>`;
+    `<a class="brand" href="#/">${ham("happy")}<b>Penny</b></a>`}<div class="sp"></div>${right}
+    <a class="pill ready-pill" href="#/pripravenost" title="Připravenost na zkoušku">${ic.target}${rd} %</a></div>`;
 }
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-back]"); if (b) { e.preventDefault(); history.length > 1 ? history.back() : nav(b.dataset.back); }
@@ -329,17 +355,23 @@ document.addEventListener("click", e => {
 
 async function render() {
   document.querySelectorAll(".feedback").forEach(f => f.remove());
+  closeDrawer();
   const { parts, q } = route();
   const r = parts[0] || "";
   if (r !== "halir") tutorStop();
+  document.getElementById("fab")?.remove();
   window.onkeydown = null;
   const map = {
     "": viewToday, mapa: viewMap, lekce: viewLecture, uc: viewLearn, karty: viewCards, kviz: viewQuiz, zkouska: viewExam,
     otazky: viewQuestions, otazka: viewFeynman, esej: viewEssays, seznamy: viewLists, priklady: viewProblems, grafy: viewGraphs,
-    halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch, tahak: viewCheat,
+    halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch, tahak: viewCheat, pripravenost: viewReadiness,
   };
   setNav({ "": "dnes", mapa: "mapa", lekce: "mapa", uc: "mapa", karty: "karty", kviz: "dnes", halir: "halir", plan: "plan", jak: "plan" }[r] || "");
+  const focus = ["uc", "karty", "kviz", "zkouska", "seznamy", "otazka", "priklady"].includes(r) || (r === "esej" && parts[1]);
+  document.body.classList.toggle("focus", !!focus);
+  document.body.classList.toggle("wide", ["", "lekce", "mapa", "plan", "grafy", "pripravenost"].includes(r) && !focus);
   (map[r] || viewToday)(parts, q);
+  const v = view(); v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter");
   window.scrollTo(0, 0);
 }
 
@@ -348,45 +380,138 @@ async function render() {
 /* =================================================================== */
 function viewToday() {
   if (beforeStart()) return viewWaiting();
+  if (!S.onboarded) return viewWelcome();
   const n = daysToExam(); const ms = missions(); const xp = xpToday();
-  const pct = Math.min(100, Math.round(xp / S.goal * 100));
-  const next = ms.find(m => !m.done);
-  const greet = n > 0 ? pick(SAY.hello) : n === 0 ? "Dneska je to tady! Dýchej, věříš si, umíš to." : "Zkouška je za námi. Jsem na tebe pyšný!";
+  const next = ms.find(m => !m.done); const doneN = ms.filter(m => m.done).length;
+  const day = plan()[0];
+  const greet = n > 0 ? pick(SAY.hello) : n === 0 ? "Dneska je to tady! Dýchej, věříš si, umíš to." : "Zkouška je za námi. Jsem na tebe pyšná!";
+  const dayName = day ? (day.type === "learn" ? `Nová látka: ${day.ids.join(", ")}` : DAYTYPE[day.type].name) : "Hotovo";
   view().innerHTML = `${topbar()}
-  <div class="hero">${ham("happy", "idle")}<div class="bubble"><span class="hand">${n > 0 ? `zbývá ${n} ${plural(n, "den", "dny", "dní")}` : "Halíř říká"}</span>${esc(greet)}</div></div>
-  <div class="stats">
-    <div class="stat countdown"><b>${Math.max(0, n)}</b><span>${plural(Math.max(0, n), "den", "dny", "dní")} do zkoušky</span></div>
-    <div class="stat streak"><b>${streak()}</b><span>dní v řadě</span></div>
-    <div class="stat"><b>${Math.round(overall() * 100)}%</b><span>umíš celkem</span></div>
-  </div>
-  <div class="card" style="margin-top:12px"><div class="row"><div class="ring" style="--p:${pct}"><span>${pct}%</span></div>
-    <div style="flex:1"><b>Dnešní líčka</b><p class="muted small">${xp} / ${S.goal} XP · ${pct >= 100 ? "Cíl splněn, Halíř tančí!" : "Každá správná odpověď = oříšek do tváře."}</p></div></div></div>
-  <div class="sec-title"><h2>Dnešní mise</h2><a class="link small" href="#/plan">celý plán</a></div>
-  <div class="stack">${ms.length ? ms.map(m => `<a class="mission ${m.done ? "done" : ""} ${m === next ? "next" : ""}" href="${m.href}">
-      <div class="ico">${m.done ? ic.check : m.ico}</div><div class="txt"><b>${esc(m.t)}</b><span>${esc(m.s)}</span></div><div class="go">${ic.right}</div></a>`).join("")
-      : `<div class="card empty">Na dnešek nic — zkouška už proběhla. ♡</div>`}</div>
-  ${next ? `<a class="btn block" style="margin-top:16px" href="${next.href}">${ic.play} Pokračovat: ${esc(next.t)}</a>` : ms.length ? `<p class="hand" style="text-align:center;margin-top:18px">Všechny mise hotové! Zítra pokračujem ♡</p>` : ""}
-  <div class="sec-title"><h2>Rychlé trénování</h2></div>
-  <div class="grid2">
-    <a class="mission" href="#/kviz?mix=1&n=10"><div class="ico">${ic.bolt}</div><div class="txt"><b>Kvíz</b><span>10 otázek mix</span></div></a>
-    <a class="mission" href="#/zkouska"><div class="ico">${ic.trophy}</div><div class="txt"><b>Zkouška</b><span>simulace</span></div></a>
-    <a class="mission" href="#/esej"><div class="ico">${ic.pen}</div><div class="txt"><b>Esej</b><span>na čas, jako u zkoušky</span></div></a>
-    <a class="mission" href="#/grafy"><div class="ico">${ic.graph}</div><div class="txt"><b>Grafy</b><span>IS · MP · AD–AS</span></div></a>
-    <a class="mission" href="#/seznamy"><div class="ico">${ic.list}</div><div class="txt"><b>Vyjmenuj</b><span>seznamy</span></div></a>
-    <a class="mission" href="#/hledat"><div class="ico">${ic.search}</div><div class="txt"><b>Hledat</b><span>pojem v látce</span></div></a>
-    <a class="mission" href="#/otazky"><div class="ico">${ic.brain}</div><div class="txt"><b>Vysvětli</b><span>krátké otevřené otázky</span></div></a>
-    <a class="mission" href="#/tahak"><div class="ico">${ic.book}</div><div class="txt"><b>Tahák</b><span>celý kurz na 1 stránce</span></div></a>
-  </div>
-  <p class="small dim" style="text-align:center;margin-top:22px"><a class="link" href="#/jak">Proč se takhle učíme?</a></p>`;
+  <div class="cols">
+    <div class="col-a">
+      <div class="hero">${ham("happy", "idle")}<div class="bubble"><span class="hand">${n > 0 ? `zbývá ${n} ${plural(n, "den", "dny", "dní")}` : "Penny"}</span>${esc(greet)}</div></div>
+      <div class="stats">
+        <div class="stat countdown"><b>${Math.max(0, n)}</b><span>${plural(Math.max(0, n), "den", "dny", "dní")} do zkoušky</span></div>
+        <a class="stat" href="#/karty"><b>${dueIds().length}</b><span>${plural(dueIds().length, "kartička", "kartičky", "kartiček")} k opakování</span></a>
+      </div>
+    </div>
+    <div class="col-b">
+      <section class="today">
+        <div class="today-head"><div><p class="cap">Dnes · ${DOW[new Date().getDay()]} ${new Date().getDate()}. ${new Date().getMonth() + 1}.</p><h2>${esc(dayName)}</h2></div><a class="link small" href="#/plan">Celý plán</a></div>
+        ${ms.length ? `<div class="progress"><div class="bar"><i style="width:${doneN / ms.length * 100}%"></i></div><span>${doneN} z ${ms.length} hotovo</span></div>` : ""}
+        ${next ? `<a class="btn block big" href="${next.href}">${ic.play} ${esc(next.c || next.t)}</a>` : ms.length ? `<div class="day-done"><p class="hand">Dnešek je hotový ♡</p><p class="small muted">${tomorrowLine()}</p></div>` : ""}
+        <ol class="steps">${ms.map(m => `<li><a class="mission k-${m.k} ${m.done ? "done" : ""} ${m === next ? "next" : ""}" href="${m.href}">
+          <div class="ico">${m.done ? ic.check : m.ico}</div><div class="txt"><b>${esc(m.t)}</b><span>${esc(m.s)}</span></div><div class="go">${ic.right}</div></a></li>`).join("")}</ol>
+      </section>
+      ${readyCard()}
+      <div class="sec-title"><h2>Procvičuj podle sebe</h2></div>
+      <div class="tools">
+        <a class="tool k-exam" href="#/zkouska">${ic.trophy}<b>Zkouška nanečisto</b><span>${EXAM_MC} otázek + esej</span></a>
+        <a class="tool k-quiz" href="#/kviz?mix=1&n=10">${ic.bolt}<b>Rychlý kvíz</b><span>10 otázek mix</span></a>
+        <a class="tool k-essay" href="#/esej">${ic.pen}<b>Esej</b><span>${essayReady().done} z ${ESSAYS().length} napsáno</span></a>
+        <a class="tool k-review" href="#/karty">${ic.cards}<b>Kartičky</b><span>${dueIds().length ? `${dueIds().length} čeká` : "vše zopakováno"}</span></a>
+        <a class="tool k-learn" href="#/grafy">${ic.graph}<b>Grafy</b><span>IS · MP · AD–AS</span></a>
+        <a class="tool k-tahak" href="#/tahak">${ic.book}<b>Tahák</b><span>celý kurz na 1 stránce</span></a>
+        <a class="tool k-lists" href="#/seznamy">${ic.list}<b>Vyjmenuj</b><span>${Object.keys(LIST).length} seznamů</span></a>
+        <a class="tool k-search" href="#/hledat">${ic.search}<b>Hledat</b><span>pojem v látce</span></a>
+      </div>
+      <p class="small dim" style="text-align:center;margin-top:24px"><a class="link" href="#/jak">Proč se učíme právě takhle</a></p>
+    </div>
+  </div>`;
+}
+
+function weakest() {
+  return lectures().map(l => ({ l, r: readiness(l.id) })).sort((a, b) => a.r.score - b.r.score)[0];
+}
+const lvlColor = pct => pct >= 85 ? "var(--emerald)" : pct >= 65 ? "var(--teal)" : pct >= 40 ? "var(--gold)" : "var(--coral)";
+function readyCard() {
+  const o = overallReady(); const pct = Math.round(o.score * 100); const w = weakest();
+  const act = w && (sectionsRead(w.l.id) < w.l.sections.length ? `#/uc/${w.l.id}` : `#/kviz?l=${w.l.id}&n=12`);
+  return `<a class="ready-card" href="#/pripravenost"><div class="ring big" style="--p:${pct};--rc:${lvlColor(pct)}"><span>${pct} %</span></div>
+    <div style="flex:1;min-width:0"><p class="cap">Připravenost na zkoušku</p><b>${levelOf(pct)}</b>
+    ${w && pct < 95 ? `<span class="small muted">Nejvíc ti teď pomůže: ${esc(w.l.id)} ${esc(w.l.title)}</span>` : ""}</div></a>`;
+}
+/* ---------- konec každého sezení (peak–end): shrnutí, posun připravenosti, další krok ---------- */
+const dayLabel = d => d.type === "learn" ? `nová látka ${d.ids.join(", ")}` : DAYTYPE[d.type].name.toLowerCase();
+function tomorrowLine() {
+  const t = plan()[1];
+  return t ? `Zítra: <b>${esc(dayLabel(t))}</b>. Zbytek dne je tvůj.` : "Zítra je zkouška. Vyspi se, umíš to.";
+}
+function endBlock(r0, primary) {
+  const r1 = overallReady().score; const p1 = Math.round(r1 * 100); const p0 = Math.round((r0 ?? r1) * 100); const d = p1 - p0;
+  const delta = d > 0 ? `<span class="delta up">+${d} %</span>` : d < 0 ? `<span class="delta down">${d} %</span>` : `<span class="delta flat">±0</span>`;
+  const why = d > 0 ? `Z ${p0} % na ${p1} %.` : d < 0 ? "Chyby teď ukázaly, co doučit — přesně k tomu jsou." : "Paměť se upevňuje, i když číslo zrovna neskočí.";
+  const nm = missions().find(m => !m.done);
+  const next = primary ? primary
+    : nm ? `<a class="btn block big" href="${nm.href}">${ic.play} ${esc(nm.c || nm.t)}</a>`
+    : `<div class="card"><b>Dnešek je hotový</b><p class="small muted" style="margin-top:4px">${tomorrowLine()}</p></div>`;
+  return { up: d > 0 && levelOf(p1) !== levelOf(p0), html: `<div class="card end"><div class="end-ready"><div class="ring big" style="--p:${p1};--rc:${lvlColor(p1)}"><span>${p1} %</span></div>
+    <div style="flex:1;min-width:0"><p class="cap">Připravenost na zkoušku</p><b>${levelOf(p1)} ${delta}</b><span class="small muted">${why}</span></div></div></div>
+    <div class="end-next">${next}<a class="btn ghost block" href="#/">Zpět na dnešek</a></div>` };
+}
+function endScreen({ mood = "happy", say, big, title, sub, rows = [], r0, primary, peak = false }) {
+  const e = endBlock(r0, primary);
+  sfx.done(); if (peak || e.up) confetti();
+  view().innerHTML = `<div class="done-screen">${ham(mood, "bounce")}<p class="hand">${esc(say)}</p>
+    ${big != null ? `<div class="big-num" style="margin-top:8px">${big}</div>` : ""}${title ? `<h1>${esc(title)}</h1>` : ""}
+    ${sub ? `<p class="muted">${sub}</p>` : ""}
+    ${rows.length ? `<div class="card end" style="margin-bottom:0">${rows.map(([k, v], i) => `<div class="end-row" ${i ? "" : `style="border-top:0;margin-top:0;padding-top:0"`}><span>${k}</span><b>${v}</b></div>`).join("")}</div>` : ""}
+    ${e.html}</div>`;
+}
+
+function viewReadiness() {
+  const o = overallReady(); const pct = Math.round(o.score * 100); const es = essayReady();
+  const rows = lectures().map(l => ({ l, r: readiness(l.id) })).sort((a, b) => a.r.score - b.r.score);
+  const last = S.exams.slice(-1)[0];
+  view().innerHTML = `${topbar("#/")}<h1>Připravenost na zkoušku</h1>
+  <div class="cols" style="margin-top:16px"><div class="col-a sticky">
+    <div class="card" style="text-align:center"><div class="ring huge" style="--p:${pct};--rc:${lvlColor(pct)};margin:8px auto 12px"><span>${pct} %</span></div>
+      <h2>${levelOf(pct)}</h2>
+      <div class="stack" style="gap:8px;margin-top:16px;text-align:left">
+        <div class="meter"><span>Lekce</span><div class="bar sky"><i style="width:${o.lec * 100}%"></i></div><b>${Math.round(o.lec * 100)} %</b></div>
+        <div class="meter"><span>Esej</span><div class="bar sky"><i style="width:${o.essay * 100}%"></i></div><b>${Math.round(o.essay * 100)} %</b></div>
+      </div>
+      <p class="small dim" style="margin-top:12px">Esejí napsáno ${es.done} z ${es.n}${es.done ? `, průměrně ${Math.round(es.avg * 100)} % klíčových bodů` : ""}.${last ? ` Poslední zkouška nanečisto: ${last.pct} % v části A.` : ""}</p></div>
+    <details class="card dark" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Jak se to počítá</summary>
+      <p class="small" style="margin-top:8px">Ne podle toho, kolik času jsi strávila, ale podle toho, co opravdu umíš. U každé lekce: <b>15 %</b> probraná látka, <b>40 %</b> jak pevně držíš kartičky v paměti, <b>45 %</b> jak správně odpovídáš na otázky (počítá se tvoje poslední odpověď, naplno až po zodpovězení aspoň půlky otázek). Celkem: 80 % lekce, 20 % eseje. Je to odhad, ne záruka — ale když roste, roste i to, co umíš.</p></details>
+  </div><div class="col-b">
+    <div class="sec-title"><h2>Podle přednášek</h2><span class="small muted">od nejslabší</span></div>
+    <div class="card">${rows.map(({ l, r }) => { const p = Math.round(r.score * 100); const go = sectionsRead(l.id) < l.sections.length ? [`#/uc/${l.id}`, "Dočíst"] : r.mem < .6 ? [`#/karty?l=${l.id}`, "Kartičky"] : [`#/kviz?l=${l.id}&n=12`, "Kvíz"];
+      return `<div class="ready-row"><div class="ring" style="--p:${p};--rc:${lvlColor(p)}"><span>${p}</span></div><div style="flex:1;min-width:0"><b>${l.id} ${esc(l.title)}</b>
+        <span class="small muted">čteno ${Math.round(r.read * 100)} · paměť ${Math.round(r.mem * 100)} · správně ${r.cover ? Math.round(r.acc * 100) + " %" : "–"}</span></div>
+        <a class="btn ghost sm" href="${go[0]}">${go[1]}</a></div>`; }).join("")}</div>
+  </div></div>`;
+}
+
+/* ---------- první spuštění: 3 krátké karty ---------- */
+function viewWelcome() {
+  const slides = [
+    { m: "happy", h: "Ahoj Aničko, já jsem Penny", p: "Naučím tě celou Měnovou teorii a politiku — všech 12 přednášek. Ty jen každý den otevřeš <b>Dnes</b> a uděláš, co tam je." },
+    { m: "open", h: "Jak se tu učí", p: "<b>Přečteš krátkou část → hned 2 otázky → kartičky.</b> Kartičky se ti vrací přesně ve chvíli, kdy bys je začala zapomínat. Testovat se je mnohem účinnější než slajdy přepisovat." },
+    { m: "wow", h: "Zkouška: a/b/c/d + esej", p: "Na konci si napíšeš <b>zkoušku nanečisto</b> ve stejném formátu. Když něčemu nerozumíš, zeptej se mě — hlasem nebo textem." + (/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone ? "<br><br><b>Tip:</b> v Safari dej <b>Sdílet → Přidat na plochu</b> a budu jako appka." : "") },
+  ];
+  let i = 0;
+  const draw = () => {
+    const sl = slides[i];
+    view().innerHTML = `<div class="welcome">${ham(sl.m, "idle")}<h1>${sl.h}</h1><p class="lead">${sl.p}</p>
+      <div class="dots">${slides.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div></div>
+      <div class="dock"><div class="dock-in"><button class="btn block big" id="wNext">${i < slides.length - 1 ? "Dál" : "Jdeme na to"}</button>
+      ${i < slides.length - 1 ? `<button class="btn-text" id="wSkip">Přeskočit</button>` : ""}</div></div>`;
+    $("#wNext").onclick = () => { if (i < slides.length - 1) { i++; draw(); } else { S.onboarded = 1; save(); render(); } };
+    const sk = $("#wSkip"); if (sk) sk.onclick = () => { S.onboarded = 1; save(); render(); };
+  };
+  document.body.classList.add("focus");
+  draw();
 }
 
 function viewWaiting() {
+  if (!S.onboarded) return viewWelcome();
   const st = parseD(planStart()); const d = diffDays(today(), planStart()); const p = plan();
   view().innerHTML = `${topbar()}
   <div class="hero">${ham("happy", "idle")}<div class="bubble"><span class="hand">start ${st.getDate()}. ${st.getMonth() + 1}.</span>Učení začíná za ${d} ${plural(d, "den", "dny", "dní")}. Plán je připravený: 4 dny nová látka (3 přednášky denně), poslední den simulace zkoušky a opakování.</div></div>
   <div class="card"><b>Jak to bude vypadat</b><div style="margin-top:8px">${p.map(x => { const dd = parseD(x.date); const ty = DAYTYPE[x.type];
     return `<div class="dayrow"><div class="d"><b>${dd.getDate()}.</b><span>${DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${x.ids.length ? `<b>${x.ids.join(" · ")}</b>` : ""}</div></div>`; }).join("")}</div></div>
-  <div class="card" style="margin-top:12px"><b>Tip od Halíře</b><p class="muted small" style="margin-top:4px">Každý den dřív = méně látky na den. I 20 minut dnes (třeba lekce 1A) ti pak ulehčí ty nejnabitější dny.</p>
+  <div class="card" style="margin-top:12px"><b>Tip od Penny</b><p class="muted small" style="margin-top:4px">Každý den dřív = méně látky na den. I 20 minut dnes (třeba lekce 1A) ti pak ulehčí ty nejnabitější dny.</p>
     <button class="btn block" id="early" style="margin-top:12px">${ic.play} Začít dřív — už dnes</button></div>
   <p class="small dim" style="text-align:center;margin-top:16px">Mezitím můžeš kdykoli nahlédnout do <a class="link" href="#/mapa">lekcí</a>.</p>`;
   $("#early").onclick = () => { S.startDate = today(); S.planFor = null; save(); render(); };
@@ -397,14 +522,15 @@ function viewWaiting() {
 /* =================================================================== */
 function viewMap() {
   const tIds = (plan()[0] || {}).ids || [];
-  view().innerHTML = `${topbar()}<h1>Cesta kurzem</h1><p class="muted" style="margin-top:6px">12 přednášek, 6 zastávek. Kroužek kolem lekce = jak moc ji umíš.</p>
-  ${C.units.map((u, i) => `<div class="unit"><div class="unit-head"><span class="num">${i + 1}</span><b>${esc(u.title)}</b></div>
+  view().innerHTML = `${topbar()}<h1>Cesta kurzem</h1><p class="muted" style="margin-top:8px">12 přednášek, 6 zastávek. Kroužek kolem lekce = jak jsi na ni připravená.</p>
+  <div class="map-grid">${C.units.map((u, i) => `<div class="unit u${i + 1}"><div class="unit-head"><span class="num">${i + 1}</span><b>${esc(u.title)}</b></div>
     <div class="path">${u.ids.map(id => {
-      const l = LEC[id]; const m = Math.round(mastery(id) * 100); const rd = sectionsRead(id);
+      const l = LEC[id]; const m = Math.round(readiness(id).score * 100); const rd = sectionsRead(id);
       const cls = lectureRead(id) && m >= 75 ? "done" : rd === 0 ? "fresh" : "";
-      return `<a class="node ${cls} ${tIds.includes(id) ? "today" : ""}" href="#/lekce/${id}"><div class="disc" style="--p:${m}"><span>${id}</span></div>
-        <div class="meta"><b>${esc(l.title)}</b><span>${rd}/${l.sections.length} přečteno · ${m}% upevněno</span></div></a>`;
-    }).join("")}</div></div>`).join("")}`;
+      const now = tIds.includes(id) && !lectureRead(id);
+      return `<a class="node ${cls} ${now ? "is-now" : ""}" href="#/lekce/${id}"><div class="disc" style="--p:${m};--rc:${lvlColor(m)}"><span>${id}</span></div>
+        <div class="meta">${now ? `<span class="now">dnes na řadě</span>` : ""}<b>${esc(l.title)}</b><span>${rd}/${l.sections.length} přečteno · připravenost ${m} %</span></div></a>`;
+    }).join("")}</div></div>`).join("")}</div>`;
 }
 
 /* =================================================================== */
@@ -420,25 +546,26 @@ function viewLecture(parts, q) {
   const newCount = lecCards(id).filter(c => !S.cards[c]).length;
   const dueC = lecCards(id).filter(isDue).length;
   let cta;
-  if (!lectureRead(id)) cta = `<a class="btn block" href="#/uc/${id}">${ic.play} ${rd ? "Pokračovat v učení" : "Nauč se lekci"}</a>`;
-  else cta = `<div class="grid2"><a class="btn" href="#/karty?l=${id}">${ic.cards} Kartičky${dueC + newCount ? ` (${dueC + newCount})` : ""}</a><a class="btn candle" href="#/kviz?l=${id}&n=12">${ic.bolt} Kvíz</a></div>`;
-  view().innerHTML = `${topbar("#/mapa")}
-  <p class="hand">${esc(unitOf(id)?.title || "")} · přednáška ${id}</p><h1 style="margin-top:4px">${esc(l.title)}</h1>
-  <p class="muted" style="margin-top:6px">${esc(l.tagline)}</p>
-  <div class="card" style="margin-top:14px"><div class="stack" style="gap:8px">
-    <div class="row small"><span style="width:90px">Přečteno</span><div class="bar" style="flex:1"><i style="width:${rd / l.sections.length * 100}%"></i></div><b>${rd}/${l.sections.length}</b></div>
-    <div class="row small"><span style="width:90px">Upevněno</span><div class="bar candle" style="flex:1"><i style="width:${m}%"></i></div><b>${m}%</b></div>
-    <div class="row small"><span style="width:90px">Kvízy</span><div class="bar ok" style="flex:1"><i style="width:${qa == null ? 0 : qa * 100}%"></i></div><b>${qa == null ? "–" : Math.round(qa * 100) + "%"}</b></div>
-  </div><div style="margin-top:14px">${cta}</div></div>
-  <div class="tabs" style="margin-top:16px">${tabs.map(([k, n]) => `<button class="tab ${k === tab ? "on" : ""}" data-tab="${k}">${n}</button>`).join("")}</div>
-  <div id="tabc"></div>`;
+  const ns = l.sections.length;
+  if (!lectureRead(id)) cta = `<a class="btn block big" href="#/uc/${id}">${ic.play} ${rd ? `Pokračovat · zbývá ${ns - rd} ${plural(ns - rd, "část", "části", "částí")}` : `Nauč se ${id} · ${ns} ${plural(ns, "část", "části", "částí")}`}</a>`;
+  else cta = `<div class="stack">${dueC + newCount ? `<a class="btn block" href="#/karty?l=${id}">${ic.cards} Zopakovat ${dueC + newCount} ${plural(dueC + newCount, "kartičku", "kartičky", "kartiček")}</a>` : ""}<a class="btn ${dueC + newCount ? "ghost" : ""} block" href="#/kviz?l=${id}&n=12">${ic.bolt} Kvíz · 12 otázek</a></div>`;
+  view().innerHTML = `${topbar("#/mapa")}<div class="cols lec"><div class="col-a sticky">
+  <p class="cap">Přednáška ${id} · ${esc(unitOf(id)?.title || "")}</p><h1>${esc(l.title)}</h1>
+  <p class="muted" style="margin-top:8px">${esc(l.tagline)}</p>
+  <div class="card" style="margin-top:16px"><div class="stack" style="gap:8px">
+    <div class="meter"><span>Přečteno</span><div class="bar"><i style="width:${rd / ns * 100}%"></i></div><b>${rd}/${ns}</b></div>
+    <div class="meter"><span>Upevněno</span><div class="bar candle"><i style="width:${m}%"></i></div><b>${m} %</b></div>
+    <div class="meter"><span>Kvízy</span><div class="bar ok"><i style="width:${qa == null ? 0 : qa * 100}%"></i></div><b>${qa == null ? "–" : Math.round(qa * 100) + " %"}</b></div>
+  </div><div style="margin-top:16px">${cta}</div></div></div>
+  <div class="col-b"><div class="tabs">${tabs.map(([k, n]) => `<button class="tab ${k === tab ? "on" : ""}" data-tab="${k}">${n}</button>`).join("")}</div>
+  <div id="tabc"></div></div></div>${fab(`${l.id} ${l.title}`)}`;
   $$(".tab").forEach(b => b.onclick = () => { history.replaceState(null, "", `#/lekce/${id}?tab=${b.dataset.tab}`); viewLecture(parts, new URLSearchParams("tab=" + b.dataset.tab)); });
   $("#tabc").innerHTML = lectureTab(l, tab);
   bindAsk();
 }
-function askBtn(text, ctx) { return `<button class="btn ghost sm" data-ask="${esc(text)}" data-ctx="${esc(ctx)}">${ham("open")} Nerozumím — zeptej se Halíře</button>`; }
+function askBtn(text, ctx) { return `<button class="btn ghost sm" data-ask="${esc(text)}" data-ctx="${esc(ctx)}">${ham("open")} Nerozumím — zeptej se Penny</button>`; }
 function bindAsk() {
-  $$("[data-ask]").forEach(b => b.onclick = () => nav(`#/halir?ctx=${encodeURIComponent(b.dataset.ctx)}&q=${encodeURIComponent(b.dataset.ask)}`));
+  $$("[data-ask]").forEach(b => b.onclick = () => openDrawer(b.dataset.ctx, b.dataset.ask));
 }
 function sectionSheet(s, withAsk = true) {
   const l = LEC[s.lec];
@@ -449,21 +576,21 @@ function sectionSheet(s, withAsk = true) {
     ${withAsk ? `<div class="sheet-actions">${askBtn(`Vysvětli mi jednoduše a s příkladem: ${s.title}`, `${l.id} ${l.title} – ${s.title}`)}</div>` : ""}</div>`;
 }
 function lectureTab(l, tab) {
-  if (tab === "vyklad") return `<div class="card dark" style="margin-bottom:14px"><p class="hand">Velký obraz</p><div class="md" style="margin-top:6px">${md(l.bigPicture)}</div>
+  if (tab === "vyklad") return `<div class="card dark" style="margin-bottom:16px"><p class="cap">Velký obraz</p><div class="md" style="margin-top:8px">${md(l.bigPicture)}</div>
      ${l.literature ? `<p class="small dim" style="margin-top:8px">Literatura: ${esc(l.literature)}</p>` : ""}</div>` + l.sections.map(s => sectionSheet(s)).join("");
   if (tab === "pojmy") return `<div class="card dark">${l.keyTerms.map(t => `<div class="term"><b>${mdi(t.term)}</b><p class="md">${mdi(t.def)}</p></div>`).join("")}</div>`;
   if (tab === "vzorce") return l.formulas.map(f => `<div class="formula dark"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div><div class="md small">${md(f.meaning)}</div></div>`).join("");
-  if (tab === "seznamy") return `<a class="btn block" href="#/seznamy?l=${l.id}" style="margin-bottom:12px">${ic.list} Procvič vyjmenování</a>` +
-    l.lists.map(x => `<div class="card dark"><b>${esc(x.title)}</b><${x.ordered ? "ol" : "ul"} class="md" style="margin-top:6px">${x.items.map(i => `<li>${mdi(i)}</li>`).join("")}</${x.ordered ? "ol" : "ul"}></div>`).join("");
-  if (tab === "priklady") return `<a class="btn block" href="#/priklady/${l.id}" style="margin-bottom:12px">${ic.calc} Počítej krok za krokem</a>` +
+  if (tab === "seznamy") return `<a class="btn ghost block" href="#/seznamy?l=${l.id}" style="margin-bottom:12px">${ic.list} Vyjmenovat ${l.lists.length} ${plural(l.lists.length, "seznam", "seznamy", "seznamů")}</a>` +
+    l.lists.map(x => `<div class="card dark"><b>${esc(x.title)}</b><${x.ordered ? "ol" : "ul"} class="md" style="margin-top:8px">${x.items.map(i => `<li>${mdi(i)}</li>`).join("")}</${x.ordered ? "ol" : "ul"}></div>`).join("");
+  if (tab === "priklady") return `<a class="btn ghost block" href="#/priklady/${l.id}" style="margin-bottom:12px">${ic.calc} Počítat ${l.problems.length} ${plural(l.problems.length, "příklad", "příklady", "příkladů")} krok za krokem</a>` +
     l.problems.map((p, i) => `<div class="card dark"><b>Příklad ${i + 1}</b><div class="md">${md(p.q)}</div></div>`).join("");
-  if (tab === "otazky") return `<p class="muted small" style="margin-bottom:10px">Otevřené otázky jako u zkoušky. Nejdřív odpověz sama (nahlas nebo písemně), pak porovnej s klíčovými body — tím se to naučíš nejlíp.</p>` +
+  if (tab === "otazky") return `<p class="muted small" style="margin-bottom:12px">Otevřené otázky jako u zkoušky. Nejdřív odpověz sama (nahlas nebo písemně), pak porovnej s klíčovými body — tím se to naučíš nejlíp.</p>` +
     l.examQuestions.map(e => { const f = S.feyn[e.id]; return `<a class="hit" href="#/otazka/${e.id}"><b>${mdi(e.q)}</b><span>${f ? `Naposledy ${Math.round(f.score * 100)} % klíčových bodů` : "Ještě nezkoušeno"}</span></a>`; }).join("");
-  if (tab === "grafy") return `<a class="btn block" href="#/grafy" style="margin-bottom:12px">${ic.graph} Otevřít grafickou laboratoř</a>` +
-    l.graphs.map(g => `<div class="card dark"><b>${esc(g.title)}</b><p class="small dim">Snímek ${esc(g.slide)} · osa x: ${esc(g.x)} · osa y: ${esc(g.y)}${g.curves?.length ? " · křivky: " + esc(g.curves.join(", ")) : ""}</p><div class="md" style="margin-top:6px">${md(g.story)}</div></div>`).join("");
-  if (tab === "triky") return `${(l.mnemonics || []).length ? `<h3 style="margin:4px 0 10px">Oslí můstky</h3>` + l.mnemonics.map(m => `<div class="tip"><span class="k">✦</span><div><b>${mdi(m.for)}</b><div class="md small">${md(m.trick)}</div></div></div>`).join("") : ""}
-    ${(l.pitfalls || []).length ? `<h3 style="margin:18px 0 10px">Na co si dát pozor</h3>` + l.pitfalls.map(p => `<div class="tip"><span class="k">!</span><div class="md small">${md(p)}</div></div>`).join("") : ""}
-    ${(l.connections || []).length ? `<h3 style="margin:18px 0 10px">Souvislosti</h3>` + l.connections.map(c => `<a class="hit" href="#/lekce/${c.to}"><b>→ ${esc(c.to)} ${esc(LEC[c.to]?.title || "")}</b><span>${mdi(c.how)}</span></a>`).join("") : ""}`;
+  if (tab === "grafy") return `<a class="btn ghost block" href="#/grafy" style="margin-bottom:12px">${ic.graph} Otevřít grafickou laboratoř</a>` +
+    l.graphs.map(g => `<div class="card dark"><b>${esc(g.title)}</b><p class="small dim">Snímek ${esc(g.slide)} · osa x: ${esc(g.x)} · osa y: ${esc(g.y)}${g.curves?.length ? " · křivky: " + esc(g.curves.join(", ")) : ""}</p><div class="md" style="margin-top:8px">${md(g.story)}</div></div>`).join("");
+  if (tab === "triky") return `${(l.mnemonics || []).length ? `<h3 style="margin:0 0 12px">Oslí můstky</h3>` + l.mnemonics.map(m => `<div class="tip"><span class="k">✦</span><div><b>${mdi(m.for)}</b><div class="md small">${md(m.trick)}</div></div></div>`).join("") : ""}
+    ${(l.pitfalls || []).length ? `<h3 style="margin:24px 0 12px">Na co si dát pozor</h3>` + l.pitfalls.map(p => `<div class="tip"><span class="k">!</span><div class="md small">${md(p)}</div></div>`).join("") : ""}
+    ${(l.connections || []).length ? `<h3 style="margin:24px 0 12px">Souvislosti</h3>` + l.connections.map(c => `<a class="hit" href="#/lekce/${c.to}"><b>→ ${esc(c.to)} ${esc(LEC[c.to]?.title || "")}</b><span>${mdi(c.how)}</span></a>`).join("") : ""}`;
   return "";
 }
 
@@ -474,17 +601,17 @@ function viewLearn(parts) {
   const id = parts[1]; const l = LEC[id]; if (!l) return nav("#/mapa");
   if (!SESSION || SESSION.kind !== "learn" || SESSION.id !== id) {
     const first = l.sections.findIndex(s => !S.read[s.id]);
-    SESSION = { kind: "learn", id, si: first < 0 ? 0 : first, phase: "read" };
+    SESSION = { kind: "learn", id, si: first < 0 ? 0 : first, phase: "read", r0: overallReady().score };
   }
   const st = SESSION; const s = l.sections[st.si];
   const prog = (st.si + (st.phase === "check" ? .5 : 0)) / l.sections.length * 100;
   const head = `<div class="session-top"><button class="x" data-back="#/lekce/${id}">${ic.x}</button><div class="bar"><i style="width:${prog}%"></i></div><span class="small muted">${st.si + 1}/${l.sections.length}</span></div>`;
   if (st.phase === "read") {
-    view().innerHTML = `${head}<p class="hand">${esc(id)} · část ${st.si + 1}</p>
-      ${st.si === 0 ? `<div class="hero" style="margin:6px 0 10px">${ham("happy", "idle")}<div class="bubble">${esc(l.halirIntro || "Jdeme na to!")}</div></div>` : ""}
+    view().innerHTML = `${head}<p class="cap">${esc(id)} · část ${st.si + 1} z ${l.sections.length}</p>
+      ${st.si === 0 ? `<div class="hero" style="margin:8px 0 12px">${ham("happy", "idle")}<div class="bubble">${esc(l.halirIntro || "Jdeme na to!")}</div></div>` : ""}
       ${sectionSheet(s)}
-      <p class="small dim" style="margin:14px 2px">Tip: čti pomalu a u každého odstavce si v duchu řekni „proč?“. Pak tě hned vyzkouším.</p>
-      <button class="btn block" id="goCheck">Přečteno — vyzkoušej mě ${ic.right}</button>`;
+      <p class="small dim" style="margin:16px 2px">Tip: čti pomalu a u každého odstavce si v duchu řekni „proč?“. Pak tě hned vyzkouším.</p>
+      <div class="dock"><div class="dock-in"><button class="btn block big" id="goCheck">Přečteno — vyzkoušej mě</button></div></div>${fab(`${l.id} ${l.title} – ${s.title}`)}`;
     bindAsk();
     $("#goCheck").onclick = () => {
       const pool = Object.values(QZ).filter(x => x.lec === id && x.section === s.id);
@@ -496,7 +623,7 @@ function viewLearn(parts) {
     };
   } else {
     const item = st.checks[st.ci];
-    view().innerHTML = `${head}<p class="hand" style="margin-bottom:8px">Rychlá kontrola ${st.ci + 1}/${st.checks.length}</p><div id="qbox"></div>`;
+    view().innerHTML = `${head}<p class="cap" style="margin-bottom:8px">Rychlá kontrola ${st.ci + 1} z ${st.checks.length} · ${esc(s.title)}</p><div id="qbox"></div>`;
     renderQuestion($("#qbox"), item, () => { st.ci++; if (st.ci >= st.checks.length) finishSection(); else render(); });
   }
   function finishSection() {
@@ -507,13 +634,11 @@ function viewLearn(parts) {
     if (st.si + 1 < l.sections.length) { st.si++; st.phase = "read"; render(); }
     else {
       l.flashcards.filter(c => !S.cards[c.id]).forEach(c => { S.cards[c.id] = { reps: 0, ease: 2.4, ivl: 0, lapses: 0, due: Date.now() }; });
-      save(); SESSION = null; sfx.done(); confetti();
+      save(); const r0 = st.r0; SESSION = null;
       const nNew = lecCards(id).filter(isDue).length;
-      view().innerHTML = `<div class="done-screen">${ham("happy", "bounce")}<p class="hand" style="margin-top:8px">${pick(SAY.done)}</p>
-        <h1 style="margin-top:6px">${esc(l.title)} přečteno!</h1>
-        <p class="muted" style="margin:10px auto 22px;max-width:30ch">Teď to nejdůležitější: vybavování. ${nNew} kartiček z této lekce čeká — dokud je to čerstvé.</p>
-        <a class="btn block" href="#/karty?l=${id}">${ic.cards} Kartičky z ${id}</a>
-        <a class="btn ghost block" style="margin-top:10px" href="#/">Zpět na dnešek</a></div>`;
+      endScreen({ say: pick(SAY.done), title: `${id} máš přečtenou!`, peak: true, r0,
+        sub: `${l.sections.length} ${plural(l.sections.length, "část", "části", "částí")} za tebou. Teď to nejdůležitější: vybavit si to, dokud je to čerstvé.`,
+        primary: `<a class="btn block big" href="#/karty?l=${id}">${ic.cards} Zopakovat ${nNew} ${plural(nNew, "kartičku", "kartičky", "kartiček")} z ${id}</a>` });
     }
   }
 }
@@ -545,7 +670,7 @@ function renderQuestion(box, item, onNext, opts = {}) {
       b.disabled = true; const bv = +b.dataset.v;
       const isRight = item.t === "tf" ? (bv === 1) === !!item.true : bv === item.correct;
       if (!exam) { if (isRight) b.classList.add("right"); else if (bv === v) b.classList.add("wrong"); }
-      else if (bv === v) b.style.borderColor = "var(--candle)";
+      else if (bv === v) b.classList.add("picked");
     });
     if (exam) { onNext(correct, v); return; }
     recordQ(item, correct);
@@ -556,12 +681,12 @@ function renderQuestion(box, item, onNext, opts = {}) {
     fb.innerHTML = `<div class="in"><h3>${correct ? ic.check : ic.x} ${esc(pick(correct ? SAY.right : SAY.wrong))}</h3>
       <div class="md">${md(item.explain || "")}</div>
       <div class="row"><button class="btn ${correct ? "ok" : "bad"}" style="flex:1" id="fbNext">Pokračovat</button>
-      ${!correct ? `<button class="btn ghost" id="fbAsk" title="Zeptej se Halíře">${ham("open")}</button>` : ""}</div></div>`;
+      ${!correct ? `<button class="btn ghost" id="fbAsk" title="Zeptej se Penny">${ham("open")}</button>` : ""}</div></div>`;
     document.body.appendChild(fb);
     const go = () => { fb.remove(); window.onkeydown = null; onNext(correct); };
     $("#fbNext", fb).onclick = go;
     const ask = $("#fbAsk", fb);
-    if (ask) ask.onclick = () => { fb.remove(); const qt = item.t === "tf" ? item.s : item.q; nav(`#/halir?ctx=${encodeURIComponent(item.lec + " " + LEC[item.lec].title)}&q=${encodeURIComponent("Proč je to takhle? Otázka: " + qt + " Vysvětli mi to jednoduše.")}`); };
+    if (ask) ask.onclick = () => { fb.remove(); const qt = item.t === "tf" ? item.s : item.q; openDrawer(item.lec + " " + LEC[item.lec].title, "Proč je to takhle? Otázka: " + qt + " Vysvětli mi to jednoduše."); };
     setTimeout(() => window.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }, 200);
   };
   $$(".opt", box).forEach(b => b.onclick = () => answer(+b.dataset.v));
@@ -606,14 +731,14 @@ function viewQuiz(parts, q) {
     if (items.length < n) items = prioritize(pool, n);
     if (!q.get("l")) items = interleave(items);
     items.forEach(i => delete i._order);
-    SESSION = { kind: "quiz", key, items, i: 0, ok: 0, total: items.length, retried: new Set(), m: q.get("m"), title: q.get("l") ? `Kvíz ${q.get("l")}` : q.get("weak") ? "Slabá místa" : "Mix kvíz" };
+    SESSION = { kind: "quiz", key, r0: overallReady().score, items, i: 0, ok: 0, total: items.length, retried: new Set(), m: q.get("m"), title: q.get("l") ? `Kvíz ${q.get("l")}` : q.get("weak") ? "Slabá místa" : "Mix kvíz" };
   }
   const st = SESSION;
-  if (!st.items.length) { view().innerHTML = `${topbar("#/")}<div class="empty">${ham("sad")}<p style="margin-top:10px">Tady zatím nic není. ${q.get("weak") ? "Žádná slabá místa — nebo jsi ještě nic nezkoušela." : ""}</p><a class="btn" href="#/" style="margin-top:14px">Zpět</a></div>`; return; }
+  if (!st.items.length) { view().innerHTML = `${topbar("#/")}<div class="empty">${ham("open")}<h2 style="margin-top:8px">${q.get("weak") ? "Žádná slabá místa" : "Zatím tu nejsou otázky"}</h2><p style="margin:8px auto 0;max-width:32ch">${q.get("weak") ? "Buď ti všechno jde, nebo jsi ještě nic nezkoušela. Mix kvíz je najde." : "Otázky se odemknou s první přečtenou lekcí."}</p><a class="btn" href="${q.get("weak") ? "#/kviz?mix=1&n=10" : "#/mapa"}" style="margin-top:16px">${q.get("weak") ? "Spustit mix · 10 otázek" : "Vybrat lekci"}</a></div>`; return; }
   if (st.i >= st.items.length) return quizDone(st);
   const item = st.items[st.i];
-  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar"><i style="width:${st.i / st.items.length * 100}%"></i></div><span class="small muted">${st.ok}✓</span></div>
-    <div class="hero" style="margin:0 0 4px">${ham("open")}<div class="bubble" style="margin-bottom:14px">${esc(st.title)} · otázka ${Math.min(st.i + 1, st.total)}${st.i >= st.total ? " (oprava)" : ""}</div></div><div id="qbox"></div>`;
+  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar sky"><i style="width:${st.i / st.items.length * 100}%"></i></div><span>${Math.min(st.i + 1, st.items.length)}/${st.items.length}</span></div>
+    <div class="hero" style="margin:0 0 4px">${ham("open")}<div class="bubble" style="margin-bottom:16px">${st.i >= st.total ? "Tuhle jsi spletla — zkus ji znovu." : esc(st.title)}</div></div><div id="qbox"></div>`;
   renderQuestion($("#qbox"), item, ok => {
     if (st.i < st.total && ok) st.ok++;
     if (!ok && !st.retried.has(item.id)) { st.retried.add(item.id); delete item._order; st.items.push(item); }
@@ -623,11 +748,10 @@ function viewQuiz(parts, q) {
 function quizDone(st) {
   const pct = Math.round(st.ok / st.total * 100);
   const dt = doneToday(); if (st.m === "weak") dt.weak = 1; else dt.quiz = (dt.quiz || 0) + 1; save();
-  sfx.done(); if (pct >= 70) confetti();
-  SESSION = null;
-  view().innerHTML = `<div class="done-screen">${ham(pct >= 60 ? "happy" : "open", "bounce")}<p class="hand">${pct >= 80 ? "Tohle byla jízda!" : pct >= 50 ? "Dobrá práce, chyby si zopakujeme." : "Nevadí — právě jsi našla, co se doučit."}</p>
-    <div class="big-num" style="margin-top:8px">${pct}%</div><p class="muted">${st.ok} z ${st.total} napoprvé správně</p>
-    <div class="stack" style="margin-top:22px"><a class="btn block" href="#/">Zpět na dnešek</a><a class="btn ghost block" href="#/kviz?mix=1&n=10&r=${Date.now()}">Další kolo</a></div></div>`;
+  const r0 = st.r0; SESSION = null;
+  endScreen({ mood: pct >= 60 ? "happy" : "open", r0, big: `${pct} %`,
+    say: pct >= 80 ? "Tohle byla jízda!" : pct >= 50 ? "Dobrá práce. Chyby si zopakujeme." : "Nevadí — právě jsi našla, co se doučit.",
+    sub: `${st.ok} z ${st.total} napoprvé správně${st.retried.size ? ` · ${st.retried.size} ${plural(st.retried.size, "otázku", "otázky", "otázek")} jsi zkusila podruhé` : ""}` });
 }
 
 /* =================================================================== */
@@ -642,35 +766,35 @@ function viewCards(parts, q) {
       lecCards(l).forEach(c => { if (!S.cards[c]) S.cards[c] = { reps: 0, ease: 2.4, ivl: 0, lapses: 0, due: Date.now() }; }); save();
       ids = shuffle(lecCards(l).filter(isDue));
     } else ids = interleave(shuffle(dueIds()).map(id => CARD[id])).map(c => c.id).slice(0, 60);
-    SESSION = { kind: "cards", key, queue: ids, total: ids.length, done: 0, g: [0, 0, 0, 0] };
+    SESSION = { kind: "cards", key, r0: overallReady().score, queue: ids, total: ids.length, done: 0, g: [0, 0, 0, 0] };
   }
   const st = SESSION;
   if (!st.queue.length) {
     if (st.done) return cardsDone(st);
     const next = Object.values(S.cards).filter(s => s.due > Date.now()).sort((a, b) => a.due - b.due)[0];
     view().innerHTML = `${topbar("#/")}<div class="done-screen">${ham("happy", "idle")}<h2 style="margin-top:8px">Nic k opakování</h2>
-      <p class="muted" style="margin:8px auto 18px;max-width:32ch">${Object.keys(S.cards).length ? `Všechno zopakováno! Další kartičky dozrají ${next ? (sod(next.due) <= sod(Date.now()) ? "ještě dnes" : "zítra nebo později") : "později"}.` : "Kartičky se odemykají, jak čteš lekce. Začni první lekcí na mapě."}</p>
-      <a class="btn" href="#/mapa">${ic.map} Na mapu</a></div>`;
+      <p class="muted" style="margin:8px auto 16px;max-width:32ch">${Object.keys(S.cards).length ? `Všechno zopakováno! Další kartičky dozrají ${next ? (sod(next.due) <= sod(Date.now()) ? "ještě dnes" : "zítra nebo později") : "později"}.` : "Kartičky se odemykají, jak čteš lekce. Začni první lekcí na mapě."}</p>
+      ${Object.keys(S.cards).length ? `<a class="btn" href="#/kviz?mix=1&n=10">${ic.bolt} Mezitím kvíz · 10 otázek</a>` : `<a class="btn" href="#/mapa">${ic.map} Vybrat první lekci</a>`}</div>`;
     return;
   }
   const id = st.queue[0]; const c = CARD[id]; const s = S.cards[id] || {};
-  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar candle"><i style="width:${st.done / Math.max(1, st.done + st.queue.length) * 100}%"></i></div><span class="small muted">${st.queue.length}</span></div>
+  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar candle"><i style="width:${st.done / Math.max(1, st.done + st.queue.length) * 100}%"></i></div><span>${st.queue.length} zbývá</span></div>
     <div class="flash"><div class="face" id="face"><div class="lbl"><span>${esc(c.lec)} · ${esc(c.type || "kartička")}</span><span>${s.reps ? "opakování" : "nová"}</span></div>
       <div class="q">${mdi(c.q)}</div>
       <div id="recall"><button class="link small" id="typeIt">✎ napiš si odpověď (pomáhá)</button></div>
       <div class="a" id="ans" hidden><div class="md">${md(c.a)}</div></div>
       <div style="flex:1"></div></div></div>
-    <div id="ctrl"><button class="btn block" id="reveal" style="margin-top:16px">Ukázat odpověď</button>
-    <p class="small dim" style="text-align:center;margin-top:10px">Nejdřív si odpověď opravdu vybav — nahlas nebo v hlavě. Až pak otoč.</p></div>`;
+    <p class="small dim" style="text-align:center;margin-top:12px" id="hint">Nejdřív si odpověď opravdu vybav — nahlas nebo v hlavě. Až pak otoč.</p>
+    <div class="dock"><div class="dock-in" id="ctrl"><button class="btn block big" id="reveal">Ukázat odpověď</button></div></div>`;
   $("#typeIt").onclick = () => { $("#recall").innerHTML = `<textarea class="recall-input" placeholder="Tvoje odpověď…"></textarea>`; $(".recall-input").focus(); };
   const reveal = () => {
-    sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal");
+    sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal"); $("#typeIt")?.remove();
+    const hint = $("#hint"); if (hint) hint.innerHTML = askBtn(`Vysvětli mi to: ${c.q} (odpověď: ${c.a})`, `${c.lec} ${LEC[c.lec].title}`);
     $("#ctrl").innerHTML = `<div class="grades">
       <button class="btn bad" data-g="0">Nevěděla<small>znovu</small></button>
       <button class="btn ghost" data-g="1">Těžké<small>${s.reps ? "brzy" : "za chvíli"}</small></button>
       <button class="btn ok" data-g="2">Věděla<small>${s.reps ? "později" : "zítra"}</small></button>
-      <button class="btn candle" data-g="3">Hračka<small>za dlouho</small></button></div>
-      <div style="text-align:center;margin-top:12px">${askBtn(`Vysvětli mi to: ${c.q} (odpověď: ${c.a})`, `${c.lec} ${LEC[c.lec].title}`)}</div>`;
+      <button class="btn ok soft" data-g="3">Hračka<small>za dlouho</small></button></div>`;
     bindAsk();
     $$("[data-g]").forEach(b => b.onclick = () => doGrade(+b.dataset.g));
     window.onkeydown = e => { if ("1234".includes(e.key)) doGrade(+e.key - 1); };
@@ -687,11 +811,9 @@ function viewCards(parts, q) {
   window.onkeydown = e => { if (e.key === " " || e.key === "Enter") { if (document.activeElement?.tagName === "TEXTAREA") return; e.preventDefault(); reveal(); } };
 }
 function cardsDone(st) {
-  sfx.done(); confetti(); SESSION = null;
-  view().innerHTML = `<div class="done-screen">${ham("happy", "bounce")}<p class="hand">${pick(SAY.done)}</p><div class="big-num" style="margin-top:8px">${st.done}</div>
-    <p class="muted">${plural(st.done, "kartička upevněna", "kartičky upevněny", "kartiček upevněno")}</p>
-    <p class="small dim" style="margin-top:10px">Nevěděla ${st.g[0]}× · Těžké ${st.g[1]}× · Věděla ${st.g[2]}× · Hračka ${st.g[3]}×</p>
-    <a class="btn block" style="margin-top:22px" href="#/">Zpět na dnešek</a></div>`;
+  const r0 = st.r0; SESSION = null;
+  endScreen({ say: pick(SAY.done), r0, big: st.done, sub: plural(st.done, "kartička upevněna", "kartičky upevněny", "kartiček upevněno"),
+    rows: [["Nevěděla", st.g[0] + "×"], ["Těžké", st.g[1] + "×"], ["Věděla", st.g[2] + "×"], ["Hračka", st.g[3] + "×"]] });
 }
 
 /* =================================================================== */
@@ -703,7 +825,7 @@ function viewExam(parts, q) {
     view().innerHTML = `${topbar("#/")}<div class="hero">${ham("open", "idle")}<div class="bubble"><span class="hand">simulace zkoušky</span>Přesně jako u zkoušky: ${EXAM_MC} otázek a/b/c/d ze všech přednášek, pak esej (${ESSAY_MIN} min). Bez nápověd, vyhodnocení až na konci.</div></div>
       <div class="card"><label class="check" style="margin:0"><input type="checkbox" id="onlyRead" ${S.onlyRead ? "checked" : ""}><span>Jen z lekcí, které už mám přečtené</span></label>
       <p class="small dim" style="margin-top:8px">Tip: telefon pryč, papír a tužku k ruce na grafy do eseje.</p></div>
-      <button class="btn block" id="startExam" style="margin-top:16px">${ic.play} Začít zkoušku</button>`;
+      <button class="btn block big" id="startExam" style="margin-top:16px">${ic.play} Začít · ${EXAM_MC} otázek + esej</button>`;
     $("#startExam").onclick = () => {
       S.onlyRead = $("#onlyRead").checked; save();
       let ls = lectures().map(l => l.id); if (S.onlyRead) { const r = ls.filter(id => sectionsRead(id) > 0); if (r.length) ls = r; }
@@ -712,7 +834,7 @@ function viewExam(parts, q) {
       for (const id of ls) items.push(...prioritize(Object.values(QZ).filter(x => x.lec === id && x.t === "mc"), per));
       items = shuffle(items).slice(0, EXAM_MC); items.forEach(i => delete i._order);
       const essay = pickEssay(ls);
-      SESSION = { kind: "exam", items, i: 0, ans: [], essay, t0: Date.now(), phase: "mc" };
+      SESSION = { kind: "exam", r0: overallReady().score, items, i: 0, ans: [], essay, t0: Date.now(), phase: "mc" };
       render();
     };
     return;
@@ -720,7 +842,7 @@ function viewExam(parts, q) {
   const st = SESSION;
   if (st.phase === "mc" && st.i >= st.items.length) { st.phase = st.essay ? "essay" : "done"; st.te = Date.now(); }
   if (st.phase === "essay") {
-    view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar ok"><i style="width:100%"></i></div><span class="small muted">esej</span></div><div id="ebox"></div>`;
+    view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar sky"><i style="width:100%"></i></div><span>esej</span></div><div id="ebox"></div>`;
     $("#quitExam").onclick = () => { if (confirm("Ukončit simulaci?")) { SESSION = null; nav("#/"); } };
     renderEssay($("#ebox"), st.essay, { minutes: ESSAY_MIN, exam: true, onDone: sc => { st.essayScore = sc; st.phase = "done"; render(); } });
     return;
@@ -728,8 +850,8 @@ function viewExam(parts, q) {
   if (st.phase === "done") return examDone(st);
   const item = st.items[st.i];
   const el = Math.floor((Date.now() - st.t0) / 1000);
-  view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar ok"><i style="width:${st.i / st.items.length * 100}%"></i></div><span class="small muted" id="clock">${Math.floor(el / 60)}:${pad(el % 60)}</span></div>
-    <p class="hand" style="margin-bottom:8px">Část A · otázka ${st.i + 1} / ${st.items.length}</p><div id="qbox"></div>`;
+  view().innerHTML = `<div class="session-top"><button class="x" id="quitExam">${ic.x}</button><div class="bar sky"><i style="width:${st.i / st.items.length * 100}%"></i></div><span id="clock">${Math.floor(el / 60)}:${pad(el % 60)}</span></div>
+    <p class="cap" style="margin-bottom:8px">Část A · otázka ${st.i + 1} z ${st.items.length}</p><div id="qbox"></div>`;
   $("#quitExam").onclick = () => { if (confirm("Ukončit simulaci?")) { SESSION = null; nav("#/"); } };
   clearInterval(window._clk); window._clk = setInterval(() => { const c = $("#clock"); if (!c) return clearInterval(window._clk); const e = Math.floor((Date.now() - st.t0) / 1000); c.textContent = `${Math.floor(e / 60)}:${pad(e % 60)}`; }, 1000);
   renderQuestion($("#qbox"), item, (ok, v) => { st.ans.push({ id: item.id, ok, v }); recordQ(item, ok); setTimeout(() => { st.i++; render(); }, 350); }, { exam: true });
@@ -739,22 +861,23 @@ function examDone(st) {
   const ok = st.ans.filter(a => a.ok).length; const pct = Math.round(ok / Math.max(1, st.ans.length) * 100);
   const mins = Math.round(((st.te || Date.now()) - st.t0) / 60000);
   if (!st.saved) { S.exams.push({ ts: Date.now(), pct, essay: st.essayScore ?? null }); doneToday().exam = 1; save(); st.saved = 1; sfx.done(); if (pct >= 70) confetti(); }
+  const eb = endBlock(st.r0);
   const byL = {}; st.ans.forEach(a => { const l = QZ[a.id].lec; byL[l] = byL[l] || [0, 0]; byL[l][1]++; if (a.ok) byL[l][0]++; });
   const wrong = st.ans.filter(a => !a.ok).map(a => QZ[a.id]);
   const prev = S.exams.slice(0, -1).slice(-1)[0];
   view().innerHTML = `${topbar("#/")}<div class="done-screen" style="padding-top:0">${ham(pct >= 60 ? "happy" : "open", "bounce")}
-    <div class="grid2" style="margin-top:6px"><div><div class="big-num">${pct}%</div><p class="muted small">část A · ${ok}/${st.ans.length} · ${mins} min</p></div>
+    <div class="grid2" style="margin-top:8px"><div><div class="big-num">${pct}%</div><p class="muted small">část A · ${ok}/${st.ans.length} · ${mins} min</p></div>
     <div><div class="big-num">${st.essayScore == null ? "–" : Math.round(st.essayScore * 100) + "%"}</div><p class="muted small">esej · klíčové body</p></div></div>
     ${prev ? `<p class="small dim" style="margin-top:8px">Minule: ${prev.pct} % v části A${prev.essay != null ? `, esej ${Math.round(prev.essay * 100)} %` : ""}</p>` : ""}</div>
-    <div class="card"><b>Část A podle přednášek</b><div class="stack" style="gap:7px;margin-top:10px">${Object.keys(byL).sort().map(l => `<div class="row small"><a href="#/lekce/${l}" style="width:34px;color:var(--ink);font-weight:700">${l}</a><div class="bar ${byL[l][0] / byL[l][1] >= .7 ? "ok" : ""}" style="flex:1"><i style="width:${byL[l][0] / byL[l][1] * 100}%"></i></div><span>${byL[l][0]}/${byL[l][1]}</span></div>`).join("")}</div></div>
+    <div class="card"><b>Část A podle přednášek</b><div class="stack" style="gap:8px;margin-top:12px">${Object.keys(byL).sort().map(l => `<div class="row small"><a href="#/lekce/${l}" style="width:34px;color:var(--ink);font-weight:700">${l}</a><div class="bar ${byL[l][0] / byL[l][1] >= .7 ? "ok" : ""}" style="flex:1"><i style="width:${byL[l][0] / byL[l][1] * 100}%"></i></div><span>${byL[l][0]}/${byL[l][1]}</span></div>`).join("")}</div></div>
     ${wrong.length ? `<div class="sec-title"><h2>Rozbor chyb</h2></div>` + wrong.map(w => `<div class="card dark"><p class="small dim">${w.lec}</p><b>${mdi(w.q)}</b>
-      <p style="margin-top:6px;color:var(--ok)">✓ ${mdi(w.options[w.correct])}</p><div class="md small" style="margin-top:6px">${md(w.explain || "")}</div></div>`).join("") : ""}
-    <a class="btn block" style="margin-top:18px" href="#/">Hotovo</a>`;
+      <p style="margin-top:8px;color:var(--ok)">✓ ${mdi(w.options[w.correct])}</p><div class="md small" style="margin-top:8px">${md(w.explain || "")}</div></div>`).join("") : ""}
+    <div style="margin-top:24px">${eb.html}</div>`;
   SESSION = null;
 }
 
 /* =================================================================== */
-/* ESEJ — psaní na čas, osnova, klíčové body, vzor, hodnocení Halířem   */
+/* ESEJ — psaní na čas, osnova, klíčové body, vzor, hodnocení Penny   */
 /* =================================================================== */
 const ESSAYS = () => C.essays || [];
 function pickEssay(ls) {
@@ -766,16 +889,16 @@ function pickEssay(ls) {
 function renderEssay(box, e, opts = {}) {
   S.essayDraft = S.essayDraft || {};
   const draft = opts.exam ? "" : (S.essayDraft[e.id] || "");
-  box.innerHTML = `<p class="hand">${opts.exam ? "Část B · esej" : "Esej"} · ${e.lectures.join(" + ")}</p><h2 style="margin:4px 0 8px">${esc(e.title)}</h2>
-    <div class="sheet" style="padding:16px 18px"><div class="md">${md(e.prompt)}</div></div>
+  box.innerHTML = `<p class="cap">${opts.exam ? "Část B · esej" : "Esej"} · přednášky ${e.lectures.join(" + ")}</p><h2 style="margin:4px 0 12px">${esc(e.title)}</h2>
+    <div class="sheet" style="padding:16px 16px"><div class="md">${md(e.prompt)}</div></div>
     <div class="row" style="margin:12px 0 8px"><span class="pill" id="etime">${ic.plan} ${opts.minutes || 15}:00</span><span class="small dim" id="ewc">0 slov</span><div class="sp" style="flex:1"></div>
       ${opts.exam ? "" : `<button class="link small" id="eout">osnova</button>`}</div>
-    <div id="eoutline" hidden class="card dark" style="margin-bottom:10px"><b class="small">Doporučená osnova</b><ol class="md small" style="margin-top:6px">${(e.outline || []).map(o => `<li>${mdi(o)}</li>`).join("")}</ol></div>
+    <div id="eoutline" hidden class="card dark" style="margin-bottom:12px"><b class="small">Doporučená osnova</b><ol class="md small" style="margin-top:8px">${(e.outline || []).map(o => `<li>${mdi(o)}</li>`).join("")}</ol></div>
     <p class="small muted" style="margin-bottom:8px">Nejdřív si 2 minuty naplánuj body (teze → mechanismus → graf → příklad → závěr). Grafy si kresli na papír.</p>
     <div class="row" style="align-items:flex-end"><textarea class="answer" id="etext" style="min-height:260px" placeholder="Piš esej…">${esc(draft)}</textarea><button class="mic" id="emic">${ic.mic}</button></div>
-    <button class="btn block" id="edone" style="margin-top:12px">Odevzdat a vyhodnotit</button><div id="eres"></div>`;
+    <button class="btn block big" id="edone" style="margin-top:12px">Odevzdat esej · 0 slov</button><div id="eres"></div>`;
   const ta = $("#etext", box); dictation($("#emic", box), ta);
-  const wc = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; $("#ewc", box).textContent = `${n} slov`; if (!opts.exam) { S.essayDraft[e.id] = ta.value; save(); } };
+  const wc = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; $("#ewc", box).textContent = `${n} ${plural(n, "slovo", "slova", "slov")}`; const ed = $("#edone", box); if (ed) ed.textContent = `Odevzdat esej · ${n} ${plural(n, "slovo", "slova", "slov")}`; if (!opts.exam) { S.essayDraft[e.id] = ta.value; save(); } };
   ta.oninput = wc; wc();
   const ob = $("#eout", box); if (ob) ob.onclick = () => { $("#eoutline", box).hidden = !$("#eoutline", box).hidden; };
   let left = (opts.minutes || 15) * 60;
@@ -791,10 +914,10 @@ function renderEssay(box, e, opts = {}) {
     $("#edone", box).remove(); ta.readOnly = true;
     $("#eres", box).innerHTML = `<div class="sec-title"><h2>Klíčové body</h2><span class="small muted">odškrtni, co v eseji máš</span></div>
       ${kp.map(p => `<label class="check ${a && keyMatch(a, p) ? "on" : ""}"><input type="checkbox" ${a && keyMatch(a, p) ? "checked" : ""}><span class="md">${mdi(p)}</span></label>`).join("")}
-      ${(e.graphs || []).length ? `<p class="hand" style="margin:12px 0 6px">Grafy, které tam patří</p>` + e.graphs.map(g => `<label class="check"><input type="checkbox"><span class="md">${mdi(g)}</span></label>`).join("") : ""}
-      <details class="card dark" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Vzorová esej</summary><div class="md" style="margin-top:8px">${md(e.modelAnswer)}</div></details>
-      <div class="stack" style="margin-top:14px"><button class="btn" id="esave">${opts.exam ? "Pokračovat na výsledky" : "Uložit výsledek"}</button>
-      ${a && AGENT_ID ? `<button class="btn ghost" id="egrade">${ham("open")} Ať esej ohodnotí Halíř</button>` : ""}</div>`;
+      ${(e.graphs || []).length ? `<p class="cap" style="margin:16px 0 8px">Grafy, které tam patří</p>` + e.graphs.map(g => `<label class="check"><input type="checkbox"><span class="md">${mdi(g)}</span></label>`).join("") : ""}
+      <details class="card dark" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Vzorová esej</summary><div class="md" style="margin-top:8px">${md(e.modelAnswer)}</div></details>
+      <div class="stack" style="margin-top:16px"><button class="btn" id="esave">${opts.exam ? "Pokračovat na výsledky" : "Uložit výsledek"}</button>
+      ${a && AGENT_ID ? `<button class="btn ghost" id="egrade">${ham("open")} Ať esej ohodnotí Penny</button>` : ""}</div>`;
     $$(".check input", box).forEach(c => c.onchange = () => c.closest(".check").classList.toggle("on", c.checked));
     $("#esave", box).onclick = () => {
       const got = $$("#eres .check input:checked", box).length, tot = $$("#eres .check input", box).length;
@@ -805,7 +928,7 @@ function renderEssay(box, e, opts = {}) {
       if (opts.onDone) opts.onDone(score); else { toast(`Uloženo: ${Math.round(score * 100)} %`); setTimeout(() => nav("#/esej"), 700); }
     };
     const g = $("#egrade", box);
-    if (g) g.onclick = () => nav(`#/halir?ctx=${encodeURIComponent("Esej: " + e.title)}&q=${encodeURIComponent(`Ohodnoť mou esej jako zkoušející. Zadání: „${e.prompt}“. Řekni, co je dobře, co chybí (mechanismy, grafy, příklady) a co bych měla doplnit, a dej známku. Moje esej: ${a}`)}`);
+    if (g) g.onclick = () => openDrawer("Esej: " + e.title, `Ohodnoť mou esej jako zkoušející. Zadání: „${e.prompt}“. Řekni, co je dobře, co chybí (mechanismy, grafy, příklady) a co bych měla doplnit, a dej známku. Moje esej: ${a}`);
   };
 }
 function viewEssays(parts) {
@@ -815,8 +938,8 @@ function viewEssays(parts) {
     renderEssay($("#ebox"), e, { minutes: 15 });
     return;
   }
-  view().innerHTML = `${topbar("#/")}<h1>Esej</h1><p class="muted" style="margin:6px 0 14px">Na zkoušce bude esej. Každá tady propojuje víc přednášek — piš na čas (15 min), pak porovnej s klíčovými body a vzorem, nebo ať ji ohodnotí Halíř.</p>
-    <div class="card dark" style="margin-bottom:14px"><b>Jak napsat esej na výbornou</b><ol class="md small" style="margin-top:6px">
+  view().innerHTML = `${topbar("#/")}<h1>Esej</h1><p class="muted" style="margin:8px 0 16px">Na zkoušce bude esej. Každá tady propojuje víc přednášek — piš na čas (15 min), pak porovnej s klíčovými body a vzorem, nebo ať ji ohodnotí Penny.</p>
+    <div class="card dark" style="margin-bottom:16px"><b>Jak napsat esej na výbornou</b><ol class="md small" style="margin-top:8px">
       <li><strong>Teze hned v první větě</strong> — odpověz na otázku, pak to rozveď.</li>
       <li><strong>Mechanismus řetězem</strong> „X ↑ → Y ↑ → Z ↓, protože…“ — za to jsou body.</li>
       <li><strong>Graf</strong> s popsanými osami, výchozí a posunutou křivkou a šipkou.</li>
@@ -840,7 +963,7 @@ function viewQuestions(parts, q) {
     if (e) { history.replaceState(null, "", "#/otazka/" + e.id); return viewFeynman(["otazka", e.id], q); }
   }
   const qs = Object.values(EXQ).filter(e => !l || e.lec === l);
-  view().innerHTML = `${topbar("#/")}<h1>Vysvětli Halířovi</h1><p class="muted" style="margin:6px 0 14px">Zkouškové otázky. Nejlepší způsob, jak zjistit, jestli látce rozumíš: vysvětli ji vlastními slovy, jako bys ji učila křečka.</p>
+  view().innerHTML = `${topbar("#/")}<h1>Vysvětli to Penny</h1><p class="muted" style="margin:8px 0 16px">Zkouškové otázky. Nejlepší způsob, jak zjistit, jestli látce rozumíš: vysvětli ji vlastními slovy, jako bys ji učila křečka.</p>
     <div class="tabs"><a class="tab ${!l ? "on" : ""}" href="#/otazky">Vše</a>${lectures().map(x => `<a class="tab ${l === x.id ? "on" : ""}" href="#/otazky?l=${x.id}">${x.id}</a>`).join("")}</div>
     ${qs.map(e => { const f = S.feyn[e.id]; return `<a class="hit" href="#/otazka/${e.id}"><b>${mdi(e.q)}</b><span>${e.lec} · ${f ? `naposledy ${Math.round(f.score * 100)} %` : "nezkoušeno"}</span></a>`; }).join("")}`;
 }
@@ -867,11 +990,11 @@ function dictation(btn, ta) {
 }
 function viewFeynman(parts) {
   const e = EXQ[parts[1]]; if (!e) return nav("#/otazky");
-  view().innerHTML = `${topbar("#/otazky")}<p class="hand">${e.lec} · ${esc(LEC[e.lec].title)}</p>
+  view().innerHTML = `${topbar("#/otazky")}<p class="cap">${e.lec} · ${esc(LEC[e.lec].title)}</p>
     <div class="hero" style="margin-top:4px">${ham("open", "idle")}<div class="bubble">${mdi(e.q)}</div></div>
     <p class="muted small" style="margin-bottom:8px">Odpověz, jako bys to vysvětlovala mně — celými větami, s mechanismem „protože… a proto…“. Klidně nahlas přes mikrofon.</p>
     <div class="row" style="align-items:flex-end"><textarea class="answer" id="ans" placeholder="Moje odpověď…"></textarea><button class="mic" id="mic" title="Diktovat">${ic.mic}</button></div>
-    <button class="btn block" id="check" style="margin-top:14px">Hotovo — porovnej s klíčovými body</button>
+    <button class="btn block big" id="check" style="margin-top:16px">Porovnat s ${(e.keyPoints || []).length} klíčovými body</button>
     <div id="res"></div>`;
   dictation($("#mic"), $("#ans"));
   $("#check").onclick = () => {
@@ -881,9 +1004,9 @@ function viewFeynman(parts) {
     $("#check").hidden = true;
     $("#res").innerHTML = `<div class="sec-title"><h2>Klíčové body</h2><span class="small muted">odškrtni, co jsi řekla</span></div>
       ${kp.map((p, i) => `<label class="check ${a && keyMatch(a, p) ? "on" : ""}"><input type="checkbox" data-i="${i}" ${a && keyMatch(a, p) ? "checked" : ""}><span class="md">${mdi(p)}</span></label>`).join("")}
-      <details class="card dark" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Vzorová odpověď</summary><div class="md" style="margin-top:8px">${md(e.answer)}</div></details>
-      <div class="stack" style="margin-top:14px"><button class="btn" id="saveF">Uložit výsledek</button>
-      ${a ? `<button class="btn ghost" id="sendH">${ham("open")} Ať to Halíř ohodnotí</button>` : ""}</div>`;
+      <details class="card dark" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Vzorová odpověď</summary><div class="md" style="margin-top:8px">${md(e.answer)}</div></details>
+      <div class="stack" style="margin-top:16px"><button class="btn" id="saveF">Uložit výsledek</button>
+      ${a ? `<button class="btn ghost" id="sendH">${ham("open")} Ať to Penny ohodnotí</button>` : ""}</div>`;
     $$(".check input").forEach(c => c.onchange = () => c.closest(".check").classList.toggle("on", c.checked));
     $("#saveF").onclick = () => {
       const got = $$(".check input:checked").length; const score = kp.length ? got / kp.length : 1;
@@ -892,7 +1015,7 @@ function viewFeynman(parts) {
       setTimeout(() => nav(dt.explain < 2 ? "#/otazky?pick=1&r=" + Date.now() : "#/"), 900);
     };
     const sh = $("#sendH");
-    if (sh) sh.onclick = () => nav(`#/halir?ctx=${encodeURIComponent(e.lec + " " + LEC[e.lec].title)}&q=${encodeURIComponent(`Ohodnoť mou odpověď na zkouškovou otázku „${e.q}“. Řekni, co chybí nebo je špatně. Moje odpověď: ${a}`)}`);
+    if (sh) sh.onclick = () => openDrawer(e.lec + " " + LEC[e.lec].title, `Ohodnoť mou odpověď na zkouškovou otázku „${e.q}“. Řekni, co chybí nebo je špatně. Moje odpověď: ${a}`);
   };
 }
 
@@ -905,25 +1028,26 @@ function viewLists(parts, q) {
   if (!l) { const readL = lectures().map(x => x.id).filter(id => sectionsRead(id) > 0); if (readL.length) pool = pool.filter(x => readL.includes(x.lec)); }
   if (!SESSION || SESSION.kind !== "lists" || SESSION.key !== location.hash) {
     const sc = x => (S.lists[x.id] ? S.lists[x.id].ok / S.lists[x.id].n : -.5) + Math.random() * .4;
-    SESSION = { kind: "lists", key: location.hash, items: (l ? pool : pool.sort((a, b) => sc(a) - sc(b))).slice(0, l ? 50 : 5), i: 0 };
+    SESSION = { kind: "lists", key: location.hash, r0: overallReady().score, ok: 0, tot: 0, items: (l ? pool : pool.sort((a, b) => sc(a) - sc(b))).slice(0, l ? 50 : 5), i: 0 };
   }
   const st = SESSION;
-  if (st.i >= st.items.length || !st.items.length) { SESSION = null; view().innerHTML = `<div class="done-screen">${ham("happy", "bounce")}<h2>Vyjmenováno!</h2><a class="btn" style="margin-top:16px" href="#/">Zpět</a></div>`; return; }
+  if (!st.items.length) { SESSION = null; view().innerHTML = `${topbar("#/")}<div class="empty">${ham("open")}<h2 style="margin-top:8px">Seznamy se odemknou s lekcí</h2><p style="margin:8px auto 0;max-width:32ch">Přečti první lekci a budeš tu mít, co vyjmenovávat.</p><a class="btn" href="#/mapa" style="margin-top:16px">Vybrat lekci</a></div>`; return; }
+  if (st.i >= st.items.length) { const r0 = st.r0, n = st.items.length, pc = st.tot ? Math.round(st.ok / st.tot * 100) : 0; SESSION = null;
+    return endScreen({ say: "Vyjmenováno!", r0, big: `${pc} %`, sub: `${n} ${plural(n, "seznam", "seznamy", "seznamů")} · ${st.ok} z ${st.tot} položek jsi věděla` }); }
   const x = st.items[st.i];
   view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar candle"><i style="width:${st.i / st.items.length * 100}%"></i></div><span class="small muted">${st.i + 1}/${st.items.length}</span></div>
     <div class="qcard"><div class="lbl">${x.lec} · vyjmenuj (${x.items.length} ${plural(x.items.length, "položka", "položky", "položek")})${x.ordered ? " · ve správném pořadí" : ""}</div>
     <div class="q">${esc(x.title)}</div>
     <div class="row" style="align-items:flex-end"><textarea class="answer" id="ans" style="min-height:110px" placeholder="Napiš nebo řekni, co si vybavíš…"></textarea><button class="mic" id="mic">${ic.mic}</button></div>
-    <button class="btn block" id="rev" style="margin-top:12px">Ukázat seznam</button><div id="items"></div></div>`;
+    <div id="items"></div></div><div class="dock"><div class="dock-in" id="ldock"><button class="btn block big" id="rev">Ukázat seznam · ${x.items.length} ${plural(x.items.length, "položka", "položky", "položek")}</button></div></div>`;
   dictation($("#mic"), $("#ans"));
   $("#rev").onclick = () => {
     if (REC) REC.stop(); const a = $("#ans").value;
-    $("#rev").remove();
-    $("#items").innerHTML = `<p class="small muted" style="margin:12px 0 8px">Odškrtni, co jsi věděla:</p>` + x.items.map((it, i) => `<label class="check ${a && keyMatch(a, it) ? "on" : ""}"><input type="checkbox" ${a && keyMatch(a, it) ? "checked" : ""}><span class="md">${x.ordered ? (i + 1) + ". " : ""}${mdi(it)}</span></label>`).join("") +
-      `<button class="btn block" id="nx" style="margin-top:10px">Další</button>`;
+    $("#ldock").innerHTML = `<button class="btn block big" id="nx">${st.i + 1 < st.items.length ? `Další seznam · ${st.i + 2} z ${st.items.length}` : "Dokončit"}</button>`;
+    $("#items").innerHTML = `<p class="small muted" style="margin:12px 0 8px">Odškrtni, co jsi věděla:</p>` + x.items.map((it, i) => `<label class="check ${a && keyMatch(a, it) ? "on" : ""}"><input type="checkbox" ${a && keyMatch(a, it) ? "checked" : ""}><span class="md">${x.ordered ? (i + 1) + ". " : ""}${mdi(it)}</span></label>`).join("");
     $$(".check input").forEach(c => c.onchange = () => c.closest(".check").classList.toggle("on", c.checked));
     $("#nx").onclick = () => {
-      const ok = $$(".check input:checked").length; S.lists[x.id] = { ok, n: x.items.length, ts: Date.now() };
+      const ok = $$(".check input:checked").length; S.lists[x.id] = { ok, n: x.items.length, ts: Date.now() }; st.ok += ok; st.tot += x.items.length;
       const dt = doneToday(); dt.lists = (dt.lists || 0) + 1; addXP(10); save(); st.i++; render();
     };
   };
@@ -934,15 +1058,15 @@ function viewLists(parts, q) {
 /* =================================================================== */
 function viewProblems(parts) {
   const l = LEC[parts[1]]; if (!l) return nav("#/mapa");
-  view().innerHTML = `${topbar("#/lekce/" + l.id)}<h1>Příklady ${l.id}</h1><p class="muted" style="margin:6px 0 14px">Zkus každý krok nejdřív sama, pak si ho odkryj. Řešené příklady jsou nejrychlejší cesta, jak se naučit počítat.</p>
-    ${l.problems.map((p, i) => `<div class="card dark" data-p="${i}"><p class="hand">Příklad ${i + 1}</p><div class="md">${md(p.q)}</div><div class="steps" style="margin-top:10px"></div>
-      <button class="btn sm" data-step>Další krok</button></div>`).join("")}`;
+  view().innerHTML = `${topbar("#/lekce/" + l.id)}<h1>Příklady ${l.id}</h1><p class="muted" style="margin:8px 0 16px">Zkus každý krok nejdřív sama, pak si ho odkryj. Řešené příklady jsou nejrychlejší cesta, jak se naučit počítat.</p>
+    ${l.problems.map((p, i) => `<div class="card dark" data-p="${i}"><b>Příklad ${i + 1}</b><div class="md" style="margin-top:8px">${md(p.q)}</div><div class="steps" style="margin-top:12px"></div>
+      <button class="btn ghost sm" data-step>Ukázat krok 1 z ${p.steps.length}</button></div>`).join("")}`;
   $$("[data-p]").forEach(card => {
     const p = l.problems[+card.dataset.p]; let k = 0; const box = $(".steps", card); const b = $("[data-step]", card);
     b.onclick = () => {
       if (k < p.steps.length) { box.insertAdjacentHTML("beforeend", `<div class="step md"><b>Krok ${k + 1}.</b> ${md(p.steps[k])}</div>`); k++; }
-      else { box.insertAdjacentHTML("beforeend", `<div class="step" style="background:#1f3a2b"><b style="color:var(--ok)">Výsledek:</b> <span class="md">${mdi(p.result)}</span></div>`); b.remove(); addXP(8); }
-      if (k === p.steps.length && b.isConnected) b.textContent = "Ukázat výsledek";
+      else { box.insertAdjacentHTML("beforeend", `<div class="step result"><b>Výsledek:</b> <span class="md">${mdi(p.result)}</span></div>`); b.remove(); addXP(8); }
+      if (b.isConnected) b.textContent = k === p.steps.length ? "Ukázat výsledek" : `Ukázat krok ${k + 1} z ${p.steps.length}`;
     };
   });
 }
@@ -965,7 +1089,7 @@ function searchNotes(query, n = 5) {
   }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc).slice(0, n).map(x => x.d);
 }
 function viewSearch(parts, q) {
-  view().innerHTML = `${topbar("#/")}<h1>Hledat v látce</h1><input class="search" id="sq" style="margin:14px 0" placeholder="např. repo sazba, multiplikátor, IS křivka…" value="${esc(q.get("q") || "")}"><div id="hits"></div>`;
+  view().innerHTML = `${topbar("#/")}<h1>Hledat v látce</h1><input class="search" id="sq" style="margin:16px 0" placeholder="např. repo sazba, multiplikátor, IS křivka…" value="${esc(q.get("q") || "")}"><div id="hits"></div>`;
   const run = () => {
     const hits = searchNotes($("#sq").value, 12);
     $("#hits").innerHTML = hits.map(h => h.kind === "s" ? `<a class="hit" href="#/lekce/${h.l.id}"><b>${h.l.id} · ${esc(h.s.title)}</b><span>${esc(h.s.body.replace(/[*$#>|_-]/g, "").slice(0, 160))}…</span></a>`
@@ -979,33 +1103,32 @@ function viewSearch(parts, q) {
 /* =================================================================== */
 function viewPlan() {
   const p = plan(); const n = daysToExam();
-  view().innerHTML = `${topbar()}<h1>Plán do zkoušky</h1>
-    <div class="card" style="margin-top:14px"><div class="row wrap"><label style="flex:1;min-width:160px"><b>Datum zkoušky</b><p class="small muted">Plán se podle něj sám přepočítá.</p></label><input type="date" id="ed" value="${S.examDate}" min="${today()}"></div>
+  view().innerHTML = `${topbar()}<h1>Plán do zkoušky</h1><div class="cols" style="margin-top:16px"><div class="col-a sticky">
+    <div class="card"><div class="row wrap"><label style="flex:1;min-width:160px"><b>Datum zkoušky</b><p class="small muted">Plán se podle něj sám přepočítá.</p></label><input type="date" id="ed" value="${S.examDate}" min="${today()}"></div>
     <div class="row wrap" style="margin-top:12px"><label style="flex:1;min-width:160px"><b>Začátek učení</b><p class="small muted">Dřívější start = méně látky na den.</p></label><input type="date" id="sd" value="${planStart()}" min="${today()}" max="${S.examDate}"></div>
-    <div class="row wrap" style="margin-top:12px"><label style="flex:1;min-width:160px"><b>Denní cíl</b><p class="small muted">XP za den (≈ 1 XP = 6 s učení)</p></label>
-      <select id="goal">${[80, 150, 250, 400].map(g => `<option value="${g}" ${S.goal === g ? "selected" : ""}>${g} XP${g === 80 ? " · lehký" : g === 150 ? " · normální" : g === 250 ? " · intenzivní" : " · šílený"}</option>`).join("")}</select></div>
+
     <div class="row wrap" style="margin-top:12px"><b style="flex:1">Zvuky</b><button class="btn ghost sm" id="snd">${ic.sound} ${S.sound ? "Zapnuto" : "Vypnuto"}</button></div></div>
+    <div class="card" style="margin-top:12px"><b>Záloha postupu</b><p class="small muted" style="margin-top:4px">Postup se ukládá v tomhle zařízení. Na jiné ho přeneseš zálohou.</p>
+      <div class="row wrap" style="margin-top:12px"><button class="btn ghost sm" id="exp">Stáhnout zálohu</button><label class="btn ghost sm">Nahrát zálohu<input type="file" id="imp" accept=".json" hidden></label></div>
+      <button class="btn-text small" id="rst" style="text-align:left;padding-left:0">Smazat celý postup</button></div>
+    <p class="small dim" style="margin-top:16px"><a class="link" href="#/jak">Proč se učíme právě takhle</a></p></div><div class="col-b">
     <div class="sec-title"><h2>${p.length ? `${p.length} ${plural(p.length, "den", "dny", "dní")}` : "Hotovo"}</h2><span class="small muted">${(() => { const last = [...p].reverse().find(d => d.type === "learn"); return last ? `nová látka hotová do ${parseD(last.date).getDate()}. ${parseD(last.date).getMonth() + 1}., pak jen opakování` : "už jen opakování a simulace"; })()}</span></div>
     <div class="card">${p.map((d, i) => {
       const dd = parseD(d.date); const ty = DAYTYPE[d.type];
       const what = d.type === "learn" ? d.ids.map(id => `<b>${id} ${esc(LEC[id].title)}</b>`).join("") + `<span>čtení + kontroly + kartičky, k tomu opakování</span>`
-        : d.type === "mix" ? `<b>Prokládaný kvíz + Vysvětli Halířovi</b><span>míchání lekcí trénuje poznat, co je co</span>`
+        : d.type === "mix" ? `<b>Prokládaný kvíz + Vysvětli to Penny</b><span>míchání lekcí trénuje poznat, co je co</span>`
         : d.type === "weak" ? `<b>Slabá místa + vyjmenovávání</b><span>cílíme přesně na chyby</span>`
         : d.type === "exam" ? `<b>Simulace zkoušky + rozbor chyb</b><span>na čas, bez nápověd</span>`
         : `<b>Lehké opakování slabých míst</b><span>žádná nová látka, večer brzo spát (spánek ukládá paměť)</span>`;
-      return `<div class="dayrow ${d.date === today() ? "today" : ""}"><div class="d"><b>${dd.getDate()}.</b><span>${d.date === today() ? "dnes" : DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${what}</div></div>`;
+      return `<div class="dayrow ${d.date === today() ? "is-today" : ""}"><div class="d"><b>${dd.getDate()}.</b><span>${d.date === today() ? "dnes" : DOW[dd.getDay()]}</span></div><div class="what"><span class="tag ${ty.tag}">${ty.name}</span>${what}</div></div>`;
     }).join("") || `<p class="empty">Nastav datum zkoušky.</p>`}
     <div class="dayrow"><div class="d"><b>${parseD(S.examDate).getDate()}.</b><span>${DOW[parseD(S.examDate).getDay()]}</span></div><div class="what"><span class="tag exam">Zkouška</span><b>Ty to dáš ♡</b></div></div></div>
-    <div class="sec-title"><h2>Záloha</h2></div>
-    <div class="card"><p class="small muted">Postup se ukládá v tomhle prohlížeči. Chceš ho přenést na jiné zařízení? Stáhni zálohu a nahraj ji tam.</p>
-      <div class="row wrap" style="margin-top:10px"><button class="btn ghost sm" id="exp">Stáhnout zálohu</button><label class="btn ghost sm">Nahrát zálohu<input type="file" id="imp" accept=".json" hidden></label><button class="link small" id="rst" style="margin-left:auto;color:var(--dim)">smazat postup</button></div></div>
-    <p class="small dim" style="text-align:center;margin-top:20px"><a class="link" href="#/jak">Proč se učíme takhle?</a></p>`;
+    </div></div>`;
   $("#ed").onchange = e => { if (e.target.value) { S.examDate = e.target.value; S.planFor = null; save(); render(); } };
-  $("#goal").onchange = e => { S.goal = +e.target.value; save(); };
   $("#sd").onchange = e => { if (e.target.value) { S.startDate = e.target.value; S.planFor = null; save(); render(); } };
   $("#snd").onclick = () => { S.sound = !S.sound; save(); render(); };
   $("#exp").onclick = () => { const b = new Blob([JSON.stringify(S)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `halir-zaloha-${today()}.json`; a.click(); };
-  $("#imp").onchange = async e => { try { const d = JSON.parse(await e.target.files[0].text()); if (!d.cards) throw 0; S = Object.assign(defaults(), d); save(); toast("Záloha nahrána ♡"); render(); } catch (err) { toast("Tohle není záloha Halíře."); } };
+  $("#imp").onchange = async e => { try { const d = JSON.parse(await e.target.files[0].text()); if (!d.cards) throw 0; S = Object.assign(defaults(), d); save(); toast("Záloha nahrána ♡"); render(); } catch (err) { toast("Tohle není záloha Penny."); } };
   $("#rst").onclick = () => { if (confirm("Opravdu smazat celý postup?")) { localStorage.removeItem(LS); S = defaults(); save(); render(); } };
 }
 
@@ -1015,13 +1138,13 @@ function viewPlan() {
 function viewCheat() {
   const dt = doneToday(); if (!dt.tahak) { dt.tahak = 1; addXP(20); save(); }
   view().innerHTML = `${topbar("#/")}<h1>Tahák celého kurzu</h1>
-    <p class="muted" style="margin:6px 0 14px">Na poslední den: žádná nová látka, jen si projeď velký obraz, vzorce a seznamy. U každé přednášky si nejdřív zkus říct nahlas, o čem je — až pak čti.</p>
-    ${lectures().map(l => `<details class="card dark" style="margin-bottom:10px"><summary style="cursor:pointer"><b>${l.id} · ${esc(l.title)}</b> <span class="small dim">${Math.round(mastery(l.id) * 100)} % upevněno</span></summary>
-      <div class="md" style="margin-top:10px">${md(l.bigPicture)}</div>
-      ${l.formulas?.length ? `<p class="hand" style="margin-top:12px">Vzorce</p>` + l.formulas.map(f => `<div class="formula"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div></div>`).join("") : ""}
-      ${l.lists?.length ? `<p class="hand" style="margin-top:12px">Vyjmenuj</p>` + l.lists.map(x => `<div style="margin:6px 0"><b class="small">${esc(x.title)}</b><div class="md small">${x.items.map(i => mdi(i)).join(" · ")}</div></div>`).join("") : ""}
-      ${l.pitfalls?.length ? `<p class="hand" style="margin-top:12px">Pozor na</p><ul class="md small">${l.pitfalls.map(x => `<li>${mdi(x)}</li>`).join("")}</ul>` : ""}
-      <a class="btn ghost sm" style="margin-top:10px" href="#/kviz?l=${l.id}&n=8">${ic.bolt} 8 otázek z ${l.id}</a></details>`).join("")}`;
+    <p class="muted" style="margin:8px 0 16px">Na poslední den: žádná nová látka, jen si projeď velký obraz, vzorce a seznamy. U každé přednášky si nejdřív zkus říct nahlas, o čem je — až pak čti.</p>
+    ${lectures().map(l => `<details class="card dark" style="margin-bottom:12px"><summary style="cursor:pointer"><b>${l.id} · ${esc(l.title)}</b> <span class="small dim">${Math.round(mastery(l.id) * 100)} % upevněno</span></summary>
+      <div class="md" style="margin-top:12px">${md(l.bigPicture)}</div>
+      ${l.formulas?.length ? `<p class="cap" style="margin-top:16px">Vzorce</p>` + l.formulas.map(f => `<div class="formula"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div></div>`).join("") : ""}
+      ${l.lists?.length ? `<p class="cap" style="margin-top:16px">Vyjmenuj</p>` + l.lists.map(x => `<div style="margin:8px 0"><b class="small">${esc(x.title)}</b><div class="md small">${x.items.map(i => mdi(i)).join(" · ")}</div></div>`).join("") : ""}
+      ${l.pitfalls?.length ? `<p class="cap" style="margin-top:16px">Pozor na</p><ul class="md small">${l.pitfalls.map(x => `<li>${mdi(x)}</li>`).join("")}</ul>` : ""}
+      <a class="btn ghost sm" style="margin-top:12px" href="#/kviz?l=${l.id}&n=8">${ic.bolt} 8 otázek z ${l.id}</a></details>`).join("")}`;
 }
 
 /* =================================================================== */
@@ -1029,14 +1152,14 @@ function viewCheat() {
 /* =================================================================== */
 function viewScience() {
   view().innerHTML = `${topbar("#/plan")}<h1>Proč se učíme takhle</h1>
-  <div class="hero" style="margin-top:10px">${ham("happy")}<div class="bubble">Přepisovat slajdy je jako nosit oříšky v ruce. Vypadá to jako práce, ale většina vypadne. Já je nosím v líčkách.</div></div>
+  <div class="hero" style="margin-top:12px">${ham("happy")}<div class="bubble">Přepisovat slajdy je jako nosit oříšky v ruce. Vypadá to jako práce, ale většina vypadne. Já je nosím v líčkách.</div></div>
   <div class="sheet"><div class="md science">
   <p>Velký přehled 10 studijních technik (Dunlosky a kol., 2013) zjistil, že nejlépe fungují <strong>dvě</strong>: <strong>testování se</strong> a <strong>rozložené opakování</strong>. Naopak <strong>opakované čtení, podtrhávání a přepisování/shrnování</strong> mají nízký účinek — vytvářejí pocit, že to umíš, ale paměť moc neposilují.</p>
   <ol>
   <li><strong>Vybavování (testing effect)</strong> — každá kartička a otázka tě nutí si informaci <em>vytáhnout</em> z hlavy. Právě to vytahování ji ukládá. Proto po každé části lekce hned přijde rychlá kontrola.</li>
-  <li><strong>Rozložené opakování</strong> — kartička, kterou umíš, se vrátí za 1 → 3 → 7 dní, ta, co nejde, hned. Halíř intervaly zkracuje podle data zkoušky, aby sis vše zopakovala ještě před ní.</li>
+  <li><strong>Rozložené opakování</strong> — kartička, kterou umíš, se vrátí za 1 → 3 → 7 dní, ta, co nejde, hned. Penny intervaly zkracuje podle data zkoušky, aby sis vše zopakovala ještě před ní.</li>
   <li><strong>Prokládání (interleaving)</strong> — mix kvízy míchají lekce. Je to těžší, ale učí tě rozpoznat, <em>který</em> model nebo nástroj na otázku použít — přesně to chce zkouška.</li>
-  <li><strong>Vysvětlování vlastními slovy</strong> — „Vysvětli Halířovi“ (Feynmanova technika). Když to umíš vysvětlit jednoduše, rozumíš tomu. Mezery uvidíš hned u klíčových bodů.</li>
+  <li><strong>Vysvětlování vlastními slovy</strong> — „Vysvětli to Penny“ (Feynmanova technika). Když to umíš vysvětlit jednoduše, rozumíš tomu. Mezery uvidíš hned u klíčových bodů.</li>
   <li><strong>Řešené příklady krok za krokem</strong> — u výpočtů nejdřív vzorové řešení, pak sama.</li>
   <li><strong>Obraz + slovo</strong> — grafy IS, MP a AD–AS si posouváš sama, takže mechanismus vidíš, ne jen čteš.</li>
   <li><strong>Spánek</strong> — paměť se ukládá v noci. Poslední večer nic nového, jen lehké opakování.</li>
@@ -1083,7 +1206,7 @@ function slider(id, label, min, max, step, val, hint) {
 }
 function viewGraphs(parts, q) {
   GL.tab = q.get("g") || GL.tab;
-  view().innerHTML = `${topbar("#/")}<h1>Grafická laboratoř</h1><p class="muted" style="margin:6px 0 12px">Hýbej posuvníky a sleduj, kam se křivky posunou. Šedá čárkovaná = výchozí stav.</p>
+  view().innerHTML = `${topbar("#/")}<h1>Grafická laboratoř</h1><p class="muted" style="margin:8px 0 12px">Hýbej posuvníky a sleduj, kam se křivky posunou. Šedá čárkovaná = výchozí stav.</p>
     <div class="tabs">${[["is", "IS křivka"], ["mp", "MP křivka"], ["ad", "AD–AS model"]].map(([k, n]) => `<button class="tab ${GL.tab === k ? "on" : ""}" data-g="${k}">${n}</button>`).join("")}</div>
     <div class="graph" id="gsvg"></div><div class="explain md" id="gexp"></div><div class="card" id="gctl" style="margin-top:12px"></div>
     <div style="margin-top:12px">${askBtn("Vysvětli mi, jak se v tomhle modelu posouvají křivky a proč.", GL.tab === "is" ? "5A IS křivka" : GL.tab === "mp" ? "5B MP křivka" : "6A Model AS-AD")}</div>`;
@@ -1184,19 +1307,19 @@ async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "of
 function tutorMsg(role, text) { TUT.msgs.push({ role, text }); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML({ role, text })); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
 const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? md(m.text) : esc(m.text)}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
-function tutorHam(cls) { const h = $(".tutor-hero .ham"); if (h) { h.classList.toggle("talk", cls === "talk"); } }
+function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {
   if (!AGENT_ID) return null;
   if (TUT.conv && (textOnly || TUT.mode === "voice")) return TUT.conv;
   if (TUT.conv) await tutorStop();
-  TUT.busy = true; tutorStatus("Halíř se připojuje…");
+  TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
     const { Conversation } = await import("./vendor/elevenlabs.mjs");
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: textOnly ? "websocket" : "webrtc", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička" },
-      onMessage: m => { if (m.role === "agent" || m.source === "ai") tutorMsg("ai", m.message); else if (!textOnly && m.message) tutorMsg("me", m.message); },
-      onModeChange: ({ mode }) => { tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Halíř mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
+      onMessage: m => { if ((m.role === "agent" || m.source === "ai") && textOnly && /^Ahoj Aničko, tady/.test(m.message)) return; if (m.role === "agent" || m.source === "ai") tutorMsg("ai", m.message); else if (!textOnly && m.message) tutorMsg("me", m.message); },
+      onModeChange: ({ mode }) => { tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Penny mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
       onError: (m) => { tutorStatus("Chyba spojení: " + m); },
       onDisconnect: () => { TUT.conv = null; TUT.mode = "off"; tutorHam(""); syncVoiceBtn(); tutorStatus("Odpojeno"); },
     });
@@ -1208,7 +1331,7 @@ async function tutorStart(textOnly) {
     return null;
   } finally { TUT.busy = false; }
 }
-function syncVoiceBtn() { const b = $("#voice"); if (!b) return; b.classList.toggle("live", TUT.mode === "voice"); b.innerHTML = TUT.mode === "voice" ? ic.stop : ic.mic; const l = $("#vlabel"); if (l) l.textContent = TUT.mode === "voice" ? "Ukončit hovor" : "Mluvit s Halířem"; }
+function syncVoiceBtn() { const b = $("#voice"); if (!b) return; b.classList.toggle("live", TUT.mode === "voice"); b.innerHTML = TUT.mode === "voice" ? ic.stop : ic.mic; b.title = TUT.mode === "voice" ? "Ukončit hovor" : "Mluvit nahlas"; const l = $("#vlabel"); if (l) l.textContent = TUT.mode === "voice" ? "Ukončit hovor" : "Mluvit s Penny"; }
 function offlineAnswer(text) {
   const hits = searchNotes(text, 3);
   if (!hits.length) return "Tohle v poznámkách nevidím. Zkus to říct jinými slovy, nebo použij hledání.";
@@ -1226,14 +1349,14 @@ function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
   view().innerHTML = `${topbar()}
-    <div class="tutor-hero">${ham("happy", "idle")}<h2>Zeptej se Halíře</h2>
-      <p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasový Halíř se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>
+    <div class="tutor-hero">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
+      <p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasová Penny se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>
       ${TUT.ctx ? `<span class="ctx">Téma: ${esc(TUT.ctx)} <button id="clrctx" aria-label="Zrušit téma">×</button></span>` : ""}
-      ${AGENT_ID ? `<button class="voice-btn" id="voice" style="margin-top:10px">${ic.mic}</button><b id="vlabel" class="small">Mluvit s Halířem</b>` : ""}
+      ${AGENT_ID ? `<button class="voice-btn" id="voice" style="margin-top:12px">${ic.mic}</button><b id="vlabel" class="small">Mluvit s Penny</b>` : ""}
       <div class="tutor-status" id="tstat"></div></div>
     <div class="chips" id="chips">${["Vyzkoušej mě z " + (TUT.ctx || "IS křivky"), "Vysvětli mi transmisní mechanismus jednoduše", "Jaký je rozdíl mezi pohybem po křivce a posunem křivky?", "Co budu potřebovat ke zkoušce nejvíc?"].map(c => `<button class="chip">${esc(c)}</button>`).join("")}</div>
     <div class="chat" id="chat">${TUT.msgs.map(msgHTML).join("")}</div>
-    <div class="composer"><textarea id="tin" rows="1" placeholder="Napiš otázku…"></textarea><button class="btn" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
+    <div class="composer"><textarea id="tin" rows="1" placeholder="Napiš otázku…"></textarea><button class="btn ghost" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
   const tin = $("#tin");
   $("#tsend").onclick = () => { const v = tin.value; tin.value = ""; tutorSend(v); };
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend").click(); } };
@@ -1244,10 +1367,41 @@ function viewTutor(parts, q) {
   if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; tin.focus(); }
 }
 
+/* ---------- Penny vedle učení: panel, který neodvede ze stránky ---------- */
+function closeDrawer() {
+  const d = $("#drawer"); if (!d) return;
+  tutorStop(); d.remove(); $("#drawerBg")?.remove(); document.body.classList.remove("drawer-open");
+}
+function openDrawer(ctx, pre) {
+  if (!AGENT_ID) return nav(`#/halir?ctx=${encodeURIComponent(ctx || "")}&q=${encodeURIComponent(pre || "")}`);
+  if ((ctx || "") !== TUT.ctx) { tutorStop(); TUT.ctx = ctx || ""; if (TUT.msgs.length) TUT.msgs.push({ role: "sys", text: "Nové téma: " + (ctx || "celý kurz") }); }
+  closeDrawer();
+  const bg = document.createElement("div"); bg.id = "drawerBg"; bg.className = "drawer-bg"; bg.onclick = closeDrawer; document.body.appendChild(bg);
+  const d = document.createElement("aside"); d.id = "drawer"; d.className = "drawer"; d.setAttribute("aria-label", "Zeptej se Penny");
+  d.innerHTML = `<div class="drawer-grip"></div>
+    <div class="drawer-head">${ham("happy")}<div style="flex:1;min-width:0"><b>Penny</b><div class="tutor-status small muted" id="tstat">${TUT.ctx ? "Téma: " + esc(TUT.ctx) : "Ptej se na cokoli z kurzu"}</div></div>
+      <button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
+    <div class="chat" id="chat">${TUT.msgs.length ? TUT.msgs.map(msgHTML).join("") : `<div class="msg sys">Napiš otázku, nebo zmáčkni mikrofon a mluv se mnou nahlas.</div>`}</div>
+    <div class="drawer-compose"><button class="voice-mini" id="voice" aria-label="Mluvit s Penny">${ic.mic}</button>
+      <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…"></textarea><button class="btn" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
+  document.body.appendChild(d); document.body.classList.add("drawer-open");
+  const tin = $("#tin", d);
+  $("#dClose", d).onclick = closeDrawer;
+  $("#tsend", d).onclick = () => { const v = tin.value; tin.value = ""; tutorSend(v); };
+  tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend", d).click(); } };
+  const vb = $("#voice", d); syncVoiceBtn();
+  vb.onclick = async () => { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } };
+  if (pre) { tutorSend(pre); } else setTimeout(() => tin.focus(), 250);
+  const ch = $("#chat", d); ch.scrollTop = ch.scrollHeight;
+}
+function fab(ctx) { return `<button class="fab" id="fab" data-fabctx="${esc(ctx)}">${ham("happy")}<span>Zeptej se</span></button>`; }
+document.addEventListener("click", e => { const f = e.target.closest("#fab"); if (f) openDrawer(f.dataset.fabctx, ""); });
+
 /* ---------- boot ---------- */
 (async function boot() {
   try { await loadCourse(); }
   catch (e) { view().innerHTML = `<div class="empty">${ham("sad")}<p>Nepodařilo se načíst látku. Zkus obnovit stránku.</p></div>`; return; }
   window.addEventListener("hashchange", render);
   render();
+  if ("serviceWorker" in navigator && location.protocol === "https:") { try { navigator.serviceWorker.register("sw.js"); } catch (e) { } }
 })();
