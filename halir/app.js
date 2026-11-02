@@ -3,7 +3,7 @@
    self-explanation (Vysvětli Halířovi), worked examples (příklady krok za krokem), dual coding (grafy). */
 
 /* ===== NASTAVENÍ ===== */
-const AGENT_ID = "";            // ElevenLabs Conversational AI agent id (Halíř hlas). Prázdné = jen offline vyhledávání v poznámkách.
+const AGENT_ID = "agent_4601m6ett2qefv7vzde4710n5656";            // ElevenLabs Conversational AI agent id (Halíř hlas). Prázdné = jen offline vyhledávání v poznámkách.
 const DEFAULT_EXAM_DAYS = 14;
 /* ===================== */
 
