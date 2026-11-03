@@ -656,3 +656,24 @@ body.locked .nav,body.locked .fab{display:none}
 .msg p:first-child{margin-top:0}
 .msg p:last-child{margin-bottom:0}
 .msg.ai .katex-display{margin:.5em 0; overflow-x:auto; overflow-y:hidden}
+
+/* top bar stays put: logo, read-aloud, readiness — no page jumping */
+html,body{overscroll-behavior-y:none}
+.app{padding-top:0}
+.topbar,.session-top{position:sticky; top:0; z-index:18; margin:0 calc(-1 * var(--gutter)) var(--s4); padding:calc(env(safe-area-inset-top) + var(--s3)) var(--gutter) var(--s3);
+  background:rgba(27,15,31,.94); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.session-top{min-height:0}
+.welcome{padding-top:max(var(--s5), env(safe-area-inset-top))}
+.done-screen{padding-top:max(var(--s4), env(safe-area-inset-top))}
+.empty:first-child{padding-top:max(var(--s6), env(safe-area-inset-top))}
+
+/* slides sit inside Penny's answer */
+.msg .msg-slides{margin:var(--s3) 0 0; padding-top:var(--s3); border-top:1px solid var(--paper-line)}
+.msg .msg-slides .cap{color:var(--paper-muted); margin:0 0 var(--s2)}
+.msg .msg-slides .thumbs{margin:0}
+.msg .msg-slides .thumb{width:132px; border-color:var(--paper-line)}
+
+/* voice call: mic sits next to the text field; while live it is a red stop button */
+.tutor-bar .voice-mini,.drawer-compose .voice-mini{background:var(--wine-3); color:var(--ink)}
+.voice-mini.live{background:var(--coral); color:var(--on-coral)}
+body.in-call .tutor-bar{border-top-color:rgba(255,126,110,.5)}

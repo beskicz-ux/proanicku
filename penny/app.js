@@ -1505,10 +1505,10 @@ function slidesFor(answer) {
 // značky pro hlas ElevenLabs ([slow], [excited]…) se nemají ukazovat ani číst
 const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 
-async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; if (c) { try { await c.endSession(); } catch (e) { } } }
+async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; document.body.classList.remove("in-call"); if (c) { try { await c.endSession(); } catch (e) { } } }
 function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") m.slides = slidesFor(text); TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
 const aiMd = t => md(String(t).replace(/^[ \t]*\$([^$\n]+)\$[ \t]*$/gm, (_, f) => `$$${f}$$`));
-const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}</div>${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}`;
+const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {
@@ -1534,7 +1534,14 @@ async function tutorStart(textOnly) {
     return null;
   } finally { TUT.busy = false; }
 }
-function syncVoiceBtn() { const b = $("#voice"); if (!b) return; b.classList.toggle("live", TUT.mode === "voice"); b.innerHTML = TUT.mode === "voice" ? ic.stop : ic.mic; b.title = TUT.mode === "voice" ? "Ukončit hovor" : "Mluvit nahlas"; const l = $("#vlabel"); if (l) l.textContent = TUT.mode === "voice" ? "Ukončit hovor" : "Mluvit s Penny"; }
+function syncVoiceBtn() {
+  const live = TUT.mode === "voice";
+  $$("[data-voice]").forEach(b => { b.classList.toggle("live", live); b.innerHTML = live ? ic.stop : ic.mic; b.title = live ? "Ukončit hovor" : "Mluvit s Penny"; b.setAttribute("aria-label", b.title); });
+  const l = $("#vlabel"); if (l) l.textContent = live ? "Ukončit hovor" : "Mluvit s Penny";
+  document.body.classList.toggle("in-call", live);
+}
+async function toggleVoice() { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } }
+document.addEventListener("click", e => { if (e.target.closest("[data-voice]")) toggleVoice(); });
 function offlineAnswer(text) {
   const hits = searchNotes(text, 3);
   if (!hits.length) return "Tohle v poznámkách nevidím. Zkus to říct jinými slovy, nebo použij hledání.";
@@ -1557,12 +1564,12 @@ function viewTutor(parts, q) {
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
       ${has ? "" : `<p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasová Penny se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>`}
       ${TUT.ctx ? `<span class="ctx">Téma: ${esc(TUT.ctx)} <button id="clrctx" aria-label="Zrušit téma">×</button></span>` : ""}
-      ${AGENT_ID ? `<button class="voice-btn" id="voice">${ic.mic}</button><b id="vlabel" class="small">Mluvit s Penny</b>` : ""}
+      ${AGENT_ID ? `<button class="voice-btn" id="voice" data-voice>${ic.mic}</button><b id="vlabel" class="small">Mluvit s Penny</b>` : ""}
       <div class="tutor-status" id="tstat"></div></div>
     <div class="chat" id="chat">${TUT.msgs.map(msgHTML).join("")}</div>
     <div class="tutor-bar"><div class="tutor-bar-in">
       ${has ? "" : `<div class="chips" id="chips">${["Vyzkoušej mě z " + (TUT.ctx || "IS křivky"), "Vysvětli mi transmisní mechanismus", "Pohyb po křivce vs. posun křivky?", "Co je ke zkoušce nejdůležitější?"].map(c => `<button class="chip">${esc(c)}</button>`).join("")}</div>`}
-      <div class="composer"><textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send" id="tsend" aria-label="Odeslat">${ic.send}</button></div>
+      <div class="composer">${AGENT_ID ? `<button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>` : ""}<textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send" id="tsend" aria-label="Odeslat">${ic.send}</button></div>
     </div></div>`;
   const tin = $("#tin");
   const grow = () => { tin.style.height = "auto"; tin.style.height = Math.min(120, tin.scrollHeight) + "px"; $("#tsend").classList.toggle("ready", !!tin.value.trim()); };
@@ -1571,8 +1578,7 @@ function viewTutor(parts, q) {
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend").click(); } };
   $$(".chip").forEach(c => c.onclick = () => { tutorSend(c.textContent); $("#chips")?.remove(); });
   const cl = $("#clrctx"); if (cl) cl.onclick = () => { TUT.ctx = ""; tutorStop(); nav("#/halir"); };
-  const vb = $("#voice");
-  if (vb) { syncVoiceBtn(); vb.onclick = async () => { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } }; }
+  syncVoiceBtn();
   if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; grow(); tin.focus(); }
   const ch = $("#chat"); if (has && ch.lastElementChild) ch.lastElementChild.scrollIntoView({ block: "end" });
 }
@@ -1592,15 +1598,14 @@ function openDrawer(ctx, pre, shown) {
     <div class="drawer-head">${ham("happy")}<div style="flex:1;min-width:0"><b>Penny</b><div class="tutor-status small muted" id="tstat">${TUT.ctx ? "Téma: " + esc(TUT.ctx) : "Ptej se na cokoli z kurzu"}</div></div>
       ${readBtn()}<button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
     <div class="chat" id="chat">${TUT.msgs.length ? TUT.msgs.map(msgHTML).join("") : `<div class="msg sys">Napiš otázku, nebo zmáčkni mikrofon a mluv se mnou nahlas.</div>`}</div>
-    <div class="drawer-compose"><button class="voice-mini" id="voice" aria-label="Mluvit s Penny">${ic.mic}</button>
+    <div class="drawer-compose"><button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>
       <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…" enterkeyhint="send"></textarea><button class="send ready" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
   document.body.appendChild(d); document.body.classList.add("drawer-open");
   const tin = $("#tin", d);
   $("#dClose", d).onclick = closeDrawer;
   $("#tsend", d).onclick = () => { const v = tin.value; tin.value = ""; tutorSend(v); };
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend", d).click(); } };
-  const vb = $("#voice", d); syncVoiceBtn();
-  vb.onclick = async () => { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } };
+  syncVoiceBtn();
   if (pre) { tutorSend(pre, shown); } else setTimeout(() => tin.focus(), 250);
   const ch = $("#chat", d); ch.scrollTop = ch.scrollHeight;
 }
