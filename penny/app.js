@@ -489,7 +489,7 @@ document.addEventListener("click", e => {
 
 async function render() {
   document.querySelectorAll(".feedback").forEach(f => f.remove());
-  closeDrawer(); stopSpeak(); TTS.now = "";
+  closeDrawer(); stopSpeak(); TTS.now = ""; document.querySelector(".viewer")?.remove();
   const { parts, q } = route();
   const r = parts[0] || "";
   if (r !== "halir") tutorStop();
@@ -704,7 +704,8 @@ function bindAsk() {
 }
 function sectionSheet(s, withAsk = true) {
   const l = LEC[s.lec];
-  return `<div class="sheet"><div class="slides">Snímky ${esc((s.slides || []).join(", "))}</div><h3>${esc(s.title)}</h3>
+  const sl = [...new Set((s.slides || []).flatMap(nums))].filter(n => n > 0);
+  return `<div class="sheet">${sl.length ? `<div class="slides">Ze slajdů ${sl.join(", ")} · klepni pro zvětšení</div>${slideThumbs(s.lec, sl, s.title)}` : ""}<h3>${esc(s.title)}</h3>
     <div class="md">${md(s.body)}</div>
     ${s.analogy ? `<div class="analogy"><b>Představ si to takhle</b>${mdi(s.analogy)}</div>` : ""}
     ${s.halir ? `<div class="aside">${ham("happy")}<p>${esc(s.halir)}</p></div>` : ""}
@@ -1441,10 +1442,64 @@ function viewGraphs(parts, q) {
 /* =================================================================== */
 /* HALÍŘ — hlasový a textový tutor (ElevenLabs)                          */
 /* =================================================================== */
-const TUT = { conv: null, mode: "off", msgs: [], ctx: "", busy: false };
+const TUT = { conv: null, mode: "off", msgs: [], ctx: "", busy: false, lastQ: "", lastSlides: "" };
+
+/* ---------- snímky z přednášek: náhledy, prohlížeč, „vysvětli mi tenhle snímek" ---------- */
+const slideUrl = (lid, n) => `slides/${lid}/${n}.webp`;
+const nums = v => (String(v ?? "").match(/\d+/g) || []).map(Number);
+function pickSlides(sec, max = 3) {
+  const l = LEC[sec.lec]; const g = new Set((l.graphs || []).flatMap(x => nums(x.slide)));
+  const ss = [...new Set((sec.slides || []).flatMap(nums))].filter(n => n > 0);
+  return [...ss.filter(n => g.has(n)), ...ss.filter(n => !g.has(n))].slice(0, max);
+}
+function slideThumbs(lid, list, title) {
+  return `<div class="thumbs">${list.map((n, i) => `<button class="thumb" data-slides="${lid}|${list.join(",")}|${i}" data-stitle="${esc(title || "")}" aria-label="Snímek ${n}"><img loading="lazy" decoding="async" src="${slideUrl(lid, n)}" alt=""><span>${n}</span></button>`).join("")}</div>`;
+}
+function openViewer(lid, list, i, title) {
+  document.querySelector(".viewer")?.remove();
+  const el = document.createElement("div"); el.className = "viewer"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Snímek z přednášky");
+  const draw = () => {
+    el.innerHTML = `<div class="viewer-top"><div><p class="cap">Přednáška ${lid} · snímek ${list[i]}${list.length > 1 ? ` · ${i + 1} z ${list.length}` : ""}</p>${title ? `<b>${esc(title)}</b>` : ""}</div><button class="icon-btn" data-vclose aria-label="Zavřít">${ic.x}</button></div>
+      <div class="viewer-img"><img src="${slideUrl(lid, list[i])}" alt="Snímek ${list[i]}"></div>
+      <div class="viewer-bar">${list.length > 1 ? `<button class="icon-btn" data-vprev ${i ? "" : "disabled"} aria-label="Předchozí">${ic.left}</button>` : ""}<button class="btn block" data-vexplain>Vysvětli mi to</button>${list.length > 1 ? `<button class="icon-btn" data-vnext ${i < list.length - 1 ? "" : "disabled"} aria-label="Další">${ic.right}</button>` : ""}</div>`;
+  };
+  const close = () => { el.remove(); document.removeEventListener("keydown", key); };
+  const key = e => { if (e.key === "Escape") close(); if (e.key === "ArrowLeft" && i > 0) { i--; draw(); } if (e.key === "ArrowRight" && i < list.length - 1) { i++; draw(); } };
+  draw(); document.body.appendChild(el); document.addEventListener("keydown", key);
+  let x0 = null;
+  el.addEventListener("touchstart", e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  el.addEventListener("touchend", e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) { if (dx < 0 && i < list.length - 1) i++; else if (dx > 0 && i > 0) i--; draw(); } x0 = null; });
+  el.onclick = e => {
+    if (e.target.closest("[data-vclose]") || e.target.classList.contains("viewer-img")) return close();
+    if (e.target.closest("[data-vprev]") && i > 0) { i--; return draw(); }
+    if (e.target.closest("[data-vnext]") && i < list.length - 1) { i++; return draw(); }
+    if (e.target.closest("[data-vexplain]")) {
+      const ask = `Vysvětli mi jednoduše snímek ${list[i]} z přednášky ${lid}${title ? ` (${title})` : ""}: co na něm je, co znamenají osy nebo pojmy a co si z něj mám zapamatovat.`;
+      close(); if (route().parts[0] === "halir") tutorSend(ask); else openDrawer(`${lid} ${LEC[lid].title}`, ask);
+    }
+  };
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-slides]"); if (!t) return;
+  const [lid, list, i] = t.dataset.slides.split("|"); openViewer(lid, list.split(",").map(Number), +i, t.dataset.stitle);
+});
+// k odpovědi Penny najde nejbližší část přednášky a přiloží její snímky
+function slidesFor(answer) {
+  if (String(answer).length < 90) return "";
+  const hits = searchNotes(`${TUT.lastQ || ""} ${answer}`, 8).filter(h => h.kind === "s");
+  if (!hits.length) return "";
+  const ctxL = (TUT.ctx || "").match(/^(\d[AB])\b/)?.[1];
+  const h = hits.slice(0, 3).find(x => x.l.id === ctxL) || hits[0];
+  const key = h.s.id; if (key === TUT.lastSlides) return ""; TUT.lastSlides = key;
+  const list = pickSlides(h.s, 3); if (!list.length) return "";
+  return `<p class="cap">Ze slajdů · ${h.l.id} ${esc(h.s.title)}</p>${slideThumbs(h.l.id, list, h.s.title)}`;
+}
+// značky pro hlas ElevenLabs ([slow], [excited]…) se nemají ukazovat ani číst
+const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
+
 async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { TUT.msgs.push({ role, text }); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML({ role, text })); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
-const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? md(m.text) : esc(m.text)}</div>`;
+function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") m.slides = slidesFor(text); TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
+const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? md(m.text) : esc(m.text)}</div>${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {
