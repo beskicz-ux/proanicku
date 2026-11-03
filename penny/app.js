@@ -1506,8 +1506,9 @@ function slidesFor(answer) {
 const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 
 async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") m.slides = slidesFor(text); TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
-const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? md(m.text) : esc(m.text)}</div>${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}`;
+function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") m.slides = slidesFor(text); TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
+const aiMd = t => md(String(t).replace(/^[ \t]*\$([^$\n]+)\$[ \t]*$/gm, (_, f) => `$$${f}$$`));
+const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}</div>${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {

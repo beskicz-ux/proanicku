@@ -652,3 +652,7 @@ body.locked .nav,body.locked .fab{display:none}
 .step .step-ask .ham{width:24px; height:24px}
 .card .sheet-actions .btn .ham{width:24px; height:24px}
 .msg.ai .katex-display{margin:.4em 0}
+.msg p{margin:.55em 0}
+.msg p:first-child{margin-top:0}
+.msg p:last-child{margin-bottom:0}
+.msg.ai .katex-display{margin:.5em 0; overflow-x:auto; overflow-y:hidden}
