@@ -425,6 +425,49 @@ function missions() {
   return list;
 }
 
+
+/* ---------- čtení nahlas (lekce, kartičky, otázky, odpovědi Penny) ---------- */
+const TTS = { voice: null, unlocked: false, now: "" };
+const hasTTS = () => "speechSynthesis" in window;
+function ttsVoice() {
+  if (TTS.voice || !hasTTS()) return TTS.voice;
+  const vs = speechSynthesis.getVoices().filter(v => /^cs/i.test(v.lang));
+  TTS.voice = vs.find(v => /premium|enhanced|vylepš/i.test(v.name)) || vs.find(v => /Zuzana|Iveta|Vlasta/i.test(v.name)) || vs[0] || null;
+  return TTS.voice;
+}
+if (hasTTS()) speechSynthesis.onvoiceschanged = () => { TTS.voice = null; ttsVoice(); };
+function speakable(t) {
+  return String(t || "")
+    .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "$1 lomeno $2").replace(/\\(bar|overline|text|mathrm|mathit|textbf)\{([^}]*)\}/g, "$2")
+    .replace(/\\pi/g, "pí").replace(/\\Delta/g, "změna ").replace(/\\rho/g, "ró").replace(/\\alpha/g, "alfa").replace(/\\beta/g, "beta").replace(/\\cdot|\\times/g, " krát ")
+    .replace(/\\(uparrow)/g, " roste ").replace(/\\(downarrow)/g, " klesá ").replace(/\\(Rightarrow|rightarrow|to)/g, " vede k ").replace(/\\[a-zA-Z]+/g, " ")
+    .replace(/[$]/g, "").replace(/\^/g, " na ").replace(/_\{?([^}\s]*)\}?/g, " $1").replace(/[{}]/g, "")
+    .replace(/↑/g, " roste ").replace(/↓/g, " klesá ").replace(/[→⇒]/g, " vede k ").replace(/=/g, " rovná se ").replace(/\+/g, " plus ").replace(/ − | - /g, " mínus ")
+    .replace(/\*\*|__|`|#+ |^> ?/gm, "").replace(/\|/g, ", ").replace(/\[(.*?)\]\(.*?\)/g, "$1").replace(/[ \t]+/g, " ").trim();
+}
+function speak(text) {
+  if (!hasTTS()) return; speechSynthesis.cancel();
+  const t = speakable(text); if (!t) return;
+  const chunks = []; let cur = "";
+  for (const s of t.split(/(?<=[.!?:;\n])\s+/)) { if ((cur + " " + s).length > 220 && cur) { chunks.push(cur); cur = s; } else cur = cur ? cur + " " + s : s; }
+  if (cur) chunks.push(cur);
+  for (const c of chunks) { const u = new SpeechSynthesisUtterance(c); u.lang = "cs-CZ"; const v = ttsVoice(); if (v) u.voice = v; u.rate = 1.02; speechSynthesis.speak(u); }
+}
+function stopSpeak() { if (hasTTS()) speechSynthesis.cancel(); }
+function readNow(text) { TTS.now = text; if (S.readAloud) speak(text); }
+function readBtn() { return hasTTS() ? `<button class="read-toggle ${S.readAloud ? "on" : ""}" data-read aria-pressed="${!!S.readAloud}" aria-label="Číst nahlas">${ic.sound}<span>${S.readAloud ? "Čte nahlas" : "Číst nahlas"}</span></button>` : ""; }
+document.addEventListener("click", e => {
+  if (!TTS.unlocked && hasTTS()) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); TTS.unlocked = true; }
+  const b = e.target.closest("[data-read]");
+  if (b) {
+    S.readAloud = !S.readAloud; save();
+    $$("[data-read]").forEach(x => { x.classList.toggle("on", !!S.readAloud); x.setAttribute("aria-pressed", !!S.readAloud); const sp = x.querySelector("span"); if (sp) sp.textContent = S.readAloud ? "Čte nahlas" : "Číst nahlas"; });
+    if (S.readAloud) { if (TTS.now) speak(TTS.now); else toast("Penny ti teď bude všechno číst nahlas"); } else stopSpeak();
+  }
+  const sb = e.target.closest("[data-speak-sec]"); if (sb) { const sec = SEC[sb.dataset.speakSec]; if (sec) speak(sectionText(sec)); }
+}, true);
+const sectionText = s => `${s.title}. ${s.body}${s.analogy ? ". Představ si to takhle: " + s.analogy : ""}`;
+
 /* ---------- router ---------- */
 let SESSION = null;
 function nav(h) { if (location.hash === h) render(); else location.hash = h; }
@@ -446,7 +489,7 @@ document.addEventListener("click", e => {
 
 async function render() {
   document.querySelectorAll(".feedback").forEach(f => f.remove());
-  closeDrawer();
+  closeDrawer(); stopSpeak(); TTS.now = "";
   const { parts, q } = route();
   const r = parts[0] || "";
   if (r !== "halir") tutorStop();
@@ -460,6 +503,7 @@ async function render() {
   setNav({ "": "dnes", mapa: "mapa", lekce: "mapa", uc: "mapa", karty: "karty", kviz: "dnes", halir: "halir", plan: "plan", jak: "plan" }[r] || "");
   const focus = ["uc", "karty", "kviz", "zkouska", "seznamy", "otazka", "priklady"].includes(r) || (r === "esej" && parts[1]);
   document.body.classList.toggle("focus", !!focus);
+  document.body.classList.toggle("tutor", r === "halir");
   document.body.classList.toggle("wide", ["", "lekce", "mapa", "plan", "grafy", "pripravenost"].includes(r) && !focus);
   (map[r] || viewToday)(parts, q);
   const v = view(); v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter");
@@ -664,7 +708,7 @@ function sectionSheet(s, withAsk = true) {
     <div class="md">${md(s.body)}</div>
     ${s.analogy ? `<div class="analogy"><b>Představ si to takhle</b>${mdi(s.analogy)}</div>` : ""}
     ${s.halir ? `<div class="aside">${ham("happy")}<p>${esc(s.halir)}</p></div>` : ""}
-    ${withAsk ? `<div class="sheet-actions">${askBtn(`Vysvětli mi jednoduše a s příkladem: ${s.title}`, `${l.id} ${l.title} – ${s.title}`)}</div>` : ""}</div>`;
+    ${withAsk ? `<div class="sheet-actions">${hasTTS() ? `<button class="btn ghost sm" data-speak-sec="${s.id}">${ic.sound} Přečíst</button>` : ""}${askBtn(`Vysvětli mi jednoduše a s příkladem: ${s.title}`, `${l.id} ${l.title} – ${s.title}`)}</div>` : ""}</div>`;
 }
 function lectureTab(l, tab) {
   if (tab === "vyklad") return `<div class="card dark" style="margin-bottom:16px"><p class="cap">Velký obraz</p><div class="md" style="margin-top:8px">${md(l.bigPicture)}</div>
@@ -696,14 +740,14 @@ function viewLearn(parts) {
   }
   const st = SESSION; const s = l.sections[st.si];
   const prog = (st.si + (st.phase === "check" ? .5 : 0)) / l.sections.length * 100;
-  const head = `<div class="session-top"><button class="x" data-back="#/lekce/${id}">${ic.x}</button><div class="bar"><i style="width:${prog}%"></i></div><span class="small muted">${st.si + 1}/${l.sections.length}</span></div>`;
+  const head = `<div class="session-top"><button class="x" data-back="#/lekce/${id}">${ic.x}</button><div class="bar"><i style="width:${prog}%"></i></div>${readBtn()}<span class="small muted">${st.si + 1}/${l.sections.length}</span></div>`;
   if (st.phase === "read") {
     view().innerHTML = `${head}<p class="cap">${esc(id)} · část ${st.si + 1} z ${l.sections.length}</p>
       ${st.si === 0 ? `<div class="hero" style="margin:8px 0 12px">${ham("happy", "idle")}<div class="bubble">${esc(l.halirIntro || "Jdeme na to!")}</div></div>` : ""}
       ${sectionSheet(s)}
       <p class="small dim" style="margin:16px 2px">Tip: čti pomalu a u každého odstavce si v duchu řekni „proč?“. Pak tě hned vyzkouším.</p>
       <div class="dock"><div class="dock-in"><button class="btn block big" id="goCheck">Přečteno — vyzkoušej mě</button></div></div>${fab(`${l.id} ${l.title} – ${s.title}`)}`;
-    bindAsk();
+    bindAsk(); readNow(sectionText(s));
     $("#goCheck").onclick = () => {
       const pool = Object.values(QZ).filter(x => x.lec === id && x.section === s.id);
       const unseen = pool.filter(x => !S.q[x.id]);
@@ -754,6 +798,7 @@ function renderQuestion(box, item, onNext, opts = {}) {
   }
   html += `</div>`;
   box.innerHTML = html;
+  if (!opts.exam) readNow(item.t === "tf" ? `Pravda, nebo ne? ${item.s}` : `${item.q}. ${(item._order || []).map((oi, k) => `${L[k]}: ${item.options[oi]}`).join(". ")}`);
   const hamEl = document.querySelector(".hero .ham");
   const answer = v => {
     const correct = item.t === "tf" ? (v === 1) === !!item.true : v === item.correct;
@@ -774,6 +819,7 @@ function renderQuestion(box, item, onNext, opts = {}) {
       <div class="row"><button class="btn ${correct ? "ok" : "bad"}" style="flex:1" id="fbNext">Pokračovat</button>
       ${!correct ? `<button class="btn ghost" id="fbAsk" title="Zeptej se Penny">${ham("open")}</button>` : ""}</div></div>`;
     document.body.appendChild(fb);
+    if (S.readAloud) { TTS.now = ""; speak(`${correct ? "Správně." : "Ne."} ${item.explain || ""}`); }
     const go = () => { fb.remove(); window.onkeydown = null; onNext(correct); };
     $("#fbNext", fb).onclick = go;
     const ask = $("#fbAsk", fb);
@@ -828,7 +874,7 @@ function viewQuiz(parts, q) {
   if (!st.items.length) { view().innerHTML = `${topbar("#/")}<div class="empty">${ham("open")}<h2 style="margin-top:8px">${q.get("weak") ? "Žádná slabá místa" : "Zatím tu nejsou otázky"}</h2><p style="margin:8px auto 0;max-width:32ch">${q.get("weak") ? "Buď ti všechno jde, nebo jsi ještě nic nezkoušela. Mix kvíz je najde." : "Otázky se odemknou s první přečtenou lekcí."}</p><a class="btn" href="${q.get("weak") ? "#/kviz?mix=1&n=10" : "#/mapa"}" style="margin-top:16px">${q.get("weak") ? "Spustit mix · 10 otázek" : "Vybrat lekci"}</a></div>`; return; }
   if (st.i >= st.items.length) return quizDone(st);
   const item = st.items[st.i];
-  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar sky"><i style="width:${st.i / st.items.length * 100}%"></i></div><span>${Math.min(st.i + 1, st.items.length)}/${st.items.length}</span></div>
+  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar sky"><i style="width:${st.i / st.items.length * 100}%"></i></div>${readBtn()}<span>${Math.min(st.i + 1, st.items.length)}/${st.items.length}</span></div>
     <div class="hero" style="margin:0 0 4px">${ham("open")}<div class="bubble" style="margin-bottom:16px">${st.i >= st.total ? "Tuhle jsi spletla — zkus ji znovu." : esc(st.title)}</div></div><div id="qbox"></div>`;
   renderQuestion($("#qbox"), item, ok => {
     if (st.i < st.total && ok) st.ok++;
@@ -869,7 +915,7 @@ function viewCards(parts, q) {
     return;
   }
   const id = st.queue[0]; const c = CARD[id]; const s = S.cards[id] || {};
-  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar candle"><i style="width:${st.done / Math.max(1, st.done + st.queue.length) * 100}%"></i></div><span>${st.queue.length} zbývá</span></div>
+  view().innerHTML = `<div class="session-top"><button class="x" data-back="#/">${ic.x}</button><div class="bar candle"><i style="width:${st.done / Math.max(1, st.done + st.queue.length) * 100}%"></i></div>${readBtn()}<span>${st.queue.length} zbývá</span></div>
     <div class="flash"><div class="face" id="face"><div class="lbl"><span>${esc(c.lec)} · ${esc(c.type || "kartička")}</span><span>${s.reps ? "opakování" : "nová"}</span></div>
       <div class="q">${mdi(c.q)}</div>
       <div id="recall"><button class="link small" id="typeIt">✎ napiš si odpověď (pomáhá)</button></div>
@@ -877,9 +923,10 @@ function viewCards(parts, q) {
       <div style="flex:1"></div></div></div>
     <p class="small dim" style="text-align:center;margin-top:12px" id="hint">Nejdřív si odpověď opravdu vybav — nahlas nebo v hlavě. Až pak otoč.</p>
     <div class="dock"><div class="dock-in" id="ctrl"><button class="btn block big" id="reveal">Ukázat odpověď</button></div></div>`;
+  readNow(c.q);
   $("#typeIt").onclick = () => { $("#recall").innerHTML = `<textarea class="recall-input" placeholder="Tvoje odpověď…"></textarea>`; $(".recall-input").focus(); };
   const reveal = () => {
-    sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal"); $("#typeIt")?.remove();
+    sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal"); $("#typeIt")?.remove(); TTS.now = c.a; if (S.readAloud) speak(c.a);
     const hint = $("#hint"); if (hint) hint.innerHTML = askBtn(`Vysvětli mi to: ${c.q} (odpověď: ${c.a})`, `${c.lec} ${LEC[c.lec].title}`);
     $("#ctrl").innerHTML = `<div class="grades">
       <button class="btn bad" data-g="0">Nevěděla<small>znovu</small></button>
@@ -1396,7 +1443,7 @@ function viewGraphs(parts, q) {
 /* =================================================================== */
 const TUT = { conv: null, mode: "off", msgs: [], ctx: "", busy: false };
 async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { TUT.msgs.push({ role, text }); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML({ role, text })); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
+function tutorMsg(role, text) { TUT.msgs.push({ role, text }); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML({ role, text })); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); } }
 const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? md(m.text) : esc(m.text)}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
@@ -1406,13 +1453,13 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await import("./vendor/elevenlabs.mjs");
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs"));
     const conv = await Conversation.startSession({
-      agentId: AGENT_ID, connectionType: textOnly ? "websocket" : "webrtc", textOnly: !!textOnly,
+      agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička" },
       onMessage: m => { if ((m.role === "agent" || m.source === "ai") && textOnly && /^Ahoj Aničko, tady/.test(m.message)) return; if (m.role === "agent" || m.source === "ai") tutorMsg("ai", m.message); else if (!textOnly && m.message) tutorMsg("me", m.message); },
       onModeChange: ({ mode }) => { tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Penny mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
-      onError: (m) => { tutorStatus("Chyba spojení: " + m); },
+      onError: (m) => { console.warn("penny", m); tutorStatus("Spojení vypadlo — zkus to znovu."); },
       onDisconnect: () => { TUT.conv = null; TUT.mode = "off"; tutorHam(""); syncVoiceBtn(); tutorStatus("Odpojeno"); },
     });
     TUT.conv = conv; TUT.mode = textOnly ? "text" : "voice"; syncVoiceBtn();
@@ -1440,23 +1487,30 @@ async function tutorSend(text) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  view().innerHTML = `${topbar()}
-    <div class="tutor-hero">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
-      <p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasová Penny se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>
+  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs");
+  const has = TUT.msgs.length > 0;
+  view().innerHTML = `${topbar(null, readBtn())}
+    <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
+      ${has ? "" : `<p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasová Penny se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>`}
       ${TUT.ctx ? `<span class="ctx">Téma: ${esc(TUT.ctx)} <button id="clrctx" aria-label="Zrušit téma">×</button></span>` : ""}
-      ${AGENT_ID ? `<button class="voice-btn" id="voice" style="margin-top:12px">${ic.mic}</button><b id="vlabel" class="small">Mluvit s Penny</b>` : ""}
+      ${AGENT_ID ? `<button class="voice-btn" id="voice">${ic.mic}</button><b id="vlabel" class="small">Mluvit s Penny</b>` : ""}
       <div class="tutor-status" id="tstat"></div></div>
-    <div class="chips" id="chips">${["Vyzkoušej mě z " + (TUT.ctx || "IS křivky"), "Vysvětli mi transmisní mechanismus jednoduše", "Jaký je rozdíl mezi pohybem po křivce a posunem křivky?", "Co budu potřebovat ke zkoušce nejvíc?"].map(c => `<button class="chip">${esc(c)}</button>`).join("")}</div>
     <div class="chat" id="chat">${TUT.msgs.map(msgHTML).join("")}</div>
-    <div class="composer"><textarea id="tin" rows="1" placeholder="Napiš otázku…"></textarea><button class="btn ghost" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
+    <div class="tutor-bar"><div class="tutor-bar-in">
+      ${has ? "" : `<div class="chips" id="chips">${["Vyzkoušej mě z " + (TUT.ctx || "IS křivky"), "Vysvětli mi transmisní mechanismus", "Pohyb po křivce vs. posun křivky?", "Co je ke zkoušce nejdůležitější?"].map(c => `<button class="chip">${esc(c)}</button>`).join("")}</div>`}
+      <div class="composer"><textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send" id="tsend" aria-label="Odeslat">${ic.send}</button></div>
+    </div></div>`;
   const tin = $("#tin");
-  $("#tsend").onclick = () => { const v = tin.value; tin.value = ""; tutorSend(v); };
+  const grow = () => { tin.style.height = "auto"; tin.style.height = Math.min(120, tin.scrollHeight) + "px"; $("#tsend").classList.toggle("ready", !!tin.value.trim()); };
+  tin.oninput = grow;
+  $("#tsend").onclick = () => { const v = tin.value; tin.value = ""; grow(); tutorSend(v); $("#chips")?.remove(); };
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend").click(); } };
-  $$(".chip").forEach(c => c.onclick = () => tutorSend(c.textContent));
+  $$(".chip").forEach(c => c.onclick = () => { tutorSend(c.textContent); $("#chips")?.remove(); });
   const cl = $("#clrctx"); if (cl) cl.onclick = () => { TUT.ctx = ""; tutorStop(); nav("#/halir"); };
   const vb = $("#voice");
   if (vb) { syncVoiceBtn(); vb.onclick = async () => { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } }; }
-  if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; tin.focus(); }
+  if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; grow(); tin.focus(); }
+  const ch = $("#chat"); if (has && ch.lastElementChild) ch.lastElementChild.scrollIntoView({ block: "end" });
 }
 
 /* ---------- Penny vedle učení: panel, který neodvede ze stránky ---------- */
@@ -1472,10 +1526,10 @@ function openDrawer(ctx, pre) {
   const d = document.createElement("aside"); d.id = "drawer"; d.className = "drawer"; d.setAttribute("aria-label", "Zeptej se Penny");
   d.innerHTML = `<div class="drawer-grip"></div>
     <div class="drawer-head">${ham("happy")}<div style="flex:1;min-width:0"><b>Penny</b><div class="tutor-status small muted" id="tstat">${TUT.ctx ? "Téma: " + esc(TUT.ctx) : "Ptej se na cokoli z kurzu"}</div></div>
-      <button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
+      ${readBtn()}<button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
     <div class="chat" id="chat">${TUT.msgs.length ? TUT.msgs.map(msgHTML).join("") : `<div class="msg sys">Napiš otázku, nebo zmáčkni mikrofon a mluv se mnou nahlas.</div>`}</div>
     <div class="drawer-compose"><button class="voice-mini" id="voice" aria-label="Mluvit s Penny">${ic.mic}</button>
-      <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…"></textarea><button class="btn" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
+      <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…" enterkeyhint="send"></textarea><button class="send ready" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
   document.body.appendChild(d); document.body.classList.add("drawer-open");
   const tin = $("#tin", d);
   $("#dClose", d).onclick = closeDrawer;

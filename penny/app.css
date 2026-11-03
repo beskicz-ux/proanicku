@@ -470,10 +470,39 @@ textarea.answer:focus{outline:2px solid var(--sky); border-color:transparent}
 .msg.ai{align-self:flex-start; background:var(--sheet); color:var(--paper-ink); border-bottom-left-radius:6px}
 .msg.me{align-self:flex-end; background:var(--wine-4); color:var(--ink); border-bottom-right-radius:6px; font-weight:600}
 .msg.sys{align-self:center; background:none; color:var(--dim); font-size:var(--t-sec); text-align:center}
-.composer{display:flex; gap:var(--s2); align-items:flex-end; position:sticky; bottom:calc(var(--nav-h) + var(--s3) + env(safe-area-inset-bottom)); background:var(--wine); padding:var(--s2) 0}
-.composer textarea,.drawer-compose textarea{flex:1; min-height:48px; max-height:140px; border-radius:var(--r-ctl); border:1.5px solid var(--line-2); background:var(--wine-2); color:var(--ink); padding:var(--s3); font:inherit; resize:none}
-.composer textarea:focus,.drawer-compose textarea:focus{outline:2px solid var(--sky); border-color:transparent}
-.composer .btn,.drawer-compose .btn{min-height:48px; padding:0 var(--s4)}
+.composer,.drawer-compose{display:flex; gap:var(--s2); align-items:flex-end}
+.composer textarea,.drawer-compose textarea{flex:1; min-height:48px; max-height:120px; border-radius:24px; border:1.5px solid var(--line-2); background:var(--wine-2); color:var(--ink); padding:12px var(--s4); font:inherit; font-size:var(--t-body); line-height:1.4; resize:none; display:block}
+.composer textarea:focus,.drawer-compose textarea:focus{outline:none; border-color:var(--sky)}
+.send{width:48px; height:48px; flex:none; border-radius:50%; border:0; display:grid; place-items:center; background:var(--wine-3); color:var(--muted); transition:background var(--fast), color var(--fast), transform var(--fast)}
+.send svg{width:20px; height:20px}
+.send.ready{background:var(--gold); color:var(--on-gold)}
+.send:active{transform:scale(.92)}
+/* the ask bar: one solid strip pinned above the menu — nothing scrolls visibly behind it */
+.tutor-bar{position:fixed; left:0; right:0; bottom:calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index:19; background:var(--wine); border-top:1px solid var(--line);
+  padding:var(--s3) max(var(--gutter), env(safe-area-inset-right)) var(--s3) max(var(--gutter), env(safe-area-inset-left))}
+.tutor-bar-in{max-width:728px; margin:0 auto; display:flex; flex-direction:column; gap:var(--s3)}
+.tutor-bar .chips{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:0 calc(-1 * var(--gutter)); padding:0 var(--gutter)}
+.tutor-bar .chips::-webkit-scrollbar{display:none}
+.tutor-bar .chip{flex:none; white-space:nowrap}
+body.tutor .app{padding-bottom:calc(var(--nav-h) + 160px + env(safe-area-inset-bottom))}
+.tutor-hero.compact{flex-direction:row; flex-wrap:wrap; justify-content:center; gap:var(--s3)}
+.tutor-hero.compact .ham{width:56px; height:56px}
+.tutor-hero.compact h2{font-size:var(--t-head); font-family:var(--body); font-weight:700}
+.tutor-hero.compact .voice-btn{width:56px; height:56px; box-shadow:0 4px 0 var(--gold-deep)}
+.tutor-hero.compact .voice-btn svg{width:24px; height:24px}
+.tutor-hero.compact #vlabel{display:none}
+.tutor-hero.compact .tutor-status,.tutor-hero.compact .ctx{flex-basis:100%; text-align:center}
+.tutor-hero.compact .ctx{flex-basis:auto}
+.voice-btn{margin-top:var(--s3)}
+.tutor-hero.compact .voice-btn{margin-top:0}
+
+/* read aloud toggle */
+.read-toggle{display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 var(--s3); border-radius:var(--r-pill); border:1px solid var(--line); background:var(--wine-2); color:var(--muted); font-size:var(--t-cap); font-weight:700; white-space:nowrap; flex:none}
+.read-toggle svg{width:18px; height:18px}
+.read-toggle.on{background:rgba(64,201,207,.16); border-color:rgba(64,201,207,.45); color:var(--teal)}
+.session-top .read-toggle,.drawer-head .read-toggle{width:44px; padding:0; justify-content:center}
+.session-top .read-toggle span,.drawer-head .read-toggle span{display:none}
+.topbar .read-toggle{min-height:36px}
 .voice-btn{width:96px; height:96px; border-radius:50%; border:0; background:var(--gold); color:var(--on-gold); display:grid; place-items:center; box-shadow:0 6px 0 var(--gold-deep)}
 .voice-btn svg{width:38px; height:38px}
 .voice-btn.live{background:var(--coral); color:var(--on-coral); box-shadow:0 6px 0 var(--coral-deep); animation:pulse 1.4s infinite}
@@ -590,6 +619,8 @@ body.locked .nav,body.locked .fab{display:none}
   body.drawer-open.wide .app{max-width:none}
   body.drawer-open .fab{display:none}
   body.drawer-open .dock-in{margin-right:440px}
+  .tutor-bar{left:96px; bottom:0}
+  body.tutor .app{padding-bottom:180px}
 }
 @media (min-width:1000px) and (max-height:700px){ .welcome{min-height:auto} }
 
