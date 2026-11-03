@@ -501,7 +501,7 @@ async function render() {
     halir: viewTutor, plan: viewPlan, jak: viewScience, hledat: viewSearch, tahak: viewCheat, pripravenost: viewReadiness,
   };
   setNav({ "": "dnes", mapa: "mapa", lekce: "mapa", uc: "mapa", karty: "karty", kviz: "dnes", halir: "halir", plan: "plan", jak: "plan" }[r] || "");
-  const focus = ["uc", "karty", "kviz", "zkouska", "seznamy", "otazka", "priklady"].includes(r) || (r === "esej" && parts[1]);
+  const focus = ["uc", "karty", "kviz", "zkouska", "seznamy", "otazka", "priklady", "halir"].includes(r) || (r === "esej" && parts[1]);
   document.body.classList.toggle("focus", !!focus);
   document.body.classList.toggle("tutor", r === "halir");
   document.body.classList.toggle("wide", ["", "lekce", "mapa", "plan", "grafy", "pripravenost"].includes(r) && !focus);
@@ -1491,13 +1491,65 @@ document.addEventListener("click", e => {
   const t = e.target.closest("[data-slides]"); if (!t) return;
   const [lid, list, i] = t.dataset.slides.split("|"); openViewer(lid, list.split(",").map(Number), +i, t.dataset.stitle);
 });
+
+// grafy modelů přímo do odpovědi Penny (překreslené podle přednášek 5A, 5B, 6A)
+const TOPIC_LEC = { is: "5A", mp: "5B", ad: "5B", asad: "6A" };
+function topicOf(t) {
+  t = String(t || "");
+  if (/\bAD\s*[–-]\s*AS\b|\bAS\s*[–-]\s*AD\b|\bAS\b.*\bAD\b|\bAD\b.*\bAS\b|nabídkov\w* šok|potenciální produkt|LRAS/i.test(t)) return "asad";
+  if (/\bIS\b/.test(t)) return "is";
+  if (/\bMP\b|Taylor/.test(t)) return "mp";
+  if (/\bAD\b/.test(t)) return "ad";
+  return "";
+}
+function graphFor(q, a) {
+  const tp = topicOf(q) || topicOf(a); if (!tp) return "";
+  const shift = /doprava|vpravo/i.test(a) ? 1 : /doleva|vlevo/i.test(a) ? -1 : 0;
+  const ud = /posun\w*\s+(\S+\s+){0,3}nahoru|nahoru/i.test(a) ? 1 : /posun\w*\s+(\S+\s+){0,3}dolů|dolů/i.test(a) ? -1 : 0;
+  const key = tp + shift + ud; if (key === TUT.lastGraph && !/ukaž|ukázat|obráz|graf|nakresl|vidět/i.test(q)) return ""; TUT.lastGraph = key;
+  const old = "#b08a7f", hot = "#c2185b", blue = "#2f6fb0", green = "#2f8a58";
+  let svg, cap, g;
+  if (tp === "is") {
+    const L = [{ f: Y => 12 - Y, c: shift ? old : hot, w: shift ? 2.4 : 3.4, dash: !!shift, label: shift ? "IS₁" : "IS", lx: 4 }];
+    if (shift) L.push({ f: Y => 12 + 2.5 * shift - Y, c: hot, w: 3.4, label: "IS₂", lx: 4 + 2.5 * shift });
+    svg = plotSVG({ xlab: "Y (produkt)", ylab: "r", xr: [0, 16], yr: [0, 8], lines: L, points: shift ? [{ x: 9, y: 3, c: old, label: "A" }, { x: 9 + 2.5 * shift, y: 3, c: hot, label: "B" }] : [{ x: 9, y: 3, c: hot, label: "A" }, { x: 11, y: 1, c: hot, label: "B" }] });
+    cap = shift ? `IS se posouvá ${shift > 0 ? "doprava" : "doleva"}: při stejné sazbě r je rovnovážný produkt ${shift > 0 ? "vyšší" : "nižší"} (A → B).` : "IS křivka z přednášky: Y = 12 − r. Vyšší r → nižší investice a čistý export → nižší Y (pohyb z B do A po křivce).";
+    g = "is";
+  } else if (tp === "mp") {
+    const L = [{ f: p => 1 + .5 * p, c: ud ? old : hot, w: ud ? 2.4 : 3.4, dash: !!ud, label: ud ? "MP₁" : "MP", lx: 7 }];
+    if (ud) L.push({ f: p => 1 + ud + .5 * p, c: hot, w: 3.4, label: "MP₂", lx: 7 });
+    svg = plotSVG({ xlab: "π (inflace)", ylab: "r", xr: [0, 8], yr: [0, 7], lines: L, points: [{ x: 2, y: 2 + (ud > 0 ? ud : 0), c: hot, label: "" }] });
+    cap = ud ? `Autonomní ${ud > 0 ? "zpřísnění" : "uvolnění"} → MP se posouvá ${ud > 0 ? "nahoru" : "dolů"}: při každé inflaci je reálná sazba ${ud > 0 ? "vyšší" : "nižší"}.` : "MP křivka: r = r̄ + λπ. Když inflace roste, centrální banka zvyšuje reálnou sazbu (pohyb po křivce).";
+    g = "mp";
+  } else if (tp === "ad") {
+    const ad = d => Y => 2 + (10 + 1.8 * d - Y) / 1.2;
+    const L = [{ f: ad(0), c: shift ? old : hot, w: shift ? 2.4 : 3.4, dash: !!shift, label: shift ? "AD₁" : "AD", lx: 13 }];
+    if (shift) L.push({ f: ad(shift), c: hot, w: 3.4, label: "AD₂", lx: 13 + 1.8 * shift });
+    svg = plotSVG({ xlab: "Y (produkt)", ylab: "π", xr: [4, 16], yr: [-1, 7], lines: L });
+    cap = shift ? `AD se posouvá ${shift > 0 ? "doprava" : "doleva"}: při každé inflaci je poptávaný produkt ${shift > 0 ? "vyšší" : "nižší"}.` : "AD křivka: vyšší inflace → CB zvýší reálnou sazbu (MP) → nižší investice a NX (IS) → nižší Y. Proto klesá.";
+    g = "ad";
+  } else {
+    const adShift = /\bAD\b[^.]{0,60}(doprava|doleva)/i.test(a) ? shift : 0;
+    const asUp = /\bAS\b[^.]{0,60}(nahoru|dolů)/i.test(a) ? ud : 0;
+    const ad = d => Y => 2 + (10 + 1.8 * d - Y) / 1.2, as = u => Y => 2 + .6 * (Y - 10) + u;
+    const L = [{ f: ad(0), c: adShift ? old : hot, w: adShift ? 2.4 : 3.2, dash: !!adShift, label: adShift ? "AD₁" : "AD", lx: 14 }, { f: as(0), c: asUp ? old : blue, w: asUp ? 2.4 : 3.2, dash: !!asUp, label: asUp ? "AS₁" : "AS", lx: 15 }];
+    if (adShift) L.push({ f: ad(adShift), c: hot, w: 3.4, label: "AD₂", lx: 14 + 1.8 * adShift });
+    if (asUp) L.push({ f: as(1.5 * asUp), c: blue, w: 3.4, label: "AS₂", lx: 15 });
+    svg = plotSVG({ xlab: "Y (produkt)", ylab: "π", xr: [4, 16], yr: [-1, 7], lines: L, vlines: [{ x: 10, c: green, w: 2, dash: true, label: "LRAS (Yᴾ)" }] });
+    cap = adShift ? `Poptávkový šok: AD ${adShift > 0 ? "doprava" : "doleva"} → v krátkém období ${adShift > 0 ? "vyšší" : "nižší"} Y i π; v dlouhém se ekonomika vrací na Yᴾ.` : asUp ? `Nabídkový šok: AS ${asUp > 0 ? "nahoru" : "dolů"} → ${asUp > 0 ? "vyšší inflace a nižší produkt (stagflace)" : "nižší inflace a vyšší produkt"} v krátkém období.` : "Model AD–AS: rovnováha tam, kde se AD protne s krátkodobou AS; v dlouhém období je produkt na potenciálu Yᴾ (LRAS).";
+    g = "ad";
+  }
+  return `<div class="msg-graph"><div class="graph">${svg}</div><p class="small">${esc(cap)}</p><a class="link small" href="#/grafy?g=${g}">Vyzkoušet v grafické laboratoři</a></div>`;
+}
+
 // k odpovědi Penny najde nejbližší část přednášky a přiloží její snímky
 function slidesFor(answer) {
   if (String(answer).length < 90) return "";
   const hits = searchNotes(`${TUT.lastQ || ""} ${answer}`, 8).filter(h => h.kind === "s");
   if (!hits.length) return "";
   const ctxL = (TUT.ctx || "").match(/^(\d[AB])\b/)?.[1];
-  const h = hits.slice(0, 3).find(x => x.l.id === ctxL) || hits[0];
+  const tl = TOPIC_LEC[topicOf(TUT.lastQ) || topicOf(answer)];
+  const h = (tl && hits.find(x => x.l.id === tl)) || hits.slice(0, 3).find(x => x.l.id === ctxL) || hits[0];
   const key = h.s.id; if (key === TUT.lastSlides) return ""; TUT.lastSlides = key;
   const list = pickSlides(h.s, 3); if (!list.length) return "";
   return `<p class="cap">Ze slajdů · ${h.l.id} ${esc(h.s.title)}</p>${slideThumbs(h.l.id, list, h.s.title)}`;
@@ -1505,10 +1557,10 @@ function slidesFor(answer) {
 // značky pro hlas ElevenLabs ([slow], [excited]…) se nemají ukazovat ani číst
 const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 
-async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; document.body.classList.remove("in-call"); if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") m.slides = slidesFor(text); TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
+async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; document.body.classList.remove("in-call"); document.getElementById("callbar")?.remove(); if (c) { try { await c.endSession(); } catch (e) { } } }
+function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") { m.graph = graphFor(TUT.lastQ, text); m.slides = slidesFor(text); } TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
 const aiMd = t => md(String(t).replace(/^[ \t]*\$([^$\n]+)\$[ \t]*$/gm, (_, f) => `$$${f}$$`));
-const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
+const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.graph || ""}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {
@@ -1539,9 +1591,12 @@ function syncVoiceBtn() {
   $$("[data-voice]").forEach(b => { b.classList.toggle("live", live); b.innerHTML = live ? ic.stop : ic.mic; b.title = live ? "Ukončit hovor" : "Mluvit s Penny"; b.setAttribute("aria-label", b.title); });
   const l = $("#vlabel"); if (l) l.textContent = live ? "Ukončit hovor" : "Mluvit s Penny";
   document.body.classList.toggle("in-call", live);
+  let bar = document.getElementById("callbar");
+  if (live && !bar) { bar = document.createElement("div"); bar.id = "callbar"; bar.className = "callbar"; bar.innerHTML = `<span class="dot"></span><span>Hovor s Penny</span><button data-voice-stop>${ic.stop} Ukončit</button>`; document.body.appendChild(bar); }
+  if (!live && bar) bar.remove();
 }
 async function toggleVoice() { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } }
-document.addEventListener("click", e => { if (e.target.closest("[data-voice]")) toggleVoice(); });
+document.addEventListener("click", e => { if (e.target.closest("[data-voice]")) toggleVoice(); else if (e.target.closest("[data-voice-stop]") && TUT.mode === "voice") toggleVoice(); });
 function offlineAnswer(text) {
   const hits = searchNotes(text, 3);
   if (!hits.length) return "Tohle v poznámkách nevidím. Zkus to říct jinými slovy, nebo použij hledání.";
@@ -1560,7 +1615,7 @@ function viewTutor(parts, q) {
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
   if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs");
   const has = TUT.msgs.length > 0;
-  view().innerHTML = `${topbar(null, readBtn())}
+  view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
       ${has ? "" : `<p class="muted small" style="max-width:34ch">${AGENT_ID ? "Mluv se mnou nahlas jako s doučovatelem, nebo piš. Znám všech 12 přednášek." : "Hlasová Penny se ještě připojuje. Zatím ti najdu odpověď v poznámkách."}</p>`}
       ${TUT.ctx ? `<span class="ctx">Téma: ${esc(TUT.ctx)} <button id="clrctx" aria-label="Zrušit téma">×</button></span>` : ""}

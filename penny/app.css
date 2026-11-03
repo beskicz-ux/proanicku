@@ -677,3 +677,23 @@ html,body{overscroll-behavior-y:none}
 .tutor-bar .voice-mini,.drawer-compose .voice-mini{background:var(--wine-3); color:var(--ink)}
 .voice-mini.live{background:var(--coral); color:var(--on-coral)}
 body.in-call .tutor-bar{border-top-color:rgba(255,126,110,.5)}
+
+/* graph drawn right inside Penny's answer */
+.msg .msg-graph{margin:var(--s3) 0 0; padding-top:var(--s3); border-top:1px solid var(--paper-line)}
+.msg .msg-graph .graph{padding:var(--s1); background:#fff; border:1px solid var(--paper-line)}
+.msg .msg-graph .small{color:var(--paper-ink); margin-top:var(--s2)}
+.msg .msg-graph .link{color:var(--teal-deep); min-height:36px; padding:var(--s1) 0 0}
+
+/* call bar: while talking, a stop button is always on screen */
+.callbar{position:fixed; z-index:45; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 76px);
+  display:flex; align-items:center; gap:var(--s2); padding:6px 6px 6px var(--s4); border-radius:var(--r-pill);
+  background:#3d1517; border:1px solid rgba(255,126,110,.55); color:var(--ink); font-weight:700; font-size:var(--t-sec); box-shadow:var(--shadow); animation:drop .25s var(--ease); white-space:nowrap}
+.callbar .dot{width:10px; height:10px; border-radius:50%; background:var(--coral); animation:pulse 1.4s infinite}
+.callbar button{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 var(--s4); border:0; border-radius:var(--r-pill); background:var(--coral); color:var(--on-coral); font-weight:700}
+.callbar button svg{width:16px; height:16px}
+body.drawer-open .callbar{top:calc(env(safe-area-inset-top) + 16px)}
+
+/* Penny chat = focus screen: no bottom menu, back button top-left, ask bar sits at the very bottom */
+body.tutor .tutor-bar{bottom:0; padding-bottom:calc(var(--s3) + env(safe-area-inset-bottom))}
+body.tutor .app{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+@media (min-width:1000px){ body.tutor .tutor-bar{left:0} }
