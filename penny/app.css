@@ -684,16 +684,25 @@ body.in-call .tutor-bar{border-top-color:rgba(255,126,110,.5)}
 .msg .msg-graph .small{color:var(--paper-ink); margin-top:var(--s2)}
 .msg .msg-graph .link{color:var(--teal-deep); min-height:36px; padding:var(--s1) 0 0}
 
-/* call bar: while talking, a stop button is always on screen */
-.callbar{position:fixed; z-index:45; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 76px);
-  display:flex; align-items:center; gap:var(--s2); padding:6px 6px 6px var(--s4); border-radius:var(--r-pill);
-  background:#3d1517; border:1px solid rgba(255,126,110,.55); color:var(--ink); font-weight:700; font-size:var(--t-sec); box-shadow:var(--shadow); animation:drop .25s var(--ease); white-space:nowrap}
-.callbar .dot{width:10px; height:10px; border-radius:50%; background:var(--coral); animation:pulse 1.4s infinite}
-.callbar button{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 var(--s4); border:0; border-radius:var(--r-pill); background:var(--coral); color:var(--on-coral); font-weight:700}
-.callbar button svg{width:16px; height:16px}
-body.drawer-open .callbar{top:calc(env(safe-area-inset-top) + 16px)}
 
 /* Penny chat = focus screen: no bottom menu, back button top-left, ask bar sits at the very bottom */
 body.tutor .tutor-bar{bottom:0; padding-bottom:calc(var(--s3) + env(safe-area-inset-bottom))}
 body.tutor .app{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
 @media (min-width:1000px){ body.tutor .tutor-bar{left:0} }
+
+/* attachments: photo of notes, screenshot, PDF */
+.attach{width:48px; height:48px; flex:none; border-radius:50%; display:grid; place-items:center; background:var(--wine-3); color:var(--ink); cursor:pointer}
+.attach svg{width:21px; height:21px}
+.attach:active{transform:scale(.92)}
+.att-preview{display:flex; align-items:center; gap:var(--s3); padding:var(--s2); border-radius:var(--r-ctl); background:var(--wine-2); border:1px solid var(--line-2)}
+.att-preview img{width:52px; height:52px; object-fit:cover; border-radius:10px; flex:none}
+.att-preview .att-ico{width:52px; height:52px; border-radius:10px; display:grid; place-items:center; background:var(--wine-3); flex:none}
+.att-preview .att-ico svg{width:22px; height:22px}
+.att-preview .att-name{flex:1; min-width:0; font-size:var(--t-sec); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.att-preview .att-x{width:40px; height:40px; border-radius:50%; border:0; background:var(--wine-3); color:var(--ink); display:grid; place-items:center; flex:none}
+.att-preview .att-x svg{width:18px; height:18px}
+.drawer-att{margin:0 var(--s3) var(--s2)}
+.msg-img{display:block; max-width:220px; max-height:260px; border-radius:12px; margin:2px 0 var(--s2)}
+.msg-file{display:flex; align-items:center; gap:6px; font-size:var(--t-sec); margin-bottom:var(--s1)}
+.msg-file svg{width:16px; height:16px}
+.msg.me:has(.msg-img):not(:has(br)){padding:var(--s2)}

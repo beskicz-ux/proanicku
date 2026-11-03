@@ -197,6 +197,7 @@ const ic = {
   sound: I('<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/>'),
   moon: I('<path d="M20 14A8 8 0 1 1 10 4a7 7 0 0 0 10 10z"/>'),
   stop: I('<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>'),
+  clip: I('<path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7.5"/>'),
   info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
 };
 
@@ -1558,9 +1559,9 @@ function slidesFor(answer) {
 const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 
 async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; document.body.classList.remove("in-call"); document.getElementById("callbar")?.remove(); if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; const m = { role, text }; if (role === "ai") { m.graph = graphFor(TUT.lastQ, text); m.slides = slidesFor(text); } TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
+function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; document.getElementById("chips")?.remove(); const m = { role, text }; if (role === "ai") { m.graph = graphFor(TUT.lastQ, text); m.slides = slidesFor(text); } TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
 const aiMd = t => md(String(t).replace(/^[ \t]*\$([^$\n]+)\$[ \t]*$/gm, (_, f) => `$$${f}$$`));
-const msgHTML = m => `<div class="msg ${m.role}">${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.graph || ""}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
+const msgHTML = m => `<div class="msg ${m.role}">${m.img ? `<img class="msg-img" src="${m.img}" alt="">` : m.file ? `<span class="msg-file">${ic.clip} ${esc(m.file)}</span>` : ""}${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.graph || ""}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
 function tutorHam(cls) { $$(".tutor-hero .ham, .drawer-head .ham").forEach(h => h.classList.toggle("talk", cls === "talk")); }
 async function tutorStart(textOnly) {
@@ -1591,9 +1592,6 @@ function syncVoiceBtn() {
   $$("[data-voice]").forEach(b => { b.classList.toggle("live", live); b.innerHTML = live ? ic.stop : ic.mic; b.title = live ? "Ukončit hovor" : "Mluvit s Penny"; b.setAttribute("aria-label", b.title); });
   const l = $("#vlabel"); if (l) l.textContent = live ? "Ukončit hovor" : "Mluvit s Penny";
   document.body.classList.toggle("in-call", live);
-  let bar = document.getElementById("callbar");
-  if (live && !bar) { bar = document.createElement("div"); bar.id = "callbar"; bar.className = "callbar"; bar.innerHTML = `<span class="dot"></span><span>Hovor s Penny</span><button data-voice-stop>${ic.stop} Ukončit</button>`; document.body.appendChild(bar); }
-  if (!live && bar) bar.remove();
 }
 async function toggleVoice() { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } }
 document.addEventListener("click", e => { if (e.target.closest("[data-voice]")) toggleVoice(); else if (e.target.closest("[data-voice-stop]") && TUT.mode === "voice") toggleVoice(); });
@@ -1602,8 +1600,51 @@ function offlineAnswer(text) {
   if (!hits.length) return "Tohle v poznámkách nevidím. Zkus to říct jinými slovy, nebo použij hledání.";
   return "Tady je, co k tomu mám v poznámkách:\n\n" + hits.map(h => h.kind === "s" ? `**${h.l.id} · ${h.s.title}** — ${h.s.body.replace(/\n+/g, " ").slice(0, 260)}… [otevřít](#/lekce/${h.l.id})` : `**${h.t.term}** (${h.l.id}) — ${h.t.def}`).join("\n\n");
 }
+
+/* ---------- přílohy: fotka zápisků, screenshot, PDF ---------- */
+const ATT = { file: null, url: "" };
+async function shrinkImage(f) {
+  if (!/^image\//.test(f.type) || /gif|svg/.test(f.type)) return f;
+  try {
+    const bmp = await createImageBitmap(f); const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const b = await new Promise(r => c.toBlob(r, "image/jpeg", .85)); return b ? new File([b], "foto.jpg", { type: "image/jpeg" }) : f;
+  } catch (e) { return f; }
+}
+function attachPreview() {
+  $$(".att-preview").forEach(el => {
+    if (!ATT.file) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    el.innerHTML = `${ATT.url ? `<img src="${ATT.url}" alt="">` : `<span class="att-ico">${ic.clip}</span>`}<span class="att-name">${esc(ATT.file.name)}</span><button class="att-x" data-att-clear aria-label="Odebrat přílohu">${ic.x}</button>`;
+  });
+  $$("#tsend").forEach(b => b.classList.toggle("ready", !!ATT.file || !!$("#tin")?.value.trim()));
+}
+document.addEventListener("change", async e => {
+  if (!e.target.matches("[data-att-input]")) return;
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  if (f.size > 15e6) return toast("Soubor je moc velký (max 15 MB).");
+  ATT.file = await shrinkImage(f); if (ATT.url) URL.revokeObjectURL(ATT.url);
+  ATT.url = /^image\//.test(ATT.file.type) ? URL.createObjectURL(ATT.file) : ""; attachPreview();
+  $("#tin")?.focus();
+});
+document.addEventListener("click", e => { if (e.target.closest("[data-att-clear]")) { ATT.file = null; ATT.url = ""; attachPreview(); } });
+const attachBtn = () => AGENT_ID ? `<label class="attach" aria-label="Přiložit fotku nebo soubor">${ic.clip}<input type="file" accept="image/*,application/pdf,.txt" data-att-input hidden></label>` : "";
+async function sendAttachment(text) {
+  const f = ATT.file, url = ATT.url; ATT.file = null; ATT.url = ""; attachPreview();
+  const q = text || (/^image\//.test(f.type) ? "Podívej se na tenhle obrázek a vysvětli mi ho podle přednášek." : "Podívej se na tenhle soubor a vysvětli mi ho podle přednášek.");
+  TUT.lastQ = q; document.getElementById("chips")?.remove();
+  const m = { role: "me", text: text || "", img: url, file: url ? "" : f.name }; TUT.msgs.push(m);
+  const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); }
+  const conv = TUT.conv || await tutorStart(true);
+  if (!conv) return tutorMsg("ai", "Přílohu se nepodařilo poslat — zkontroluj internet a zkus to znovu.");
+  tutorStatus("Posílám přílohu…");
+  try { const { fileId } = await conv.uploadFile(f); conv.sendMultimodalMessage({ text: q, fileId }); tutorStatus(TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); }
+  catch (err) { console.warn(err); tutorStatus(""); tutorMsg("ai", "Tuhle přílohu jsem nedokázala otevřít. Zkus fotku (JPG/PNG) nebo PDF."); }
+}
+
 async function tutorSend(text, shown) {
-  text = text.trim(); if (!text) return;
+  text = text.trim(); if (ATT.file && AGENT_ID) return sendAttachment(text); if (!text) return;
   tutorMsg("me", shown || text); if (shown) TUT.lastQ = text;
   if (!AGENT_ID) { setTimeout(() => tutorMsg("ai", offlineAnswer(text)), 250); return; }
   const conv = TUT.conv || await tutorStart(true);
@@ -1624,16 +1665,17 @@ function viewTutor(parts, q) {
     <div class="chat" id="chat">${TUT.msgs.map(msgHTML).join("")}</div>
     <div class="tutor-bar"><div class="tutor-bar-in">
       ${has ? "" : `<div class="chips" id="chips">${["Vyzkoušej mě z " + (TUT.ctx || "IS křivky"), "Vysvětli mi transmisní mechanismus", "Pohyb po křivce vs. posun křivky?", "Co je ke zkoušce nejdůležitější?"].map(c => `<button class="chip">${esc(c)}</button>`).join("")}</div>`}
-      <div class="composer">${AGENT_ID ? `<button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>` : ""}<textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send" id="tsend" aria-label="Odeslat">${ic.send}</button></div>
+      <div class="att-preview" hidden></div>
+      <div class="composer">${AGENT_ID ? `<button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>` : ""}${attachBtn()}<textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send" id="tsend" aria-label="Odeslat">${ic.send}</button></div>
     </div></div>`;
   const tin = $("#tin");
-  const grow = () => { tin.style.height = "auto"; tin.style.height = Math.min(120, tin.scrollHeight) + "px"; $("#tsend").classList.toggle("ready", !!tin.value.trim()); };
+  const grow = () => { tin.style.height = "auto"; tin.style.height = Math.min(120, tin.scrollHeight) + "px"; $("#tsend").classList.toggle("ready", !!tin.value.trim() || !!ATT.file); };
   tin.oninput = grow;
   $("#tsend").onclick = () => { const v = tin.value; tin.value = ""; grow(); tutorSend(v); $("#chips")?.remove(); };
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend").click(); } };
   $$(".chip").forEach(c => c.onclick = () => { tutorSend(c.textContent); $("#chips")?.remove(); });
   const cl = $("#clrctx"); if (cl) cl.onclick = () => { TUT.ctx = ""; tutorStop(); nav("#/halir"); };
-  syncVoiceBtn();
+  syncVoiceBtn(); attachPreview();
   if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; grow(); tin.focus(); }
   const ch = $("#chat"); if (has && ch.lastElementChild) ch.lastElementChild.scrollIntoView({ block: "end" });
 }
@@ -1653,14 +1695,14 @@ function openDrawer(ctx, pre, shown) {
     <div class="drawer-head">${ham("happy")}<div style="flex:1;min-width:0"><b>Penny</b><div class="tutor-status small muted" id="tstat">${TUT.ctx ? "Téma: " + esc(TUT.ctx) : "Ptej se na cokoli z kurzu"}</div></div>
       ${readBtn()}<button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
     <div class="chat" id="chat">${TUT.msgs.length ? TUT.msgs.map(msgHTML).join("") : `<div class="msg sys">Napiš otázku, nebo zmáčkni mikrofon a mluv se mnou nahlas.</div>`}</div>
-    <div class="drawer-compose"><button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>
+    <div class="att-preview drawer-att" hidden></div><div class="drawer-compose"><button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>${attachBtn()}
       <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…" enterkeyhint="send"></textarea><button class="send ready" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
   document.body.appendChild(d); document.body.classList.add("drawer-open");
   const tin = $("#tin", d);
   $("#dClose", d).onclick = closeDrawer;
   $("#tsend", d).onclick = () => { const v = tin.value; tin.value = ""; tutorSend(v); };
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend", d).click(); } };
-  syncVoiceBtn();
+  syncVoiceBtn(); attachPreview();
   if (pre) { tutorSend(pre, shown); } else setTimeout(() => tin.focus(), 250);
   const ch = $("#chat", d); ch.scrollTop = ch.scrollHeight;
 }
