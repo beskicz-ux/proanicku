@@ -1523,8 +1523,8 @@ function graphFor(q, a) {
     g = "mp";
   } else if (tp === "ad") {
     const ad = d => Y => 2 + (10 + 1.8 * d - Y) / 1.2;
-    const L = [{ f: ad(0), c: shift ? old : hot, w: shift ? 2.4 : 3.4, dash: !!shift, label: shift ? "AD₁" : "AD", lx: 13 }];
-    if (shift) L.push({ f: ad(shift), c: hot, w: 3.4, label: "AD₂", lx: 13 + 1.8 * shift });
+    const L = [{ f: ad(0), c: shift ? old : hot, w: shift ? 2.4 : 3.4, dash: !!shift, label: shift ? "AD₁" : "AD", lx: 6.5 }];
+    if (shift) L.push({ f: ad(shift), c: hot, w: 3.4, label: "AD₂", lx: 6.5 + 1.8 * shift });
     svg = plotSVG({ xlab: "Y (produkt)", ylab: "π", xr: [4, 16], yr: [-1, 7], lines: L });
     cap = shift ? `AD se posouvá ${shift > 0 ? "doprava" : "doleva"}: při každé inflaci je poptávaný produkt ${shift > 0 ? "vyšší" : "nižší"}.` : "AD křivka: vyšší inflace → CB zvýší reálnou sazbu (MP) → nižší investice a NX (IS) → nižší Y. Proto klesá.";
     g = "ad";
@@ -1532,8 +1532,8 @@ function graphFor(q, a) {
     const adShift = /\bAD\b[^.]{0,60}(doprava|doleva)/i.test(a) ? shift : 0;
     const asUp = /\bAS\b[^.]{0,60}(nahoru|dolů)/i.test(a) ? ud : 0;
     const ad = d => Y => 2 + (10 + 1.8 * d - Y) / 1.2, as = u => Y => 2 + .6 * (Y - 10) + u;
-    const L = [{ f: ad(0), c: adShift ? old : hot, w: adShift ? 2.4 : 3.2, dash: !!adShift, label: adShift ? "AD₁" : "AD", lx: 14 }, { f: as(0), c: asUp ? old : blue, w: asUp ? 2.4 : 3.2, dash: !!asUp, label: asUp ? "AS₁" : "AS", lx: 15 }];
-    if (adShift) L.push({ f: ad(adShift), c: hot, w: 3.4, label: "AD₂", lx: 14 + 1.8 * adShift });
+    const L = [{ f: ad(0), c: adShift ? old : hot, w: adShift ? 2.4 : 3.2, dash: !!adShift, label: adShift ? "AD₁" : "AD", lx: 6.5 }, { f: as(0), c: asUp ? old : blue, w: asUp ? 2.4 : 3.2, dash: !!asUp, label: asUp ? "AS₁" : "AS", lx: 15 }];
+    if (adShift) L.push({ f: ad(adShift), c: hot, w: 3.4, label: "AD₂", lx: 6.5 + 1.8 * adShift });
     if (asUp) L.push({ f: as(1.5 * asUp), c: blue, w: 3.4, label: "AS₂", lx: 15 });
     svg = plotSVG({ xlab: "Y (produkt)", ylab: "π", xr: [4, 16], yr: [-1, 7], lines: L, vlines: [{ x: 10, c: green, w: 2, dash: true, label: "LRAS (Yᴾ)" }] });
     cap = adShift ? `Poptávkový šok: AD ${adShift > 0 ? "doprava" : "doleva"} → v krátkém období ${adShift > 0 ? "vyšší" : "nižší"} Y i π; v dlouhém se ekonomika vrací na Yᴾ.` : asUp ? `Nabídkový šok: AS ${asUp > 0 ? "nahoru" : "dolů"} → ${asUp > 0 ? "vyšší inflace a nižší produkt (stagflace)" : "nižší inflace a vyšší produkt"} v krátkém období.` : "Model AD–AS: rovnováha tam, kde se AD protne s krátkodobou AS; v dlouhém období je produkt na potenciálu Yᴾ (LRAS).";
