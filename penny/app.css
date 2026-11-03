@@ -646,3 +646,9 @@ body.locked .nav,body.locked .fab{display:none}
 @media (min-width:1000px) and (max-height:700px){ .welcome{min-height:auto} }
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* ask Penny about one calculation step */
+.step .step-ask{min-height:40px; padding:4px 0 0; gap:6px; text-decoration:none; color:var(--teal); font-size:var(--t-sec)}
+.step .step-ask .ham{width:24px; height:24px}
+.card .sheet-actions .btn .ham{width:24px; height:24px}
+.msg.ai .katex-display{margin:.4em 0}

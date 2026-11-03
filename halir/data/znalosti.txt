@@ -1024,6 +1024,49 @@ Grafy 1B:
 - Ukotvená očekávání neznamenají nulovou inflaci; znamenají, že (dlouhodobá) očekávání zůstávají u cíle i při šocích, takže změny nominální sazby se plně promítají do reálné.
 - Maastrichtské kritérium: 1,5 p.b. je PŘIRÁŽKA k průměru 3 nejlepších zemí, ne samotná hodnota kritéria; inflace země se měří jako 12měsíční průměr HICP vůči předchozímu 12měsíčnímu průměru, ne jako meziroční změna jednoho měsíce.
 
+Počítací příklady 1B (řešené krok za krokem):
+PŘÍKLAD: (Ze slidu 54) V roce 2016 byla průměrná inflace 3 zemí EU s nejnižší inflací −0,8 %, inflace ČR 0,6 %. Splnila ČR maastrichtské kritérium cenové stability?
+  Krok 1: Hodnota kritéria = průměr 3 nejlepších + 1,5 p.b. = −0,8 + 1,5 = 0,7 %.
+  Krok 2: Porovnáme: inflace ČR 0,6 % ≤ 0,7 %.
+  VÝSLEDEK: Ano, ČR kritérium v roce 2016 splnila (0,6 % < 0,7 %).
+PŘÍKLAD: (Ze slidu 54) V roce 2022 byl průměr 3 zemí s nejnižší inflací 7,1 %, inflace ČR 14,8 %. O kolik p.b. ČR kritérium překročila?
+  Krok 1: Kritérium = 7,1 + 1,5 = 8,6 %.
+  Krok 2: Překročení = 14,8 − 8,6 = 6,2 p.b.
+  VÝSLEDEK: Kritérium 8,6 %, ČR jej překročila o 6,2 p.b. – nesplněno.
+PŘÍKLAD: (Ze slidu 54) Pomocí tabulky určete, ve kterých letech 2016–2025 ČR kritérium splnila. Kritérium: 0,7; 2,1; 2,2; 1,9; 0,5; 2,2; 8,6; 4,4; 2,5; 3,2. ČR: 0,6; 2,4; 2,0; 2,6; 3,3; 3,3; 14,8; 12,0; 2,7; 2,4.
+  Krok 1: Porovnáme rok po roku inflaci ČR s hodnotou kritéria.
+  Krok 2: 2016: 0,6 < 0,7 ✓; 2017: 2,4 > 2,1 ✗; 2018: 2,0 < 2,2 ✓; 2019: 2,6 > 1,9 ✗; 2020: 3,3 > 0,5 ✗; 2021: 3,3 > 2,2 ✗; 2022: 14,8 > 8,6 ✗; 2023: 12,0 > 4,4 ✗; 2024: 2,7 > 2,5 ✗; 2025p: 2,4 < 3,2 ✓.
+  VÝSLEDEK: Splněno v letech 2016, 2018 a dle predikce 2025.
+PŘÍKLAD: (Nový příklad) Tři země EU s nejnižší kladnou inflací mají 1,2 %, 1,5 % a 1,8 %. Země A má průměrnou inflaci 3,4 %, země B 2,9 %. Které z nich kritérium splňují?
+  Krok 1: Průměr = (1,2 + 1,5 + 1,8) / 3 = 1,5 %.
+  Krok 2: Kritérium = 1,5 + 1,5 = 3,0 %.
+  Krok 3: A: 3,4 > 3,0 ✗; B: 2,9 ≤ 3,0 ✓.
+  VÝSLEDEK: Kritérium 3,0 %; splňuje jen země B.
+PŘÍKLAD: (Nový příklad) Centrální banka snížila inflaci z 10 % na 3 %. Kumulovaná ztráta produktu během dezinflace činila 14 % potenciálního produktu. Vypočtěte koeficient obětování.
+  Krok 1: Pokles inflace Δπ = 10 − 3 = 7 p.b.
+  Krok 2: SR = 14 % / 7 p.b. = 2.
+  VÝSLEDEK: SR = 2 – každý procentní bod snížení inflace stál 2 % produktu.
+PŘÍKLAD: (Nový příklad) Mzdy na pracovníka vzrostly o 9 %, produktivita práce o 3 %. Jak se změní jednotkové náklady práce a co to znamená pro inflaci?
+  Krok 1: %ΔULC ≈ %ΔW − %Δ(Y/L) = 9 − 3 = 6 %.
+  Krok 2: Mzdy předbíhají produktivitu → vyšší náklady firem (nákladová inflace) a vyšší důchody (poptávková inflace).
+  VÝSLEDEK: ULC vzrostou přibližně o 6 % → významný inflační impuls z obou stran.
+PŘÍKLAD: (Nový příklad) Nominální úroková sazba z vkladů je 4 %. Spotřebitel nejprve očekává inflaci 2 %, po energetickém šoku 7 %. Jak se změní jeho subjektivní reálná sazba a jeho chování?
+  Krok 1: Fisher: r approx i - pi^e.
+  Krok 2: Před šokem: r ≈ 4 − 2 = 2 %.
+  Krok 3: Po šoku: r ≈ 4 − 7 = −3 %.
+  Krok 4: Záporná reálná sazba → úspory reálně ztrácejí hodnotu → méně spoří, víc utrácí dnes (Euler), i za statky dlouhodobé spotřeby.
+  VÝSLEDEK: Reálná sazba klesne z 2 % na −3 %; spotřebitel přesune spotřebu do současnosti, což dále zvyšuje poptávkové inflační tlaky.
+PŘÍKLAD: (Nový příklad) CPI byl 120 v roce 1, 126 v roce 2 a 128,52 v roce 3. Spočítejte míry inflace a pojmenujte vývoj mezi roky 2 a 3.
+  Krok 1: π₂ = (126 − 120)/120 = 5 %.
+  Krok 2: π₃ = (128,52 − 126)/126 = 2 %.
+  Krok 3: Inflace klesla z 5 % na 2 %, ale ceny dál rostou.
+  VÝSLEDEK: 5 % a 2 %; jde o dezinflaci, nikoli deflaci.
+PŘÍKLAD: (Nový příklad) Domácnost má úvěr s fixní sazbou 5 % p.a.; při sjednání se očekávala inflace 2 %, skutečná inflace byla 9 %. Kdo vydělal a kdo prodělal?
+  Krok 1: Očekávaná reálná sazba ex ante ≈ 5 − 2 = 3 %.
+  Krok 2: Skutečná reálná sazba ex post ≈ 5 − 9 = −4 %.
+  Krok 3: Neanticipovaná inflace reálně znehodnotila dluh.
+  VÝSLEDEK: Dlužník (domácnost) získal, věřitel (banka) prodělal – přerozdělení v důsledku neanticipované inflace.
+
 Zkouškové otázky 1B:
 OTÁZKA: Vysvětlete rozdíl mezi poptávkovou a nabídkovou inflací a graficky je znázorněte v modelu AD-AS. Proč je pro hospodářskou politiku důležité znát prvotní příčinu inflace?
 VZOROVÁ ODPOVĚĎ: **Graf:** osa x produkt Y, osa y cenová hladina P, klesající AD, rostoucí (nelineární) AS.
@@ -1729,6 +1772,49 @@ Grafy 2B:
 - Používat jednoduchý multiplikátor 1/r i tam, kde lidé drží hotovost a banky dobrovolné rezervy – skutečný multiplikátor je mnohem menší (v příkladu 2,5 místo 10).
 - Plést si značení: na slidech se sazba povinných rezerv značí jednou r, jindy rr – je to totéž.
 
+Počítací příklady 2B (řešené krok za krokem):
+PŘÍKLAD: (Slide 16–17) Sazba povinných rezerv je 10 %, rezervy bankovního systému vzrostou o 100 mil. USD. Ukaž první kroky multiplikace a spočítej celkový nárůst vkladů, úvěrů a rezerv.
+  Krok 1: Banka A: vklad +100, povinné rezervy 0,1 × 100 = 10, úvěry 90.
+  Krok 2: Banka B: vklad +90, rezervy 9, úvěry 81.
+  Krok 3: Banka C: vklad +81, rezervy 8,10, úvěry 72,90; banka D: 72,90 / 7,29 / 65,61 …
+  Krok 4: Celkem: Delta D = frac{1}{r}Delta R = frac{1}{0{,}1} times 100 = 1,000.
+  Krok 5: Úvěry celkem 1 000 (včetně 100 od First National Bank), rezervy celkem 100.
+  VÝSLEDEK: Vklady +1 000 mil., úvěry +1 000 mil., rezervy +100 mil. USD.
+PŘÍKLAD: (Slide 27) r = 0,10; C = 400 mld. USD; D = 800 mld. USD; ER = 0,8 mld. USD. Spočítej M1, c, e a peněžní multiplikátor.
+  Krok 1: M = C + D = 400 + 800 = 1,200 mld.
+  Krok 2: c = C/D = 400/800 = 0{,}5
+  Krok 3: e = ER/D = 0{,}8/800 = 0{,}001
+  Krok 4: m = frac{1 + 0{,}5}{0{,}1 + 0{,}001 + 0{,}5} = frac{1{,}5}{0{,}601} approx 2{,}5
+  Krok 5: Porovnání: jednoduchý multiplikátor 1/r = 10 – peněžní multiplikátor je menší, oběživo se neexpanduje.
+  VÝSLEDEK: M1 = 1 200 mld. USD, c = 0,5, e = 0,001, m ≈ 2,5.
+PŘÍKLAD: (Nový) Sazba povinných rezerv je 5 % a banky nedrží přebytečné rezervy ani veřejnost dodatečnou hotovost. CB koupí od bank cenné papíry za 200 mil. Kč. O kolik se zvýší MB a o kolik vklady?
+  Krok 1: Nákup od banky: rezervy +200 → Delta MB = +200.
+  Krok 2: Jednoduchý multiplikátor: 1/r = 1/0{,}05 = 20.
+  Krok 3: Delta D = 20 times 200 = 4,000 mil. Kč.
+  VÝSLEDEK: MB +200 mil. Kč, vklady +4 000 mil. Kč.
+PŘÍKLAD: (Nový) rr = 0,08; c = 0,3; e = 0,02; MB = 1 000 mld. Kč. Spočítej multiplikátor, M1, vklady D a oběživo C.
+  Krok 1: m = frac{1 + 0{,}3}{0{,}08 + 0{,}02 + 0{,}3} = frac{1{,}3}{0{,}4} = 3{,}25
+  Krok 2: M = 3{,}25 times 1,000 = 3,250 mld.
+  Krok 3: D = frac{MB}{rr + e + c} = frac{1,000}{0{,}4} = 2,500 mld.
+  Krok 4: C = c times D = 0{,}3 times 2,500 = 750 mld.; kontrola C + D = 3,250 ✔
+  VÝSLEDEK: m = 3,25; M1 = 3 250 mld.; D = 2 500 mld.; C = 750 mld. Kč.
+PŘÍKLAD: (Nový) Navazuje na příklad ze slidu 27 (rr = 0,1; e = 0,001). Veřejnost zvýší poměr oběživa c z 0,5 na 0,6. Jak se změní multiplikátor a směr peněžní zásoby při nezměněné MB?
+  Krok 1: Původně m = 1{,}5/0{,}601 approx 2{,}496.
+  Krok 2: Nově m = frac{1{,}6}{0{,}1 + 0{,}001 + 0{,}6} = frac{1{,}6}{0{,}701} approx 2{,}282.
+  Krok 3: Multiplikátor klesl → při stejné MB klesne peněžní zásoba M1 (držba hotovosti má negativní vliv).
+  VÝSLEDEK: m klesne z cca 2,50 na cca 2,28; peněžní zásoba klesne.
+PŘÍKLAD: (Nový) CB koupí od veřejnosti dluhopisy za 50 mld. Kč; prodávající si polovinu ponechají v hotovosti a polovinu uloží na účty. Dále banky splatí CB úvěry za 10 mld. Kč. Jak se změní C, R a MB? Jak se změní MBn?
+  Krok 1: Nákup: oběživo +25, rezervy +25 → MB +50 (vždy o celou částku nákupu).
+  Krok 2: Splacení úvěrů CB: rezervy −10, BR −10 → MB −10.
+  Krok 3: Celkem: ΔC = +25, ΔR = +15, ΔMB = +40.
+  Krok 4: Delta MB_n = Delta MB - Delta BR = 40 - (-10) = +50 (odpovídá operaci na volném trhu).
+  VÝSLEDEK: C +25, R +15, MB +40 mld. Kč; MBn +50 mld. Kč.
+PŘÍKLAD: (Nový) Banky drží dobrovolné rezervy. rr = 0,1; c = 0,2. Spočítej multiplikátor pro e = 0 a pro e = 0,5 (situace jako při QE). O kolik procent klesne?
+  Krok 1: e = 0: m = frac{1{,}2}{0{,}1 + 0 + 0{,}2} = frac{1{,}2}{0{,}3} = 4.
+  Krok 2: e = 0,5: m = frac{1{,}2}{0{,}1 + 0{,}5 + 0{,}2} = frac{1{,}2}{0{,}8} = 1{,}5.
+  Krok 3: Pokles: (4 - 1{,}5)/4 = 62{,}5,%.
+  VÝSLEDEK: m klesne ze 4 na 1,5, tj. o 62,5 % – i velký růst MB se pak do M1 promítne jen částečně.
+
 Zkouškové otázky 2B:
 OTÁZKA: Popište hráče v procesu nabídky peněz a zjednodušenou rozvahu centrální banky. Definujte měnovou bázi.
 VZOROVÁ ODPOVĚĎ: **Hráči:** (1) centrální banka (Fed), (2) obchodní banky – vkladové instituce, finanční zprostředkovatelé, (3) vkladatelé – fyzické osoby a instituce. Hotovost emituje výlučně CB, bezhotovostní peníze i banky přijímající vklady na běžné účty a poskytující bezhotovostní úvěry.
@@ -2230,6 +2316,49 @@ Grafy 3A:
 - Kvantitativní vs. kvalitativní uvolňování: QE zvyšuje velikost bilance, kvalitativní uvolňování mění jen strukturu aktiv. Opak QE je QT.
 - V ample režimu se expanzivní MP nedělá posunem nabídky rezerv, ale snížením administrovaných sazeb (IORB, ON RRP, diskontní/primární).
 
+Počítací příklady 3A (řešené krok za krokem):
+PŘÍKLAD: Banka má (před 26. 3. 2020) kontrolovatelné vklady 200 mil. USD. Jaké jsou její povinné minimální rezervy podle stupňovitého systému Fedu (0 % / 3 % / 10 %)?
+  Krok 1: Prvních 15,5 mil.: 0 % → 0
+  Krok 2: Pásmo 15,5–115,1 mil. (99,6 mil.): 3 % × 99,6 = 2,988 mil.
+  Krok 3: Nad 115,1 mil.: 200 − 115,1 = 84,9 mil.; 10 % × 84,9 = 8,49 mil.
+  Krok 4: Součet: 0 + 2,988 + 8,49
+  VÝSLEDEK: PMR = 11,478 mil. USD (po 26. 3. 2020 by to bylo 0).
+PŘÍKLAD: Malá banka má kontrolovatelné vklady 50 mil. USD. Spočítej PMR podle systému 0 % / 3 % / 10 %.
+  Krok 1: Prvních 15,5 mil.: 0
+  Krok 2: Zbytek 50 − 15,5 = 34,5 mil. leží v pásmu 3 %
+  Krok 3: 3 % × 34,5 = 1,035 mil.
+  Krok 4: Nad 115,1 mil. nic
+  VÝSLEDEK: PMR = 1,035 mil. USD.
+PŘÍKLAD: Fed zvýší horní sazbu PMR z 10 % na maximum povolené zákonem. O kolik vzrostou PMR banky s vklady 200 mil. USD a jak to ovlivní sazbu FF (scarce režim)?
+  Krok 1: Maximum rozmezí 8–14 % je 14 %
+  Krok 2: Část nad 115,1 mil. = 84,9 mil.; rozdíl sazeb 4 p. b.
+  Krok 3: Nárůst = 0,04 × 84,9 = 3,396 mil.
+  Krok 4: Nové PMR = 2,988 + 0,14 × 84,9 = 2,988 + 11,886 = 14,874 mil.
+  Krok 5: Vyšší potřeba rezerv → poptávka po rezervách doprava → i_{ff} roste
+  VÝSLEDEK: PMR vzrostou o 3,396 mil. USD na 14,874 mil. USD; sazba federálních fondů vzroste.
+PŘÍKLAD: Na základě nastavení Fedu od 17. 9. 2026 urči: (a) šířku cílového pásma v bazických bodech, (b) vzdálenost IORB od horní a dolní meze, (c) pozici EFFR (3,88 %) vůči IORB a dolní mezi.
+  Krok 1: (a) 4,00 − 3,75 = 0,25 p. b. = 25 bb
+  Krok 2: (b) horní mez: 4,00 − 3,90 = 10 bb; dolní mez (ON RRP): 3,90 − 3,75 = 15 bb
+  Krok 3: (c) 3,88 − 3,90 = −2 bb (pod IORB); 3,88 − 3,75 = 13 bb nad ON RRP
+  VÝSLEDEK: Pásmo 25 bb; IORB 10 bb pod stropem a 15 bb nad podlahou; EFFR 2 bb pod IORB, 13 bb nad ON RRP – uvnitř pásma.
+PŘÍKLAD: ČNB vyhlásí stahovací repo tendr s objemem 100 mld. Kč a limitní 2T repo sazbou 3,50 %. Nabídky: banka A 40 mld. za 3,45 %, B 30 mld. za 3,40 %, C 50 mld. za 3,50 %, D 20 mld. za 3,55 %. Které nabídky budou uspokojeny (americká aukce) a jaká je průměrná sazba?
+  Krok 1: Vyřaď nabídky nad limitní sazbou: D (3,55 %) neprojde
+  Krok 2: Seřaď od nejnižší sazby: B 3,40 % (30), A 3,45 % (40), C 3,50 % (50)
+  Krok 3: Plň do 100 mld.: B 30 + A 40 = 70; z C jen 30 mld.
+  Krok 4: Americká aukce: každá banka dostane svou sazbu
+  Krok 5: Vážený průměr: (30·3,40 + 40·3,45 + 30·3,50)/100 = (102 + 138 + 105)/100
+  VÝSLEDEK: Uspokojeno: B 30 mld. (3,40 %), A 40 mld. (3,45 %), C 30 mld. (3,50 %); D odmítnuta. Průměrná sazba 3,45 %.
+PŘÍKLAD: Banka v eurozóně má vybrané závazky 500 mil. EUR. Udržovací období má 42 dní. Prvních 21 dní držela na účtu u NCB 3 mil. EUR. Kolik musí v průměru držet zbývajících 21 dní, aby splnila PMR?
+  Krok 1: PMR = 1 % × 500 = 5 mil. EUR (průměr za období)
+  Krok 2: Celkový „součet zůstatků“ = 5 × 42 = 210 mil. EUR·dní
+  Krok 3: Splněno: 3 × 21 = 63
+  Krok 4: Zbývá 210 − 63 = 147; 147 / 21 = 7
+  VÝSLEDEK: V průměru 7 mil. EUR – díky průměrování nemusí plnit 5 mil. každý den.
+PŘÍKLAD: V modelu trhu rezerv platí i_d = 4{,}5,%, i_{oer} = 4{,}0,% a rovnováha je na šikmé části poptávky při i_{ff} = 4{,}25,%. Poptávka po rezervách prudce vzroste (posun doprava). Jaká je nejvyšší možná i_{ff}? A kam nejníže může klesnout při silném poklesu poptávky?
+  Krok 1: Strop: nad i_d si banky půjčí u Fedu – nabídka je vodorovná na 4,5 %
+  Krok 2: Podlaha: pod i_{oer} nikdo nepůjčí – poptávka je vodorovná na 4,0 %
+  VÝSLEDEK: i_{ff} se může pohybovat jen v koridoru 4,0 % – 4,5 %: maximum 4,5 % (= i_d), minimum 4,0 % (= i_{oer}).
+
 Zkouškové otázky 3A:
 OTÁZKA: Popište a graficky znázorněte trh rezerv. Vysvětlete tvar křivky poptávky i nabídky rezerv a určení rovnovážné sazby federálních fondů.
 VZOROVÁ ODPOVĚĎ: - **Osy:** x = množství rezerv R, y = sazba federálních fondů i_{ff}.
@@ -2570,6 +2699,33 @@ Grafy 3B:
 - Fed do GFC NEMĚL explicitní inflační cíl a přesto měl dobré výsledky; průměrné cílování inflace přišlo až v srpnu 2020.
 - ČNB: fixní kurz padl v květnu 1997, cílování inflace začalo až v roce 1998; rozšíření pásma bylo v únoru 1996 (±0,5 % → ±7,5 %).
 - ČNB v roce 2002 přešla OD čisté K celkové inflaci a OD podmíněné K nepodmíněné prognóze – ne naopak.
+
+Počítací příklady 3B (řešené krok za krokem):
+PŘÍKLAD: Inflace je 3 %, inflační cíl 2 %, rovnovážná reálná sazba FF 2 %, mezera výstupu +1 %. Urči cílovou sazbu FF podle Taylorova pravidla.
+  Krok 1: Inflační mezera = 3 − 2 = 1 p. b.
+  Krok 2: i = pi + r^* + tfrac12(pi-pi^*) + tfrac12tilde y = 3 + 2 + 0{,}5cdot 1 + 0{,}5cdot 1
+  Krok 3: = 3 + 2 + 0,5 + 0,5
+  VÝSLEDEK: Cílová sazba FF = 6 %.
+PŘÍKLAD: Skutečný HDP je 19 600 mld., potenciální 20 000 mld. Inflace 2,5 %, cíl 2 %, rovnovážná reálná sazba 0,5 %. Spočítej mezeru výstupu a Taylorovu sazbu.
+  Krok 1: Mezera výstupu = (19 600 − 20 000)/20 000 · 100 = −2 %
+  Krok 2: Inflační mezera = 2,5 − 2 = 0,5 p. b.
+  Krok 3: i = 2{,}5 + 0{,}5 + 0{,}5cdot 0{,}5 + 0{,}5cdot(-2) = 2{,}5 + 0{,}5 + 0{,}25 - 1
+  VÝSLEDEK: Mezera výstupu −2 %; cílová sazba = 2,25 %.
+PŘÍKLAD: V hluboké recesi je inflace 1 %, cíl 2 %, rovnovážná reálná sazba 1 % a mezera výstupu −4 %. Jakou sazbu doporučuje Taylorovo pravidlo a co to znamená pro CB?
+  Krok 1: Inflační mezera = 1 − 2 = −1 p. b.
+  Krok 2: i = 1 + 1 + 0{,}5cdot(-1) + 0{,}5cdot(-4) = 2 - 0{,}5 - 2
+  Krok 3: = −0,5 %
+  VÝSLEDEK: Pravidlo doporučuje −0,5 % – sazbu pod nulou běžně nastavit nelze (problém nulové dolní hranice), CB musí sáhnout po nekonvenčních nástrojích (srov. graf 2009 a 2020).
+PŘÍKLAD: Výchozí stav: π = 2 %, π* = 2 %, r* = 1 %, mezera výstupu 0 %. Inflace vzroste na 4 % (mezera zůstane 0). O kolik se změní nominální a reálná cílová sazba?
+  Krok 1: Výchozí: i = 2 + 1 + 0 + 0 = 3 % (reálná 3 − 2 = 1 %)
+  Krok 2: Nově: i = 4 + 1 + 0,5·2 + 0 = 6 % (reálná 6 − 4 = 2 %)
+  Krok 3: Změna nominální: +3 p. b. (1,5 × 2 p. b.); reálné: +1 p. b.
+  VÝSLEDEK: Nominální sazba vzroste z 3 % na 6 %, reálná z 1 % na 2 % – sazba reaguje víc než 1:1, takže MP se skutečně zpřísní.
+PŘÍKLAD: Ilustrace průměrného cílování inflace: CB chce průměrnou inflaci 2 % za 4 roky. V prvních dvou letech byla inflace 1 % a 1,5 %. Jaká průměrná inflace je potřeba v dalších dvou letech?
+  Krok 1: Součet za 4 roky má být 4 · 2 = 8 p. b.
+  Krok 2: Dosud: 1 + 1,5 = 2,5
+  Krok 3: Zbývá 8 − 2,5 = 5,5 na 2 roky → 2,75 % ročně
+  VÝSLEDEK: 2,75 % ročně – po období pod cílem CB toleruje inflaci nad 2 % (zjednodušená ilustrace; Fed nepoužívá pevný vzorec ani pevné okno).
 
 Zkouškové otázky 3B:
 OTÁZKA: Vysvětlete pojem nominální kotva a problém časové nekonzistence. Jak spolu souvisejí?
@@ -2988,6 +3144,42 @@ Grafy 4A:
 - Velká inflace 70. let nebyla fiskální hyperinflace: vrchol pod 15 % a inflační daň byla jen malou částí vládních výdajů.
 - Reálná sazba se rovná MPK jen v dlouhém období; záporné reálné sazby v datech ukazují, že v krátkém období to neplatí.
 
+Počítací příklady 4A (řešené krok za krokem):
+PŘÍKLAD: V ekonomice je M = 2 000 mld. Kč, V = 4 a reálný HDP Y = 4 000 mld. (v cenách základního roku). Jaká je cenová hladina? Co se stane s P, když se M zvýší na 2 500 mld. a V i Y zůstanou stejné?
+  Krok 1: P = MV/Y = 2,000 cdot 4 / 4,000 = 2
+  Krok 2: Po zvýšení: P = 2,500 cdot 4 / 4,000 = 2{,}5
+  Krok 3: Peníze vzrostly o 25 %, cenová hladina také o 25 %.
+  VÝSLEDEK: P = 2, po zvýšení M P = 2,5 (růst o 25 %, stejně jako M).
+PŘÍKLAD: Peněžní zásoba roste tempem 10 % ročně, reálný HDP tempem 3 % ročně, rychlost oběhu je konstantní. Jaká je inflace? Jak se změní, když CB sníží růst peněz na 4 %?
+  Krok 1: pi = g_M - g_Y = 10 - 3 = 7,%
+  Krok 2: Po změně: pi = 4 - 3 = 1,%
+  Krok 3: Pokles g_M o 6 p. b. sníží inflaci o 6 p. b. (vztah 1:1).
+  VÝSLEDEK: 7 %, po zpomalení růstu peněz 1 %.
+PŘÍKLAD: Reálný HDP roste o 3 % ročně, peníze o 1 % ročně, rychlost je konstantní. Jaká je inflace? Jak by se změnil výsledek, kdyby rychlost oběhu rostla o 2 % ročně?
+  Krok 1: pi = g_M + g_V - g_Y = 1 + 0 - 3 = -2,% → deflace (g_M < g_Y).
+  Krok 2: S g_V = 2,%: pi = 1 + 2 - 3 = 0,%.
+  VÝSLEDEK: Deflace −2 %; při růstu rychlosti o 2 % stabilní ceny (0 %).
+PŘÍKLAD: Reálná úroková sazba je 2 % a inflace 3 %. Jaká je nominální sazba? Pokud inflace trvale vzroste na 7 %, jaká bude nominální sazba podle Fisherova efektu?
+  Krok 1: i approx R + pi = 2 + 3 = 5,%
+  Krok 2: R je určena S = I a nemění se.
+  Krok 3: i approx 2 + 7 = 9,% – nominální sazba vzroste o 4 p. b., stejně jako inflace.
+  VÝSLEDEK: 5 %, po růstu inflace 9 %.
+PŘÍKLAD: Banka poskytne hypotéku s nominální sazbou 6 %. Při podpisu obě strany očekávají inflaci 2 %, skutečná inflace však bude 8 %. Spočítejte ex ante a ex post reálnou sazbu a určete, kdo získal.
+  Krok 1: Ex ante: i - pi^e = 6 - 2 = 4,%
+  Krok 2: Ex post: i - pi = 6 - 8 = -2,%
+  Krok 3: Skutečná reálná sazba je záporná → dlužník splácí reálně méně, než si půjčil; banka (věřitel) ztrácí.
+  VÝSLEDEK: Ex ante 4 %, ex post −2 %; vydělal dlužník.
+PŘÍKLAD: Vládní výdaje G = 1 200 mld., daně T = 1 000 mld. Vláda prodá veřejnosti dluhopisy za 150 mld. O kolik se musí zvýšit měnová báze (ΔM), aby rozpočtové omezení platilo? Jak by se ΔM změnila, kdyby veřejnost koupila dluhopisy za celý deficit?
+  Krok 1: Deficit G - T = 200 mld.
+  Krok 2: Delta M = G - T - Delta B = 200 - 150 = 50 mld. (monetizovaná část)
+  Krok 3: Pokud veřejnost koupí dluhopisy za 200 mld., ΔM = 0 – měnová báze se nemění.
+  VÝSLEDEK: ΔM = 50 mld.; při plném financování veřejností ΔM = 0.
+PŘÍKLAD: Z tabulky USA (leden 2023): C = 2 300, MB = 5 300, M1 = 19 600, M2 = 21 300 mld. USD. Spočítejte rezervy bank a objem vkladů na viděnou.
+  Krok 1: Rezervy = MB − C = 5 300 − 2 300 = 3 000 mld. USD
+  Krok 2: Vklady na viděnou = M1 − C = 19 600 − 2 300 = 17 300 mld. USD
+  Krok 3: (Spořicí vklady a účty fondů peněžního trhu = M2 − M1 = 1 700 mld. USD)
+  VÝSLEDEK: Rezervy 3 000 mld. USD, vklady na viděnou 17 300 mld. USD.
+
 Zkouškové otázky 4A:
 OTÁZKA: Odvoďte z kvantitativní rovnice vztah pro inflaci v dlouhém období. Uveďte všechny předpoklady.
 VZOROVÁ ODPOVĚĎ: Výchozí je kvantitativní rovnice M_tV_t = P_tY_t (M peněžní zásoba, V rychlost oběhu, P cenová hladina, Y reálný HDP). Předpoklady kvantitativní teorie:
@@ -3314,6 +3506,35 @@ Grafy 4B:
 - h = poměr NE-lidského k lidskému kapitálu. Poptávka je přímo úměrná lidskému kapitálu, takže vyšší h ji snižuje.
 - Riziko ostatních aktiv ↑ → poptávka po penězích ↑, ale inflační riziko ↑ → poptávka ↓. Rozhoduje, zda se rizikovějšími stávají peníze, nebo alternativy.
 - Opatrnostní motiv KLESÁ s dostupností kreditních karet a úvěrů, ale ROSTE s nejistotou a nerozvinutým finančním trhem.
+
+Počítací příklady 4B (řešené krok za krokem):
+PŘÍKLAD: Reálná úroková sazba na dluhopisech je 3 % a očekávaná inflace 2 %. Jaký je očekávaný reálný výnos hotovosti, nominální sazba a náklad držby peněz?
+  Krok 1: Reálný výnos hotovosti: r_M = 0 - pi^e = -2,%
+  Krok 2: Nominální sazba: i = r + pi^e = 3 + 2 = 5,%
+  Krok 3: Náklad držby peněz: r - r_M = 3 - (-2) = 5,% = i
+  VÝSLEDEK: r_M = −2 %, i = 5 %, náklad držby peněz 5 % (= i).
+PŘÍKLAD: Reálná sazba je 2 %, očekává se deflace 1 %. Jaký je očekávaný reálný výnos peněz a náklad jejich držby? Co to znamená pro poptávku po penězích ve srovnání s p1?
+  Krok 1: pi^e = -1,% → r_M = -(-1) = +1,% (kladný reálný výnos peněz)
+  Krok 2: Náklad držby: i = r + pi^e = 2 - 1 = 1,%
+  Krok 3: Náklad držby je mnohem nižší než 5 % v p1 → poptávka po reálných zůstatcích je vyšší.
+  VÝSLEDEK: r_M = +1 %, náklad držby 1 %; poptávka po penězích vyšší.
+PŘÍKLAD: Klasická poptávka po penězích má tvar M^d = k·PY s k = 0,25. Cenová hladina P = 2, reálný důchod Y = 1 000. Spočítejte nominální a reálnou poptávku po penězích a rychlost oběhu.
+  Krok 1: M^d = 0{,}25 cdot 2 cdot 1,000 = 500
+  Krok 2: M^d/P = 500/2 = 250 = kY
+  Krok 3: V = 1/k = 4 (kontrola: MV = 500 cdot 4 = 2,000 = PY)
+  VÝSLEDEK: M^d = 500, M^d/P = 250, V = 4.
+PŘÍKLAD: Poptávka po penězích je L = 0,5Y − 100i (i v procentních bodech), reálný důchod Y = 1 000 a nabídka reálných zůstatků M^S/P = 300. Najděte rovnovážnou úrokovou míru. Jak se změní, když (a) Y vzroste na 1 100, (b) CB zvýší M^S/P na 350 (při Y = 1 000)?
+  Krok 1: Rovnováha: 300 = 0{,}5 cdot 1,000 - 100i Rightarrow 100i = 200 Rightarrow i = 2,%
+  Krok 2: (a) 300 = 550 - 100i Rightarrow i = 2{,}5,% – růst Y posune L doprava, i roste
+  Krok 3: (b) 350 = 500 - 100i Rightarrow i = 1{,}5,% – posun vertikální nabídky doprava, i klesá
+  VÝSLEDEK: i = 2 %; (a) 2,5 %; (b) 1,5 %.
+PŘÍKLAD: (Baumol-Tobin, učebnicová ilustrace) Student dostane na začátku měsíce 20 000 Kč na účet a utrácí je rovnoměrně. Pokud vybere vše najednou, jaká je jeho průměrná držba hotovosti? Jaká, když vybírá dvakrát po 10 000 Kč, resp. čtyřikrát po 5 000 Kč? Co se stane s optimálním počtem výběrů, když vzroste úroková sazba na účtu?
+  Krok 1: Průměrná hotovost = výběr / 2 (hotovost klesá rovnoměrně z výběru na nulu).
+  Krok 2: 1 výběr: 20 000 / 2 = 10 000 Kč
+  Krok 3: 2 výběry: 10 000 / 2 = 5 000 Kč
+  Krok 4: 4 výběry: 5 000 / 2 = 2 500 Kč
+  Krok 5: Více výběrů = méně hotovosti = méně ušlého úroku, ale vyšší transakční náklady. Vyšší úrok zdraží držbu hotovosti → optimální je vybírat častěji a držet méně hotovosti.
+  VÝSLEDEK: 10 000 / 5 000 / 2 500 Kč; při vyšší sazbě častější výběry a nižší průměrná hotovost (transakční poptávka klesá s i).
 
 Zkouškové otázky 4B:
 OTÁZKA: Vysvětlete, proč lidé drží peníze a jak poptávku po penězích chápala klasická ekonomie (kvantitativní teorie, Marshall).
@@ -3660,6 +3881,68 @@ Grafy 5A:
 - Čistý export nereaguje na r přímo, ale přes **měnový kurz** – vyšší r → posílení měny → NX klesá (ne roste).
 - Fiskální stimul neznamená automaticky posun IS doprava – výsledek závisí na relativní velikosti dalších šoků (rok 2009).
 
+Počítací příklady 5A (řešené krok za krokem):
+PŘÍKLAD: Numerický příklad ze slidu 16:  C = 1{,}1;  I = 1{,}2;  G = 3{,}0;  T = 3{,}0; overline{NX} = 1{,}3; mpc = 0{,}6;  f = 0{,}1 (na slidu označeno „c“); d = 0{,}2; x = 0{,}1. Odvoďte IS křivku.
+  Krok 1: Vzorec: Y = [ C +  I - d f +  G + overline{NX} - mpc, T] cdot frac{1}{1-mpc} - frac{d+x}{1-mpc} r.
+  Krok 2: Multiplikátor: frac{1}{1-0{,}6} = 2{,}5.
+  Krok 3: Autonomní výdaje: 1{,}1 + 1{,}2 - 0{,}2cdot 0{,}1 + 3{,}0 + 1{,}3 - 0{,}6 cdot 3{,}0 = 1{,}1 + 1{,}2 - 0{,}02 + 3{,}0 + 1{,}3 - 1{,}8 = 4{,}78.
+  Krok 4: Poloha: 4{,}78 times 2{,}5 = 11{,}95.
+  Krok 5: Sklon: frac{0{,}2 + 0{,}1}{0{,}4} = 0{,}75.
+  Krok 6: Přesným dosazením vychází Y = 11{,}95 - 0{,}75,r. Slide uvádí výsledek Y = 12 - r, který odpovídá učebnicovým parametrům (viz příklad 5A-p2) a používá se v dalších grafech i v přednášce 5B.
+  VÝSLEDEK: Dosazením hodnot ze slidu: Y = 11{,}95 - 0{,}75r; výsledek uvedený na slidu (a používaný dál): Y = 12 - r.
+PŘÍKLAD: Odvoďte IS křivku pro parametry z učebnice Mishkin, ze kterých vychází výsledek slidu 16:  C = 1{,}4;  I = 1{,}2;  G = 3{,}0;  T = 3{,}0; overline{NX} = 1{,}3;  f = 1; mpc = 0{,}6; d = 0{,}3; x = 0{,}1 (bil. USD, r v %). Určete Y při r = 1 % a r = 3 %.
+  Krok 1: Autonomní výdaje: 1{,}4 + 1{,}2 - 0{,}3cdot 1 + 3{,}0 + 1{,}3 - 0{,}6 cdot 3{,}0 = 4{,}8.
+  Krok 2: Multiplikátor frac{1}{0{,}4} = 2{,}5 → poloha 4{,}8 times 2{,}5 = 12.
+  Krok 3: Sklon frac{0{,}3 + 0{,}1}{0{,}4} = 1.
+  Krok 4: IS: Y = 12 - r.
+  Krok 5: r = 1 % → Y = 11 (bod B na slidu 17); r = 3 % → Y = 9 (bod A).
+  VÝSLEDEK: Y = 12 - r; Y(1 %) = 11 bil. USD, Y(3 %) = 9 bil. USD.
+PŘÍKLAD: Výdajový multiplikátor (slide 19): mpc = 0,6, IS: Y = 12 - r. Vládní nákupy vzrostou o 1 bil. USD. Napište novou IS a určete Y při r = 3 % a r = 1 %.
+  Krok 1: Multiplikátor frac{1}{1-0{,}6} = 2{,}5.
+  Krok 2: Posun IS doprava: Delta Y = 2{,}5 times 1 = 2{,}5 při každé r.
+  Krok 3: Nová IS: Y = 14{,}5 - r.
+  Krok 4: r = 3 %: Y z 9 na 11,5 (bod A → C); r = 1 %: Y z 11 na 13,5 (bod B → D).
+  VÝSLEDEK: IS_2: Y = 14{,}5 - r; Y = 11,5 (r = 3 %), Y = 13,5 (r = 1 %).
+PŘÍKLAD: Daňový multiplikátor (slide 21): mpc = 0,6, IS: Y = 12 - r. Daně vzrostou o 1 bil. USD. Napište novou IS a určete Y při r = 3 % a r = 1 %.
+  Krok 1: Daňový multiplikátor -frac{0{,}6}{0{,}4} = -1{,}5.
+  Krok 2: Posun IS doleva: Delta Y = -1{,}5 při každé r.
+  Krok 3: Nová IS: Y = 10{,}5 - r.
+  Krok 4: r = 3 %: Y z 9 na 7,5 (A → E); r = 1 %: Y z 11 na 9,5 (B → F).
+  VÝSLEDEK: IS_2: Y = 10{,}5 - r; Y = 7,5 (r = 3 %), Y = 9,5 (r = 1 %).
+PŘÍKLAD: Nový příklad:  C = 2;  I = 1{,}5;  G = 2{,}5;  T = 2; overline{NX} = 1;  f = 1; mpc = 0{,}75; d = 0{,}4; x = 0{,}1. a) Odvoďte IS. b) Jaký je rovnovážný produkt při r = 2 %? c) O kolik se změní Y, když r vzroste o 1 p. b.?
+  Krok 1: Multiplikátor frac{1}{1-0{,}75} = 4.
+  Krok 2: Autonomní výdaje: 2 + 1{,}5 - 0{,}4cdot 1 + 2{,}5 + 1 - 0{,}75cdot 2 = 6{,}6 - 1{,}5 = 5{,}1.
+  Krok 3: Poloha: 5{,}1 times 4 = 20{,}4.
+  Krok 4: Sklon: frac{0{,}4 + 0{,}1}{0{,}25} = 2 → IS: Y = 20{,}4 - 2r.
+  Krok 5: b) r = 2: Y = 20{,}4 - 4 = 16{,}4.
+  Krok 6: c) Růst r o 1 p. b. → pohyb podél IS, Y klesne o 2.
+  VÝSLEDEK: a) Y = 20{,}4 - 2r; b) Y = 16,4; c) Y klesne o 2 (pohyb podél IS).
+PŘÍKLAD: Nový příklad (multiplikátory): mpc = 0,8. a) Spočítejte výdajový a daňový multiplikátor. b) Jak se změní Y při dané r, když G vzroste o 0,5? c) Když T vzroste o 0,5? d) Když vzrostou obě současně o 0,5?
+  Krok 1: a) Výdajový: frac{1}{1-0{,}8} = 5; daňový: -frac{0{,}8}{0{,}2} = -4.
+  Krok 2: b) Delta Y = 5 times 0{,}5 = +2{,}5 (IS doprava).
+  Krok 3: c) Delta Y = -4 times 0{,}5 = -2 (IS doleva).
+  Krok 4: d) +2{,}5 - 2 = +0{,}5 – účinky se nevyruší, protože daňový multiplikátor je v absolutní hodnotě menší (část změny důchodu se uspoří).
+  VÝSLEDEK: Multiplikátory 5 a −4; ΔY = +2,5; −2; +0,5.
+PŘÍKLAD: Nový příklad (finanční frikce): IS je Y = 12 - r (mpc = 0,6, d = 0,3). Finanční frikce vzrostou o 0,5 p. b. O kolik a kterým směrem se posune IS? Jakou reálnou sazbu by musela centrální banka nastavit, aby Y zůstal na původní úrovni 10?
+  Krok 1: Účinek frikcí: Delta Y = -frac{d}{1-mpc}Delta  f = -frac{0{,}3}{0{,}4}times 0{,}5 = -0{,}375.
+  Krok 2: IS se posune doleva: Y = 11{,}625 - r.
+  Krok 3: Původně Y = 10 při r = 2 %. Pro Y = 10 na nové IS: 10 = 11{,}625 - r → r = 1{,}625,%.
+  Krok 4: Centrální banka by musela snížit r o 0,375 p. b. (přesně o tolik, o kolik vzrostly náklady r +  f v přepočtu na sklon 1).
+  VÝSLEDEK: IS doleva o 0,375 (Y = 11{,}625 - r); pro Y = 10 je potřeba r = 1,625 %.
+PŘÍKLAD: Nový příklad (mimo rovnováhu): Použijte parametry z 5A-p2 (IS: Y = 12 - r). Ekonomika vyrábí Y = 11 při r = 2 %. Spočítejte plánované výdaje Y^{AD}, neplánovanou změnu zásob a směr přizpůsobení.
+  Krok 1: C = 1{,}4 + 0{,}6(11 - 3) = 1{,}4 + 4{,}8 = 6{,}2.
+  Krok 2: I = 1{,}2 - 0{,}3(2 + 1) = 0{,}3.
+  Krok 3: NX = 1{,}3 - 0{,}1cdot 2 = 1{,}1; G = 3{,}0.
+  Krok 4: Y^{AD} = 6{,}2 + 0{,}3 + 3{,}0 + 1{,}1 = 10{,}6.
+  Krok 5: Y - Y^{AD} = 11 - 10{,}6 = 0{,}4 → neplánovaný růst zásob o 0,4 (bod napravo od IS).
+  Krok 6: Firmy sníží výrobu, až k rovnovážnému Y = 12 - 2 = 10 (kontrola: při Y = 10 je C = 5,6 a Y^{AD} = 5{,}6 + 0{,}3 + 3 + 1{,}1 = 10).
+  VÝSLEDEK: Y^{AD} = 10{,}6; zásoby neplánovaně rostou o 0,4; produkce klesá na Y = 10.
+PŘÍKLAD: Nový příklad (cílování produktu): mpc = 0,6, IS: Y = 12 - r, r = 2 %. Vláda chce zvýšit rovnovážný Y o 2 při nezměněné r. a) O kolik musí zvýšit G? b) Alternativně o kolik by musela snížit daně?
+  Krok 1: a) Delta G = frac{Delta Y}{2{,}5} = frac{2}{2{,}5} = 0{,}8.
+  Krok 2: b) Delta T = frac{Delta Y}{-1{,}5} = frac{2}{-1{,}5} approx -1{,}33.
+  Krok 3: Snížení daní musí být větší než zvýšení G, protože daňový multiplikátor je menší.
+  VÝSLEDEK: a) ΔG = 0,8; b) ΔT ≈ −1,33.
+
 Zkouškové otázky 5A:
 OTÁZKA: Vysvětlete rozdíl mezi plánovanými a skutečnými výdaji a popište, jak se ekonomika přizpůsobuje, když se plánované výdaje nerovnají produkci.
 VZOROVÁ ODPOVĚĎ: **Plánované výdaje** = částka, kterou domácnosti, firmy, vláda a zahraničí *chtějí* utratit za domácí zboží a služby. **Skutečné výdaje** = skutečně utracená částka; v národním účetnictví se vždy rovnají hodnotě produkce (neprodané zboží se počítá jako investice do zásob).
@@ -3979,6 +4262,67 @@ Grafy 5B:
 - MP se posouvá NAHORU/DOLŮ (mění se r při dané π), ne doprava/doleva; AD a IS se posouvají doprava/doleva.
 - Při dosazování MP do IS nezapomeň odečíst celou závorku: Y = 12 - (1 + 0{,}5pi) = 11 - 0{,}5pi, ne 12 - 0{,}5pi.
 - Centrální banka přímo nastavuje nominální sazbu; reálnou ovlivňuje jen proto, že pi^e se v krátkém období nemění okamžitě.
+
+Počítací příklady 5B (řešené krok za krokem):
+PŘÍKLAD: MP křivka ze slidu 7: r = 1{,}0 + 0{,}5pi. Spočítejte reálnou sazbu pro π = 0 %, 1 %, 2 % a 3 %.
+  Krok 1: π = 0: r = 1,0 % (=  r, průsečík se svislou osou).
+  Krok 2: π = 1: r = 1 + 0,5 = 1,5 % (bod A).
+  Krok 3: π = 2: r = 1 + 1 = 2 % (bod B).
+  Krok 4: π = 3: r = 1 + 1,5 = 2,5 % (bod C).
+  VÝSLEDEK: 1 %; 1,5 %; 2 %; 2,5 % – růst π o 1 p. b. zvýší r o 0,5 p. b.
+PŘÍKLAD: Numerické odvození AD (slide 15): IS Y = 12 - r, MP r = 1{,}0 + 0{,}5pi. Odvoďte AD a spočítejte Y pro π = 1, 2, 3 %.
+  Krok 1: Dosadíme MP za r do IS: Y = 12 - (1{,}0 + 0{,}5pi).
+  Krok 2: Úprava: Y = 11 - 0{,}5pi.
+  Krok 3: π = 1: r = 1,5, Y = 10,5.
+  Krok 4: π = 2: r = 2, Y = 10.
+  Krok 5: π = 3: r = 2,5, Y = 9,5 (body 1–3 na slidu 14).
+  VÝSLEDEK: Y = 11 - 0{,}5pi; Y = 10,5 / 10 / 9,5 bil. USD.
+PŘÍKLAD: Posuny MP (slide 10): původní MP r = 1 + 0{,}5pi. a) CB autonomně zpřísní tak, že při π = 2 % je r = 3 %. b) CB autonomně uvolní tak, že při π = 2 % je r = 1 %. Napište nové MP.
+  Krok 1: Sklon λ = 0,5 se nemění, mění se jen  r.
+  Krok 2: a) 3 =  r + 0{,}5cdot 2 →  r = 2 → MP_2: r = 2 + 0{,}5pi (posun nahoru o 1 p. b., bod B_2).
+  Krok 3: b) 1 =  r + 0{,}5cdot 2 →  r = 0 → MP_3: r = 0{,}5pi (posun dolů o 1 p. b., bod B_3).
+  Krok 4: Kontrola z grafu: MP_2 při π = 1 % → 2,5 %; MP_3 při π = 1 % → 0,5 %.
+  VÝSLEDEK: MP_2: r = 2 + 0{,}5pi; MP_3: r = 0{,}5pi.
+PŘÍKLAD: Posun IS → AD (slide 18): IS Y = 12 - r, MP r = 1 + 0{,}5pi, mpc = 0,6. Vládní nákupy vzrostou o 1 bil. USD. Najděte novou IS, novou AD a Y při π = 2 %.
+  Krok 1: Výdajový multiplikátor 1/(1 − 0,6) = 2,5 → IS doprava o 2,5: IS_2: Y = 14{,}5 - r.
+  Krok 2: Nová AD: Y = 14{,}5 - (1 + 0{,}5pi) = 13{,}5 - 0{,}5pi.
+  Krok 3: Při π = 2 %: r = 2 % (MP se nezměnila), Y = 14,5 − 2 = 12,5.
+  Krok 4: Původně Y = 10 → AD se posunula doprava o 2,5 (stejným směrem jako IS).
+  VÝSLEDEK: IS_2: Y = 14{,}5 - r; AD_2: Y = 13{,}5 - 0{,}5pi; Y = 12,5 při π = 2 %.
+PŘÍKLAD: Posun MP → AD (slide 20): IS Y = 12 - r, MP r = 1 + 0{,}5pi. CB autonomně zpřísní politiku o 1 p. b. ( r z 1 na 2). Najděte novou AD a Y při π = 2 %.
+  Krok 1: Nová MP: r = 2 + 0{,}5pi; při π = 2 %: r = 3 % (místo 2 %).
+  Krok 2: IS se neposouvá – pohyb podél IS: Y = 12 − 3 = 9 (místo 10).
+  Krok 3: Nová AD: Y = 12 - (2 + 0{,}5pi) = 10 - 0{,}5pi.
+  Krok 4: AD se posunula doleva o 1 – opačným směrem než MP (nahoru).
+  VÝSLEDEK: AD_2: Y = 10 - 0{,}5pi; při π = 2 % je Y = 9 (pokles z 10).
+PŘÍKLAD: Obecné odvození AD (slide 16) s parametry  C = 1{,}4;  I = 1{,}2;  G = 3;  T = 3; overline{NX} = 1{,}3;  f = 1; mpc = 0,6; d = 0,3; x = 0,1;  r = 1; λ = 0,5. Spočítejte A, koeficient u závorky a AD.
+  Krok 1: Autonomní výdaje: 1{,}4 + 1{,}2 - 0{,}3 + 3 + 1{,}3 - 1{,}8 = 4{,}8.
+  Krok 2: A = 4{,}8 / 0{,}4 = 12.
+  Krok 3: frac{d+x}{1-mpc} = frac{0{,}4}{0{,}4} = 1.
+  Krok 4: Y = 12 - 1cdot(1 + 0{,}5pi) = 11 - 0{,}5pi.
+  Krok 5: Sklon -frac{(d+x)lambda}{1-mpc} = -0{,}5 – shoduje se s numerickým odvozením.
+  VÝSLEDEK: A = 12; koeficient 1; AD: Y = 11 - 0{,}5pi.
+PŘÍKLAD: Nový příklad (Taylorův princip): MP r = 1 + 0{,}5pi, očekávaná inflace se rovná aktuální (pi^e = pi). Inflace vzroste z 2 % na 3 %. a) Jak se změní reálná sazba? b) Jakou nominální sazbu musí CB nastavit před a po? c) Je splněn Taylorův princip?
+  Krok 1: a) r: 1 + 0,5·2 = 2 % → 1 + 0,5·3 = 2,5 %; Δr = +0,5 p. b.
+  Krok 2: b) i = r + pi^e: před 2 + 2 = 4 %; po 2,5 + 3 = 5,5 %.
+  Krok 3: c) Δi = 1,5 p. b. > Δπ = 1 p. b. → Taylorův princip splněn (obecně Δi = (1 + λ)Δπ).
+  VÝSLEDEK: r: 2 % → 2,5 %; i: 4 % → 5,5 %; i roste o 1,5 p. b. > růst inflace → princip splněn.
+PŘÍKLAD: Nový příklad: IS Y = 20 - 2r, MP r = 0{,}5 + 1{,}5pi. a) Odvoďte AD. b) Spočítejte r a Y při π = 2 %. c) Inflace vzroste na 3 % – o jaký typ změny jde a jaké jsou nové r a Y?
+  Krok 1: a) Y = 20 - 2(0{,}5 + 1{,}5pi) = 19 - 3pi.
+  Krok 2: b) π = 2: r = 0,5 + 3 = 3,5 %; Y = 20 − 7 = 13 (kontrola: 19 − 6 = 13).
+  Krok 3: c) Změna π = pohyb podél MP i podél AD: r = 0,5 + 4,5 = 5 %; Y = 19 − 9 = 10.
+  VÝSLEDEK: AD: Y = 19 - 3pi; (π = 2) r = 3,5 %, Y = 13; (π = 3) r = 5 %, Y = 10 – pohyb podél AD.
+PŘÍKLAD: Nový příklad (síla reakce CB): IS Y = 12 - r. Porovnejte AD pro MP r = 1 + 0{,}5pi a MP r = 1 + 1{,}5pi. O kolik klesne Y při růstu inflace z 1 % na 3 % v obou případech?
+  Krok 1: λ = 0,5: AD: Y = 11 - 0{,}5pi; Y(1) = 10,5; Y(3) = 9,5; ΔY = −1.
+  Krok 2: λ = 1,5: AD: Y = 11 - 1{,}5pi; Y(1) = 9,5; Y(3) = 6,5; ΔY = −3.
+  Krok 3: Silnější reakce CB → Y reaguje na inflaci víc → AD je (s π na svislé ose) plošší.
+  VÝSLEDEK: ΔY = −1 (λ = 0,5) vs. ΔY = −3 (λ = 1,5); vyšší λ = plošší AD.
+PŘÍKLAD: Nový příklad (kombinace šoků): IS Y = 12 - r (mpc = 0,6; frac{d+x}{1-mpc} = 1), MP r = 1 + 0{,}5pi. Domácnosti zpesimistí a autonomní spotřeba klesne o 0,4. a) Jak se posune AD a jaké je Y při π = 2 %? b) O kolik musí CB autonomně změnit  r, aby se AD vrátila na původní polohu?
+  Krok 1: a) Posun IS: Delta Y = 2{,}5 times (-0{,}4) = -1 → IS_2: Y = 11 - r.
+  Krok 2: AD_2: Y = 11 - (1 + 0{,}5pi) = 10 - 0{,}5pi; při π = 2 %: Y = 9 (místo 10) → AD doleva o 1.
+  Krok 3: b) Potřebujeme -1 times Delta r = +1 → Delta r = -1 (autonomní uvolnění, MP dolů na r = 0{,}5pi).
+  Krok 4: Kontrola: Y = 11 - (0 + 0{,}5pi) = 11 - 0{,}5pi – původní AD.
+  VÝSLEDEK: a) AD doleva o 1, Y = 9; b) autonomní uvolnění o 1 p. b. ( r z 1 na 0).
 
 Zkouškové otázky 5B:
 OTÁZKA: Vysvětlete, jak centrální banka ovlivňuje reálnou úrokovou sazbu a proč je tato schopnost omezena na krátké období.
@@ -4601,6 +4945,54 @@ Grafy 6A:
 - Dlouhodobě se po poptávkovém šoku vrací produkt, ale NE inflace – ta zůstává změněná. Po dočasném nabídkovém šoku (při stabilní AD) se vrací obojí.
 - Okunův zákon má záporné znaménko: kladná mezera výstupu znamená nezaměstnanost POD přirozenou mírou; při odvození AS se proto znaménko změní na plus (γ = +0,5ω).
 
+Počítací příklady 6A (řešené krok za krokem):
+PŘÍKLAD: Potenciální produkt je 200 mld., skutečný produkt 190 mld. Vypočítejte mezeru výstupu a index agregátní produkce.
+  Krok 1: Mezera = (Y - Y^P)/Y^P times 100 = (190 - 200)/200 times 100
+  Krok 2: = −5 %
+  Krok 3: Index = Y/Y^P times 100 = 190/200 times 100 = 95
+  VÝSLEDEK: Mezera výstupu −5 %, index 95 (ekonomika 5 % pod potenciálem).
+PŘÍKLAD: Slide 19: pi^e = 2,%, Y^P = 10 bil. USD. Při Y = 11 je na AS inflace 3,5 % (rho = 0). Jaká je hodnota gamma (v jednotkách bil. USD) a jaká by byla inflace při Y = 9?
+  Krok 1: 3{,}5 = 2 + gamma(11 - 10) + 0
+  Krok 2: gamma = 1{,}5 (p.b. inflace na 1 bil. USD mezery)
+  Krok 3: Při Y = 9: pi = 2 + 1{,}5,(9 - 10) = 0{,}5,%
+  VÝSLEDEK: γ = 1,5; při Y = 9 by inflace byla 0,5 %.
+PŘÍKLAD: Krátkodobá AS: pi = pi^e + 0{,}5,(Y - Y^P) + rho, mezera měřená v %. Očekávaná inflace 2 %, mezera výstupu +3 %, ropný šok rho = 1 p.b. Vypočítejte inflaci. Co když se šok nezmění, ale očekávaná inflace vzroste na 3 %?
+  Krok 1: pi = 2 + 0{,}5 cdot 3 + 1 = 4{,}5,%
+  Krok 2: S pi^e = 3: pi = 3 + 1{,}5 + 1 = 5{,}5,%
+  Krok 3: Růst očekávání o 1 p.b. zvýší inflaci o 1 p.b. (jednotkový přenos) – AS se posune nahoru.
+  VÝSLEDEK: 4,5 %; po růstu očekávání 5,5 %.
+PŘÍKLAD: Okunův zákon: U - U_n = -0{,}5(Y - Y^P). Přirozená míra nezaměstnanosti je 5 %, mezera výstupu −6 %. Jaká je míra nezaměstnanosti? Jakou mezeru výstupu odpovídá nezaměstnanost 4 %?
+  Krok 1: U - 5 = -0{,}5cdot(-6) = 3 → U = 8,%
+  Krok 2: Při U = 4: 4 - 5 = -1 = -0{,}5,(Y - Y^P)
+  Krok 3: Y - Y^P = +2,%
+  VÝSLEDEK: U = 8 %; nezaměstnanost 4 % odpovídá mezeře výstupu +2 %.
+PŘÍKLAD: Moderní Phillipsova křivka: omega = 1, pi^e = 2,%, U_n = 5,%, U = 4,%, rho = 0. (a) Vypočítejte inflaci. (b) Odvoďte odpovídající gamma krátkodobé AS a ověřte výsledek přes mezeru výstupu z Okunova zákona.
+  Krok 1: (a) pi = 2 - 1cdot(4 - 5) = 3,%
+  Krok 2: (b) gamma = 0{,}5,omega = 0{,}5
+  Krok 3: Okun: -1 = -0{,}5,(Y - Y^P) → Y - Y^P = +2,%
+  Krok 4: AS: pi = 2 + 0{,}5cdot 2 = 3,% ✓
+  VÝSLEDEK: π = 3 %; γ = 0,5; oba postupy dávají stejný výsledek.
+PŘÍKLAD: Slide 55: na PC_1 je pi = 2,% při U_n = 5,% a pi = 3{,}5,% při U = 4,%. (a) Jaké je omega? (b) Při adaptivních očekáváních a udržení U = 4,% – jaká bude inflace v dalším období?
+  Krok 1: (a) 3{,}5 = 2 - omega(4 - 5) → omega = 1{,}5
+  Krok 2: (b) pi^e = pi_{-1} = 3{,}5
+  Krok 3: pi = 3{,}5 - 1{,}5cdot(4 - 5) = 5,% (bod 3 na PC_2)
+  VÝSLEDEK: ω = 1,5; v dalším období inflace 5 % – inflace zrychluje.
+PŘÍKLAD: Akcelerační Phillipsova křivka: omega = 0{,}5, loňská inflace 4 %, U = 8,%, U_n = 6,%, rho = 0. Vypočítejte změnu inflace a letošní inflaci. Jaká nezaměstnanost by inflaci udržela na 4 %?
+  Krok 1: Deltapi = -0{,}5,(8 - 6) = -1 p.b.
+  Krok 2: pi = 4 - 1 = 3,%
+  Krok 3: Pro Deltapi = 0 musí U = U_n = 6,% (NAIRU)
+  VÝSLEDEK: Inflace klesne o 1 p.b. na 3 %; stabilní inflaci drží U = 6 % (NAIRU).
+PŘÍKLAD: Ropné šoky 1973–75: index produktu klesl ze 103,4 na 95,9. Jaká byla mezera výstupu před a po šoku a o kolik p.b. se změnila?
+  Krok 1: Mezera = index − 100
+  Krok 2: 1973: 103,4 − 100 = +3,4 %
+  Krok 3: 1975: 95,9 − 100 = −4,1 %
+  Krok 4: Změna: −4,1 − 3,4 = −7,5 p.b.
+  VÝSLEDEK: Z +3,4 % na −4,1 %, tedy pokles o 7,5 p.b.
+PŘÍKLAD: Covid-19: index produktu 101,2 (4Q2019) → 90,0 (2Q2020). Jaké mezery výstupu to představuje? Podle Okunova zákona (koeficient 0,5) o kolik p.b. by se měla změnit mezera nezaměstnanosti?
+  Krok 1: Mezery: +1,2 % → −10,0 %, změna −11,2 p.b.
+  Krok 2: Delta(U - U_n) = -0{,}5 times (-11{,}2) = +5{,}6 p.b.
+  VÝSLEDEK: Mezera +1,2 % → −10 %; Okun předpovídá nárůst mezery nezaměstnanosti zhruba o 5,6 p.b. (skutečný skok nezaměstnanosti na 13 % byl větší – Okun je jen průměrný empirický vztah).
+
 Zkouškové otázky 6A:
 OTÁZKA: Definujte agregátní poptávku, vysvětlete záporný sklon křivky AD a vyjmenujte faktory, které ji posouvají (včetně směru).
 VZOROVÁ ODPOVĚĎ: **AD** = celkové množství zboží a služeb, které si domácnosti, podniky, vlády a cizinci chtějí koupit při dané míře inflace za určité období; Y^{ad} = C + I + G + NX.
@@ -5003,6 +5395,29 @@ Grafy 6B:
 - Inflace s nezaměstnaností NAD přirozenou mírou ukazuje na nákladovou inflaci/očekávání, ne na poptávkové přehřátí.
 - Na ELB je AD křivka (v dolní části) ROSTOUCÍ: pokles inflace produkt nesnižuje „podél klesající AD“, ale prohlubuje propad; samokorekce nefunguje.
 - QE ≠ jakékoli zvětšení rozvahy: účinné je jen tehdy, sníží-li sazby či spready relevantní pro soukromé investice.
+
+Počítací příklady 6B (řešené krok za krokem):
+PŘÍKLAD: Nominální měnověpolitická sazba je na ELB, i = 0,%. Očekávaná inflace klesne z 1 % na −1 %. Jak se změní reálná sazba a co to znamená pro AD?
+  Krok 1: Před: r = i - pi^e = 0 - 1 = -1,%
+  Krok 2: Po: r = 0 - (-1) = +1,%
+  Krok 3: Reálná sazba vzrostla o 2 p.b., přestože CB nic neudělala → investice a produkt klesají (pohyb po rostoucí části AD dolů).
+  VÝSLEDEK: r vzroste z −1 % na +1 %; politika se pasivně zpřísní a produkt klesá.
+PŘÍKLAD: Zalomená MP křivka (slide 25): na ELB platí bod 1 (pi = 1,%, r = -1,%) a bod 2 (pi = 2,%, r = -2,%). Jaká nominální sazba odpovídá oběma bodům (předpokládejte pi^e = pi)? Proč je sklon záporný?
+  Krok 1: i = r + pi^e
+  Krok 2: Bod 1: i = -1 + 1 = 0,%; bod 2: i = -2 + 2 = 0,%
+  Krok 3: Nominální sazba je v obou bodech na dolní hranici 0 %; s rostoucí inflací tedy reálná sazba klesá → MP má na ELB záporný sklon.
+  VÝSLEDEK: i = 0 % v obou bodech; záporný sklon plyne z toho, že i nemůže klesnout pod ELB.
+PŘÍKLAD: Reálná měnověpolitická sazba je r = 0{,}5,% a finanční frikce  f = 3 p.b. QE sníží spready, takže  f klesne na 1,5 p.b.; zároveň forward guidance zvýší pi^e o 1 p.b. při i = 0. Vypočítejte r_i před a po.
+  Krok 1: Před: r_i = r +  f = 0{,}5 + 3 = 3{,}5,%
+  Krok 2: Forward guidance: r = i - pi^e klesne o 1 p.b. → r = -0{,}5,%
+  Krok 3: Po: r_i = -0{,}5 + 1{,}5 = 1{,}0,%
+  VÝSLEDEK: r_i klesne z 3,5 % na 1,0 % → AD se posune doprava.
+PŘÍKLAD: Inflační cíl je 2 %. Po negativním nabídkovém šoku je inflace 4 % a index produktu 96. Uveďte inflační a produkční mezeru a kvalitativně, co se stane s mezerami při každé ze tří možných reakcí CB.
+  Krok 1: Inflační mezera: pi - pi^T = 4 - 2 = +2 p.b.; produkční mezera: 96 - 100 = -4,%
+  Krok 2: Bez reakce: krátkodobě obě mezery přetrvávají (stagflace), postupně se obě uzavřou, pokud je šok dočasný.
+  Krok 3: Stabilizace inflace (zpřísnění): inflační mezera → 0, produkční mezera bude zápornější než −4 %.
+  Krok 4: Stabilizace produktu (uvolnění): produkční mezera → 0, inflační mezera bude větší než +2 p.b.
+  VÝSLEDEK: Mezery +2 p.b. a −4 %; uzavřít obě najednou krátkodobě nelze.
 
 Zkouškové otázky 6B:
 OTÁZKA: Graficky znázorněte a vysvětlete reakci centrální banky na negativní poptávkový šok. Co je „božská shoda okolností“?

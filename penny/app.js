@@ -700,8 +700,10 @@ function viewLecture(parts, q) {
 }
 function askBtn(text, ctx) { return `<button class="btn ghost sm" data-ask="${esc(text)}" data-ctx="${esc(ctx)}">${ham("open")} Nerozumím — zeptej se Penny</button>`; }
 function bindAsk() {
-  $$("[data-ask]").forEach(b => b.onclick = () => openDrawer(b.dataset.ctx, b.dataset.ask));
+  $$("[data-ask]").forEach(b => b.onclick = () => openDrawer(b.dataset.ctx, b.dataset.ask, b.dataset.shown));
 }
+function askLink(label, ctx, ask, shown, cls = "btn ghost sm") { return `<button class="${cls}" data-ask="${esc(ask)}" data-ctx="${esc(ctx)}" data-shown="${esc(shown || label)}">${ham("open")} ${esc(label)}</button>`; }
+const CALC = "Odpovídej jako trpělivá doučovatelka počítání: nejdřív řekni, co ve vzorci znamená každá značka a proč tam je, pak ukaž JEDEN krok s dosazenými čísly (vzorce piš v LaTeXu mezi $…$, každý krok na nový řádek) a zeptej se mě, jestli to sedí, než půjdeš dál. Nevyzrazuj hned celý výsledek.";
 function sectionSheet(s, withAsk = true) {
   const l = LEC[s.lec];
   const sl = [...new Set((s.slides || []).flatMap(nums))].filter(n => n > 0);
@@ -715,7 +717,8 @@ function lectureTab(l, tab) {
   if (tab === "vyklad") return `<div class="card dark" style="margin-bottom:16px"><p class="cap">Velký obraz</p><div class="md" style="margin-top:8px">${md(l.bigPicture)}</div>
      ${l.literature ? `<p class="small dim" style="margin-top:8px">Literatura: ${esc(l.literature)}</p>` : ""}</div>` + l.sections.map(s => sectionSheet(s)).join("");
   if (tab === "pojmy") return `<div class="card dark">${l.keyTerms.map(t => `<div class="term"><b>${mdi(t.term)}</b><p class="md">${mdi(t.def)}</p></div>`).join("")}</div>`;
-  if (tab === "vzorce") return l.formulas.map(f => `<div class="formula dark"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div><div class="md small">${md(f.meaning)}</div></div>`).join("");
+  if (tab === "vzorce") return l.formulas.map(f => `<div class="formula dark"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div><div class="md small">${md(f.meaning)}</div>
+    <div class="sheet-actions">${askLink("Vysvětli mi vzorec", `${l.id} ${l.title}`, `Vysvětli mi vzorec „${f.name}“: $${f.tex}$ (${f.meaning}). ${CALC} Na konci mi dej jeden jednoduchý příklad s čísly, ať si to zkusím sama.`, `Vysvětli mi vzorec: ${f.name}`)}</div></div>`).join("");
   if (tab === "seznamy") return `<a class="btn ghost block" href="#/seznamy?l=${l.id}" style="margin-bottom:12px">${ic.list} Vyjmenovat ${l.lists.length} ${plural(l.lists.length, "seznam", "seznamy", "seznamů")}</a>` +
     l.lists.map(x => `<div class="card dark"><b>${esc(x.title)}</b><${x.ordered ? "ol" : "ul"} class="md" style="margin-top:8px">${x.items.map(i => `<li>${mdi(i)}</li>`).join("")}</${x.ordered ? "ol" : "ul"}></div>`).join("");
   if (tab === "priklady") return `<a class="btn ghost block" href="#/priklady/${l.id}" style="margin-bottom:12px">${ic.calc} Počítat ${l.problems.length} ${plural(l.problems.length, "příklad", "příklady", "příkladů")} krok za krokem</a>` +
@@ -1197,14 +1200,19 @@ function viewLists(parts, q) {
 /* =================================================================== */
 function viewProblems(parts) {
   const l = LEC[parts[1]]; if (!l) return nav("#/mapa");
-  view().innerHTML = `${topbar("#/lekce/" + l.id)}<h1>Příklady ${l.id}</h1><p class="muted" style="margin:8px 0 16px">Zkus každý krok nejdřív sama, pak si ho odkryj. Řešené příklady jsou nejrychlejší cesta, jak se naučit počítat.</p>
+  const ctx = `${l.id} ${l.title}`;
+  view().innerHTML = `${topbar("#/lekce/" + l.id)}<h1>Příklady ${l.id}</h1><p class="muted" style="margin:8px 0 16px">Zkus každý krok nejdřív sama, pak si ho odkryj. Když něčemu nerozumíš, Penny s tebou příklad projde krok za krokem a vysvětlí každou značku.</p>
     ${l.problems.map((p, i) => `<div class="card dark" data-p="${i}"><b>Příklad ${i + 1}</b><div class="md" style="margin-top:8px">${md(p.q)}</div><div class="steps" style="margin-top:12px"></div>
-      <button class="btn ghost sm" data-step>Ukázat krok 1 z ${p.steps.length}</button></div>`).join("")}`;
+      <div class="sheet-actions"><button class="btn ghost sm" data-step>Ukázat krok 1 z ${p.steps.length}</button>
+      ${askLink("Počítat s Penny", ctx, `Pojďme spolu krok za krokem spočítat příklad z přednášky ${l.id}: ${p.q} — Pro tebe (neprozrazuj mi to hned): postup je ${p.steps.map((x, k) => `(${k + 1}) ${x}`).join(" ")} Výsledek: ${p.result}. ${CALC} Začni tím, že se mě zeptáš, čím bych začala.`, `Počítejme spolu příklad ${i + 1} z ${l.id}`)}</div></div>`).join("")}`;
+  bindAsk();
   $$("[data-p]").forEach(card => {
     const p = l.problems[+card.dataset.p]; let k = 0; const box = $(".steps", card); const b = $("[data-step]", card);
     b.onclick = () => {
-      if (k < p.steps.length) { box.insertAdjacentHTML("beforeend", `<div class="step md"><b>Krok ${k + 1}.</b> ${md(p.steps[k])}</div>`); k++; }
-      else { box.insertAdjacentHTML("beforeend", `<div class="step result"><b>Výsledek:</b> <span class="md">${mdi(p.result)}</span></div>`); b.remove(); addXP(8); }
+      if (k < p.steps.length) {
+        box.insertAdjacentHTML("beforeend", `<div class="step"><div class="md"><b>Krok ${k + 1}.</b> ${md(p.steps[k])}</div>${askLink("Nerozumím tomuhle kroku", ctx, `Vysvětli mi úplně jednoduše tento krok příkladu z přednášky ${l.id}: „${p.steps[k]}“. Zadání příkladu: ${p.q}. ${k ? `Předchozí kroky: ${p.steps.slice(0, k).join(" ")}` : ""} Řekni, co znamená každá značka, odkud se vzalo každé číslo a proč se to počítá takhle. Vzorce piš v LaTeXu mezi $…$, každý mezivýpočet na nový řádek.`, `Nerozumím kroku ${k + 1} v příkladu ${+card.dataset.p + 1}`, "link small step-ask")}</div>`); k++;
+        bindAsk();
+      } else { box.insertAdjacentHTML("beforeend", `<div class="step result"><b>Výsledek:</b> <span class="md">${mdi(p.result)}</span></div>`); b.remove(); addXP(8); }
       if (b.isConnected) b.textContent = k === p.steps.length ? "Ukázat výsledek" : `Ukázat krok ${k + 1} z ${p.steps.length}`;
     };
   });
@@ -1511,7 +1519,7 @@ async function tutorStart(textOnly) {
     const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
-      dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička" },
+      dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
       onMessage: m => { if ((m.role === "agent" || m.source === "ai") && textOnly && /^Ahoj Aničko, tady/.test(m.message)) return; if (m.role === "agent" || m.source === "ai") tutorMsg("ai", m.message); else if (!textOnly && m.message) tutorMsg("me", m.message); },
       onModeChange: ({ mode }) => { tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Penny mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
       onError: (m) => { console.warn("penny", m); tutorStatus("Spojení vypadlo — zkus to znovu."); },
@@ -1531,9 +1539,9 @@ function offlineAnswer(text) {
   if (!hits.length) return "Tohle v poznámkách nevidím. Zkus to říct jinými slovy, nebo použij hledání.";
   return "Tady je, co k tomu mám v poznámkách:\n\n" + hits.map(h => h.kind === "s" ? `**${h.l.id} · ${h.s.title}** — ${h.s.body.replace(/\n+/g, " ").slice(0, 260)}… [otevřít](#/lekce/${h.l.id})` : `**${h.t.term}** (${h.l.id}) — ${h.t.def}`).join("\n\n");
 }
-async function tutorSend(text) {
+async function tutorSend(text, shown) {
   text = text.trim(); if (!text) return;
-  tutorMsg("me", text);
+  tutorMsg("me", shown || text); if (shown) TUT.lastQ = text;
   if (!AGENT_ID) { setTimeout(() => tutorMsg("ai", offlineAnswer(text)), 250); return; }
   const conv = TUT.conv || await tutorStart(true);
   if (!conv) { tutorMsg("ai", offlineAnswer(text)); return; }
@@ -1573,7 +1581,7 @@ function closeDrawer() {
   const d = $("#drawer"); if (!d) return;
   tutorStop(); d.remove(); $("#drawerBg")?.remove(); document.body.classList.remove("drawer-open");
 }
-function openDrawer(ctx, pre) {
+function openDrawer(ctx, pre, shown) {
   if (!AGENT_ID) return nav(`#/halir?ctx=${encodeURIComponent(ctx || "")}&q=${encodeURIComponent(pre || "")}`);
   if ((ctx || "") !== TUT.ctx) { tutorStop(); TUT.ctx = ctx || ""; if (TUT.msgs.length) TUT.msgs.push({ role: "sys", text: "Nové téma: " + (ctx || "celý kurz") }); }
   closeDrawer();
@@ -1592,7 +1600,7 @@ function openDrawer(ctx, pre) {
   tin.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#tsend", d).click(); } };
   const vb = $("#voice", d); syncVoiceBtn();
   vb.onclick = async () => { if (TUT.busy) return; if (TUT.mode === "voice") { await tutorStop(); syncVoiceBtn(); tutorStatus("Hovor ukončen"); } else { await tutorStart(false); } };
-  if (pre) { tutorSend(pre); } else setTimeout(() => tin.focus(), 250);
+  if (pre) { tutorSend(pre, shown); } else setTimeout(() => tin.focus(), 250);
   const ch = $("#chat", d); ch.scrollTop = ch.scrollHeight;
 }
 function fab(ctx) { return `<button class="fab" id="fab" data-fabctx="${esc(ctx)}">${ham("happy")}<span>Zeptej se</span></button>`; }
