@@ -779,6 +779,8 @@ async function render() {
 /* =================================================================== */
 /* CESTA — domov jako v Duolingu                                        */
 /* =================================================================== */
+/* aktuální lekce: elektrické jiskry kolem tlačítka (jako v Duolingu) */
+const ZAP = `<span class="zap" aria-hidden="true"><svg viewBox="0 0 120 110"><path class="b1" d="M4 66l15-10-5 13 16-8-7 16"/><path class="b2" d="M98 18l13 3-10 8 14 2-11 10"/><path class="b3" d="M76 108l-9-12 13 2-8-13 15 6"/><path class="b4" d="M30 4l-2 13 9-6-1 14 9-8"/></svg></span>`;
 const ZIG = [0, 70, 30];
 function viewToday() {
   if (!S.onboarded) return viewWelcome();
@@ -800,7 +802,7 @@ function viewToday() {
       const l = LEC[id]; const rd = sectionsRead(id), ns = l.sections.length; const r = Math.round(readiness(id).score * 100);
       const done = lectureRead(id), gold = done && r >= 85, isCur = id === cur;
       const cls = gold ? "gold" : done ? "done" : isCur ? "cur" : rd ? "" : "fresh";
-      return node(`${isCur ? `<span class="startbub">${rd ? "Pokračuj" : "Start"}</span><span class="ring2" style="--p:${Math.round(rd / ns * 100)}"></span>` : ""}
+      return node(`${isCur ? ZAP : ""}
         <button data-node="${id}" aria-label="${id} ${esc(l.title)}">${done ? NODE_ICO.check : LEC_ICON[id] || `<b>${id}</b>`}${gold ? SPARK + SPARK.replace("spark", "spark s2") : ""}</button>
         <span class="label">${esc(l.title)} <em>${id}</em></span>`, cls);
     }).join("");
@@ -1842,7 +1844,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=23"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=24"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1926,7 +1928,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=23"); }, 1200);
+  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=24"); }, 1200);
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
