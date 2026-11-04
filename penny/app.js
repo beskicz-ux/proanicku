@@ -542,6 +542,7 @@ const TEACHERS = [
   { n: "Panda Rovnováha", kind: "panda", c: "#ffffff", c2: "#f1f1f1", acc: "grad", prop: "scale", hi: "Ahoj! Spolu najdeme rovnováhu v AS–AD." },
 ];
 const unitIdx = lec => Math.max(0, C.units.findIndex(u => u.ids.includes(lec)));
+let TEACHER_ID = 0;
 function teacher(i, cls = "", scene = false) {
   const t = TEACHERS[i % TEACHERS.length]; const K = t.kind, c = t.c, c2 = t.c2, ink = "#2b2b2b";
   const dark = K === "panda" ? ink : shade(c, -28);
@@ -581,7 +582,15 @@ function teacher(i, cls = "", scene = false) {
   }[t.prop] || "";
   const SC = scene ? SCENES_FN[i % SCENES_FN.length]() : "";
   const lidC = K === "panda" ? ink : c, ly = K === "frog" ? 40 : ey, lx = K === "frog" ? [42, 78] : [46, 74], bd = (4.4 + i * .37).toFixed(2);
-  const lids = lx.map(x => `<ellipse cx="${x}" cy="${ly}" rx="10" ry="0" fill="${lidC}"><animate attributeName="ry" dur="${bd}s" repeatCount="indefinite" keyTimes="0;.93;.96;1" values="0;0;10.5;0"/></ellipse>`).join("");
+  // mrkání: víčko sjede shora dolů přes oko (oříznuté tvarem oka) a zase vyjede
+  const er = K === "frog" ? [9, 9] : [8.5, 9.5], bt = (4.6 + i * .43).toFixed(2), uid = "e" + (++TEACHER_ID);
+  const lids = lx.map((x, n) => { const top = ly - er[1] - 2.2, bot = ly + er[1] + 2.2, meet = ly + er[1] * .3;
+    const kt = 'keyTimes="0;.9;.93;.95;.98;1"', D = `dur="${bt}s" repeatCount="indefinite"`;
+    const mv = d => `<animateTransform attributeName="transform" type="translate" ${D} ${kt} values="0 0;0 0;0 ${d.toFixed(1)};0 ${d.toFixed(1)};0 0;0 0"/>`;
+    return `<clipPath id="${uid}${n}"><ellipse cx="${x}" cy="${ly}" rx="${er[0] + .6}" ry="${er[1] + .6}"/></clipPath>
+    <g clip-path="url(#${uid}${n})">
+      <g>${mv(meet - bot)}<rect x="${x - 12}" y="${bot}" width="24" height="26" fill="${lidC}"/></g>
+      <g>${mv(meet - top)}<rect x="${x - 12}" y="${top - 26}" width="24" height="26.4" fill="${lidC}"/><path d="M${x - 10.5} ${top}q10.5 4.5 21 0" stroke="${K === "panda" ? "#000" : shade(lidC, -55)}" stroke-width="2.8" fill="none" stroke-linecap="round"/></g></g>`; }).join("");
   const bob = scene ? `<animateTransform attributeName="transform" type="translate" dur="3.2s" repeatCount="indefinite" keyTimes="0;.5;1" values="0 0;0 -4;0 0"/>` : "";
   return `<svg class="teacher ${cls} ${scene ? "scene sc" + i : ""}" viewBox="${scene ? "0 0 196 134" : "0 0 124 134"}" aria-label="${esc(t.n)}" role="img">
 <ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
@@ -661,7 +670,7 @@ function sceneBalloon() { // Infla: pumpuje → balónek roste → PRÁSK → vy
 }
 function sceneBoard() { // Křivka: nakreslí IS, pak MP → radost → smaže tabuli
   const D = 8;
-  const draw = (d, c, t0, t1) => `<path d="${d}" stroke="${c}" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-dasharray="64" stroke-dashoffset="64">${aA("stroke-dashoffset", D, [[0, 64], [t0, 64], [t1, 0], [7.2, 0], [7.25, 64], [D, 64]])}${aA("opacity", D, [[0, 1], [6.4, 1], [7.1, 0], [7.3, 1], [D, 1]])}</path>`;
+  const draw = (d, c, t0, t1) => `<path d="${d}" stroke="${c}" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-dasharray="64" stroke-dashoffset="64">${aA("stroke-dashoffset", D, [[0, 64], [t0, 64], [t1, 0], [7.6, 0], [7.61, 64], [D, 64]])}${aA("opacity", D, [[0, 1], [t0, 1], [6.1, 1], [7.5, 0], [7.7, 0], [7.71, 1], [D, 1]])}</path>`;
   const marker = `<g>${aT("translate", D, [[0, "100 98"], [0.5, "114 52"], [1.1, "120 68"], [1.8, "132 80"], [2.5, "156 88"], [2.9, "114 86"], [3.6, "128 78"], [4.3, "142 66"], [5.0, "154 52"], [5.5, "100 98"], [6.4, "100 98"], [6.6, "120 70"], [6.8, "150 70"], [7.0, "122 80"], [7.2, "150 80"], [7.5, "100 98"], [D, "100 98"]])}<rect x="-3" y="-16" width="7" height="16" rx="2" fill="#ffc800" transform="rotate(28)"/><rect x="-3" y="-3" width="7" height="4" fill="#4b4b4b" transform="rotate(28)"/></g>`;
   return `<path d="M112 98l-6 26M156 98l6 26" stroke="#8a5a2b" stroke-width="3.5" stroke-linecap="round"/>
    <rect x="100" y="40" width="68" height="60" rx="5" fill="#fff" stroke="#c7c7c7" stroke-width="3"/>
@@ -677,14 +686,18 @@ function sceneStack() { // Rovnováha: skládá míčky na sebe → věž se ký
    <g>${wob}${balls}</g>`;
 }
 const SCENES_FN = [sceneGun, scenePress, scenePanel, sceneBalloon, sceneBoard, sceneStack];
-function pennyFlag() { // Penny v cíli: mává šachovnicovou vlajkou, občas vyskočí a zatočí s ní
-  const D = 7;
-  const flagRot = aT("rotate", D, [[0, "-8 138 150"], [.9, "8 138 150"], [1.8, "-8 138 150"], [2.7, "8 138 150"], [3.6, "-8 138 150"], [4.0, "-30 138 150"], [4.3, "28 138 150"], [4.6, "-30 138 150"], [4.9, "28 138 150"], [5.2, "-8 138 150"], [6.1, "8 138 150"], [D, "-8 138 150"]]);
-  const jump = aT("translate", D, [[0, "0 0"], [3.9, "0 0"], [4.15, "0 -18"], [4.4, "0 0"], [4.65, "0 -12"], [4.9, "0 0"], [D, "0 0"]]);
-  const sq = [0, 1, 2, 3].flatMap(i => [0, 1, 2].map(j => (i + j) % 2 ? "" : `<rect x="${200 + i * 9}" y="${18 + j * 9}" width="9" height="9" fill="#2b2b2b"/>`)).join("");
-  return `<svg class="penny-flag" viewBox="0 0 250 210" role="img" aria-label="Penny v cíli"><g>${jump}
-    <g>${flagRot}<path d="M138 150L200 18" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/><rect x="200" y="18" width="36" height="27" fill="#fff" stroke="#2b2b2b" stroke-width="2"/>${sq}</g>
-    ${ham("happy").replace('<svg class="ham', '<svg width="200" height="200" y="8" class="ham')}</g></svg>`;
+function pennyFlag() { // Penny v cíli drží šachovnicovou vlajku, mává; občas vyskočí a zamává naplno
+  const D = 7, P = "160 146";
+  const flagRot = aT("rotate", D, [[0, `-6 ${P}`], [1, `6 ${P}`], [2, `-6 ${P}`], [3, `6 ${P}`], [3.8, `-6 ${P}`], [4.1, `-28 ${P}`], [4.4, `22 ${P}`], [4.7, `-28 ${P}`], [5.0, `22 ${P}`], [5.3, `-6 ${P}`], [6.2, `6 ${P}`], [D, `-6 ${P}`]]);
+  const jump = aT("translate", D, [[0, "0 0"], [3.9, "0 0"], [4.15, "0 -16"], [4.4, "0 0"], [4.65, "0 -10"], [4.9, "0 0"], [D, "0 0"]]);
+  const sq = [0, 1, 2, 3, 4].flatMap(a => [0, 1, 2].map(b => (a + b) % 2 ? "" : `<rect x="${192 + a * 10}" y="${6 + b * 10}" width="10" height="10" fill="#2b2b2b"/>`)).join("");
+  const body = ham("happy").replace('<svg class="ham', '<svg width="200" height="200" y="8" class="ham')
+    .replace(/<circle cx="100" cy="148" r="22"[^>]*\/>/, "").replace(/<text x="100" y="155"[^<]*<\/text>/, "")
+    .replace('<ellipse cx="120" cy="148" rx="10" ry="8" fill="#f6c99a"/>', "");
+  return `<svg class="penny-flag" viewBox="0 -4 250 218" role="img" aria-label="Penny v cíli"><g>${jump}${body}
+    <g>${flagRot}<path d="M160 152L192 4" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/><path d="M192 4q25 -6 50 2v30q-25 -8 -50 -2z" fill="#fff" stroke="#2b2b2b" stroke-width="2"/>${sq.replace(/<rect /g, '<rect clip-path="url(#pflag)" ')}
+      <clipPath id="pflag"><path d="M192 4q25 -6 50 2v30q-25 -8 -50 -2z"/></clipPath>
+      <ellipse cx="160" cy="146" rx="11" ry="9" fill="#f6c99a" stroke="#d98a43" stroke-width="1.5"/></g></g></svg>`;
 }
 function shade(hex, p) { const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.min(255, Math.round(v + 255 * p / 100))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(v => v.toString(16).padStart(2, "0")).join(""); }
 
@@ -780,7 +793,7 @@ async function render() {
 /* CESTA — domov jako v Duolingu                                        */
 /* =================================================================== */
 /* aktuální lekce: elektrické jiskry kolem tlačítka (jako v Duolingu) */
-const ZAP = `<span class="zap" aria-hidden="true"><svg viewBox="0 0 120 110"><path class="b1" d="M4 66l15-10-5 13 16-8-7 16"/><path class="b2" d="M98 18l13 3-10 8 14 2-11 10"/><path class="b3" d="M76 108l-9-12 13 2-8-13 15 6"/><path class="b4" d="M30 4l-2 13 9-6-1 14 9-8"/></svg></span>`;
+const ZAP = "";
 const ZIG = [0, 70, 30];
 function viewToday() {
   if (!S.onboarded) return viewWelcome();
@@ -815,7 +828,7 @@ function viewToday() {
       <div class="path">${lect}${quiz}
         <button class="tspot ${dir > 0 ? "l" : "r"}" data-teacher="${ui}" aria-label="${esc(TEACHERS[ui].n)}">${teacher(ui, "idle", true)}</button></div></section>`;
   }).join("");
-  const exam = `<section class="unit final"><div class="path"><div class="pnode gold big"><button data-node="exam" aria-label="Zkouška nanečisto">${NODE_ICO.quiz}${SPARK}</button><span class="label">Zkouška nanečisto</span></div>
+  const exam = `<section class="unit final"><div class="path"><div class="pnode gold big" style="--dx:-64px"><button data-node="exam" aria-label="Zkouška nanečisto">${NODE_ICO.quiz}${SPARK}</button><span class="label">Zkouška nanečisto</span></div>
     <div class="tspot r static flag">${pennyFlag()}</div></div></section>`;
   view().innerHTML = `${topbar()}<div class="home"><div class="home-main">${quest}${units}${exam}</div>${homeRail(ms)}</div>`;
   const e = $("#early"); if (e) e.onclick = () => { S.startDate = today(); S.planFor = null; save(); confetti(); render(); };
@@ -1844,7 +1857,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=24"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=25"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1928,7 +1941,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=24"); }, 1200);
+  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=25"); }, 1200);
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
