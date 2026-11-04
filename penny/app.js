@@ -201,7 +201,7 @@ const ic = {
   stop: I('<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>'),
   clip: I('<path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7.5"/>'),
   info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
-  gear: I('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'),
+  gear: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41L9.25 5.35c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>`,
 };
 
 /* ---------- Penny (křeček) ---------- */
@@ -556,7 +556,7 @@ function teacher(i, cls = "", scene = false) {
   const eyes = K === "frog"
     ? `<circle cx="42" cy="40" r="9" fill="#fff"/><circle cx="78" cy="40" r="9" fill="#fff"/><circle class="pup" cx="43" cy="42" r="5" fill="${ink}"/><circle class="pup" cx="79" cy="42" r="5" fill="${ink}"/><circle cx="45" cy="39" r="1.8" fill="#fff"/><circle cx="81" cy="39" r="1.8" fill="#fff"/>`
     : `${K === "panda" ? `<ellipse cx="45" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(-18 45 71)"/><ellipse cx="75" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(18 75 71)"/>` : ""}
-       <g class="eyes"><ellipse cx="46" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/><ellipse cx="74" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/>
+       <g><ellipse cx="46" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/><ellipse cx="74" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/>
        <circle cx="47" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="75" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="49" cy="${ey - .5}" r="1.8" fill="#fff"/><circle cx="77" cy="${ey - .5}" r="1.8" fill="#fff"/></g>`;
   if (K === "bear" || K === "panda") face = `<ellipse cx="60" cy="88" rx="13" ry="9" fill="${K === "panda" ? "#fff" : c2}"/><ellipse cx="60" cy="84" rx="5" ry="3.5" fill="${ink}"/><path d="M54 90q6 5 12 0" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
   if (K === "fox") face = `<path d="M44 82q16 16 32 0q-4 14-16 14t-16-14z" fill="${c2}"/><ellipse cx="60" cy="85" rx="4.5" ry="3.2" fill="${ink}"/><path d="M55 91q5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
@@ -579,54 +579,113 @@ function teacher(i, cls = "", scene = false) {
     chart: `<g transform="translate(86 86) rotate(8)"><rect width="30" height="26" rx="4" fill="#fff" stroke="#1cb0f6" stroke-width="2.6"/><path d="M5 6c3 8 9 13 20 15" stroke="#ff4b4b" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`,
     scale: `<g transform="translate(100 82)"><path d="M0 0v22M-12 4h24" stroke="#777" stroke-width="2.6" stroke-linecap="round"/><path d="M-16 14q4 6 8 0zM8 14q4 6 8 0z" fill="#ffc800" stroke="#e5a400" stroke-width="1.6"/><path d="M-12 4l-4 10M-12 4l4 10M12 4l-4 10M12 4l4 10" stroke="#999" stroke-width="1"/></g>`,
   }[t.prop] || "";
-  const SC = scene ? SCENES[i % SCENES.length] : "";
+  const SC = scene ? SCENES_FN[i % SCENES_FN.length]() : "";
+  const lidC = K === "panda" ? ink : c, ly = K === "frog" ? 40 : ey, lx = K === "frog" ? [42, 78] : [46, 74], bd = (4.4 + i * .37).toFixed(2);
+  const lids = lx.map(x => `<ellipse cx="${x}" cy="${ly}" rx="10" ry="0" fill="${lidC}"><animate attributeName="ry" dur="${bd}s" repeatCount="indefinite" keyTimes="0;.93;.96;1" values="0;0;10.5;0"/></ellipse>`).join("");
+  const bob = scene ? `<animateTransform attributeName="transform" type="translate" dur="3.2s" repeatCount="indefinite" keyTimes="0;.5;1" values="0 0;0 -4;0 0"/>` : "";
   return `<svg class="teacher ${cls} ${scene ? "scene sc" + i : ""}" viewBox="${scene ? "0 0 196 134" : "0 0 124 134"}" aria-label="${esc(t.n)}" role="img">
 <ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
-<g class="tb">${ears}
+<g class="tj">${scene ? BODYMOVE[i % BODYMOVE.length] : ""}<g class="${scene ? "tbs" : "tb"}">${bob}${ears}
 <ellipse cx="60" cy="80" rx="42" ry="44" fill="${c}" ${K === "panda" ? `stroke="#e5e5e5" stroke-width="2"` : ""}/>
 <ellipse cx="60" cy="100" rx="26" ry="20" fill="${c2}"/>
 <ellipse cx="22" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(20 22 98)"/>
 <ellipse cx="98" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(-20 98 98)"/>
 <ellipse cx="44" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/><ellipse cx="76" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/>
-${neck}${eyes}${cheeks}${face}${top}${scene ? "" : P}</g>${SC}</svg>`;
+${neck}${eyes}${lids}${cheeks}${face}${top}${scene ? "" : P}</g></g>${SC}</svg>`;
 }
 
-/* Smyčkové scénky učitelů vedle cesty (jako postavičky v Duolingu) */
-const BILL = (x, y, d) => `<g class="bill" style="animation-delay:${d}s"><rect x="${x}" y="${y}" width="20" height="11" rx="2" fill="#7ed957" stroke="#46a302" stroke-width="1.6"/><circle cx="${x + 10}" cy="${y + 5.5}" r="2.6" fill="#46a302"/></g>`;
-const SCENES = [
-  // 0 Bára: pistole na peníze
-  `<g class="gun"><rect x="94" y="86" width="36" height="14" rx="4" fill="#58cc02"/><rect x="126" y="88" width="11" height="10" rx="2" fill="#46a302"/><rect x="99" y="97" width="10" height="15" rx="3" fill="#46a302"/><circle cx="113" cy="93" r="4" fill="#ffc800"/><path d="M98 90h10" stroke="#a5ed6e" stroke-width="2.5" stroke-linecap="round"/></g>
-   ${BILL(134, 86, 0)}${BILL(134, 86, .6)}${BILL(134, 86, 1.2)}${BILL(134, 86, 1.8)}`,
-  // 1 Emil: tiskárna peněz
-  `<g class="press"><rect x="106" y="80" width="48" height="38" rx="7" fill="#8a9ba3"/><rect x="106" y="80" width="48" height="11" rx="6" fill="#6b7c85"/><rect x="152" y="98" width="5" height="12" rx="2" fill="#4b5a62"/><circle cx="118" cy="104" r="4" fill="#ffc800"/><circle cx="130" cy="104" r="4" fill="#ff4b4b"/></g>
-   <g class="lever"><path d="M130 81V60" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/><circle cx="130" cy="58" r="6" fill="#ff4b4b"/></g>
-   <g class="pnote"><rect x="155" y="100" width="22" height="12" rx="2" fill="#7ed957" stroke="#46a302" stroke-width="1.6"/><circle cx="166" cy="106" r="2.6" fill="#46a302"/></g>
-   <rect x="160" y="120" width="24" height="4" rx="1" fill="#7ed957" stroke="#46a302"/><rect x="161" y="116" width="24" height="4" rx="1" fill="#7ed957" stroke="#46a302"/>`,
-  // 2 Repo: ovládací pult sazeb
-  `<rect x="104" y="66" width="62" height="54" rx="8" fill="#4b4b4b"/><rect x="110" y="72" width="50" height="26" rx="4" fill="#10303f"/>
-   <rect class="rb" x="116" y="78" width="8" height="18" rx="2" fill="#1cb0f6"/><rect class="rb" style="animation-delay:.3s" x="128" y="78" width="8" height="18" rx="2" fill="#58cc02"/><rect class="rb" style="animation-delay:.6s" x="140" y="78" width="8" height="18" rx="2" fill="#ffc800"/>
-   <g class="knob"><circle cx="122" cy="109" r="7" fill="#ffc800"/><path d="M122 109v-6" stroke="#4b4b4b" stroke-width="2.5" stroke-linecap="round"/></g>
-   <g class="lever"><path d="M150 112V96" stroke="#afafaf" stroke-width="4" stroke-linecap="round"/><circle cx="150" cy="94" r="5.5" fill="#ff4b4b"/></g>
-   <circle class="led" cx="160" cy="110" r="3" fill="#58cc02"/>`,
-  // 3 Infla: pumpa a nafukující se balónek
-  `<path d="M126 116q20 6 26-20" stroke="#4b4b4b" stroke-width="3" fill="none"/>
+/* Scénky učitelů: klid → akce → zase klid (SMIL animace — fungují stejně v Safari i Chrome) */
+const kf = (dur, fr) => `dur="${dur}s" repeatCount="indefinite" keyTimes="${fr.map(f => Math.min(1, Math.max(0, f[0] / dur)).toFixed(4)).join(";")}" values="${fr.map(f => f[1]).join(";")}"`;
+const aT = (type, dur, fr) => `<animateTransform attributeName="transform" type="${type}" ${kf(dur, fr)}/>`;
+const aA = (attr, dur, fr) => `<animate attributeName="${attr}" ${kf(dur, fr)}/>`;
+const hold = (d, v) => [[0, v], [d, v]];
+function flight(dur, t, from, mid, to, fadeAt) {
+  const tr = aT("translate", dur, [[0, from], [t, from], [t + .35, mid], [t + 1.1, to], [dur, to]]);
+  const op = aA("opacity", dur, [[0, 0], [t, 0], [t + .01, 1], [fadeAt ?? t + 1.05, 1], [(fadeAt ?? t + 1.05) + .15, 0], [dur, 0]]);
+  return tr + op;
+}
+const BILLSHAPE = `<rect x="-10" y="-5.5" width="20" height="11" rx="2" fill="#7ed957" stroke="#46a302" stroke-width="1.6"/><circle r="2.6" fill="#46a302"/>`;
+// tělo učitele: skok/naklonění během akce (na obalovou skupinu)
+const BODYMOVE = [
+  aT("translate", 9, [[0, "0 0"], [4.0, "0 0"], [4.15, "3 2"], [4.5, "0 0"], [5.2, "0 0"], [5.35, "0 -7"], [5.6, "0 0"], [9, "0 0"]]),
+  aT("translate", 8, [[0, "0 0"], [5.0, "0 0"], [5.15, "0 -9"], [5.35, "0 0"], [8, "0 0"]]),
+  aT("translate", 8, [[0, "0 0"], [4.2, "0 0"], [4.35, "0 -6"], [4.5, "0 0"], [6.2, "0 0"], [6.35, "0 -4"], [6.5, "0 0"], [8, "0 0"]]),
+  aT("translate", 8, [[0, "0 0"], [5.0, "0 0"], [5.15, "0 -14"], [5.4, "0 0"], [5.55, "0 -5"], [5.7, "0 0"], [8, "0 0"]]),
+  aT("translate", 8, [[0, "0 0"], [5.5, "0 0"], [5.7, "0 -10"], [5.9, "0 0"], [6.05, "0 -6"], [6.2, "0 0"], [8, "0 0"]]),
+  aT("translate", 9, [[0, "0 0"], [5.9, "0 0"], [6.05, "0 -5"], [6.2, "0 0"], [6.35, "0 -5"], [6.5, "0 0"], [9, "0 0"]]),
+];
+function sceneGun() { // Bára: střílí peníze → zasekne se → zatřese → hodí o zem → vyskočí zpátky → funguje
+  const D = 9, shots = [0, .6, 1.2, 1.8, 2.4, 6, 6.6, 7.2, 7.8];
+  const rot = [[0, -6]]; for (const t of shots.filter(s => s < 3)) rot.push([t, -6], [t + .08, -20], [t + .3, -6]);
+  for (let k = 0; k < 9; k++) rot.push([3 + k * .1, k % 2 ? 8 : -14]);
+  rot.push([3.9, -6], [4.3, 110], [4.6, 95], [4.9, -40], [5.2, 4], [5.4, -6]);
+  for (const t of shots.filter(s => s >= 6)) rot.push([t, -6], [t + .08, -20], [t + .3, -6]);
+  rot.push([9, -6]);
+  const gunRot = aT("rotate", D, rot.map(([t, a]) => [t, `${a} 104 96`]));
+  const gunMove = aT("translate", D, [[0, "0 0"], [3.9, "0 0"], [4.3, "20 26"], [4.6, "24 26"], [4.9, "8 -26"], [5.2, "0 3"], [5.4, "0 0"], [9, "0 0"]]);
+  const bills = shots.map(t => `<g>${flight(D, t, "140 92", "166 58", "184 126")}${BILLSHAPE}</g>`).join("");
+  const smoke = `<circle cx="140" cy="86" r="0" fill="#c7c7c7">${aA("r", D, [[0, 0], [3.1, 0], [3.5, 9], [3.9, 0], [9, 0]])}${aA("opacity", D, [[0, 0], [3.1, .9], [3.9, 0], [9, 0]])}</circle>`;
+  const q = `<text x="64" y="16" font-size="22" font-weight="900" fill="#ffc800" font-family="Nunito,sans-serif" text-anchor="middle" opacity="0">?${aA("opacity", D, [[0, 0], [3.1, 0], [3.2, 1], [3.9, 1], [4.0, 0], [9, 0]])}</text>`;
+  return `<g>${gunMove}<g>${gunRot}<rect x="94" y="86" width="36" height="14" rx="4" fill="#58cc02"/><rect x="126" y="88" width="11" height="10" rx="2" fill="#46a302"/><rect x="99" y="97" width="10" height="15" rx="3" fill="#46a302"/><circle cx="113" cy="93" r="4" fill="#ffc800"/></g></g>${bills}${smoke}${q}`;
+}
+function scenePress() { // Emil: tiskne peníze → zasekne se a kouří → bouchne do ní → vyletí dvě bankovky
+  const D = 8, prints = [.4, 1.4, 2.4, 3.4, 5.6, 6.1, 7.0];
+  const lev = [[0, -20]]; for (const t of [0, 1, 2, 3, 5.4, 6.4]) lev.push([t, -20], [t + .5, 22], [t + 1, -20]); lev.push([D, -20]);
+  const lever = `<g>${aT("rotate", D, lev.map(([t, a]) => [t, `${a} 130 81`]))}<path d="M130 81V60" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/><circle cx="130" cy="58" r="6" fill="#ff4b4b"/></g>`;
+  const shake = []; shake.push([0, "0 0"], [4.0, "0 0"]); for (let k = 0; k < 9; k++) shake.push([4.05 + k * .1, k % 2 ? "2 0" : "-2 0"]); shake.push([4.95, "0 0"], [5.15, "0 4"], [5.35, "0 0"], [D, "0 0"]);
+  const notes = prints.map(t => `<g>${flight(D, t, "150 106", "164 104", "170 120")}${BILLSHAPE}</g>`).join("");
+  const smoke = `<circle cx="128" cy="76" r="0" fill="#c7c7c7">${aA("r", D, [[0, 0], [4.1, 0], [4.6, 10], [5.0, 0], [D, 0]])}${aA("opacity", D, [[0, 0], [4.1, .9], [5.0, 0], [D, 0]])}</circle>`;
+  const star = `<path d="M118 70l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ffc800" opacity="0">${aA("opacity", D, [[0, 0], [5.1, 0], [5.15, 1], [5.6, 1], [5.7, 0], [D, 0]])}</path>`;
+  return `<g>${aT("translate", D, shake)}<rect x="106" y="80" width="48" height="38" rx="7" fill="#8a9ba3"/><rect x="106" y="80" width="48" height="11" rx="6" fill="#6b7c85"/><rect x="152" y="98" width="5" height="12" rx="2" fill="#4b5a62"/><circle cx="118" cy="104" r="4" fill="#ffc800"/><circle cx="130" cy="104" r="4" fill="#ff4b4b"/>${lever}</g>
+    <rect x="160" y="120" width="24" height="4" rx="1" fill="#7ed957" stroke="#46a302"/>${notes}${smoke}${star}`;
+}
+function scenePanel() { // Repo: klidně ladí sazby → zatáhne za páku → všechno vystřelí nahoru, bliká alarm → vrátí to
+  const D = 8;
+  const bar = (x, c, ph) => { const fr = [[0, 10 + ph], [1, 14 - ph], [2, 9 + ph], [3, 13], [4.2, 10], [4.6, 22], [6, 22], [6.5, 11], [7.3, 12 + ph], [D, 10 + ph]];
+    return `<rect x="${x}" width="8" rx="2" fill="${c}">${aA("height", D, fr)}${aA("y", D, fr.map(([t, h]) => [t, 96 - h]))}</rect>`; };
+  const lever = `<g>${aT("rotate", D, [[0, "-20 150 112"], [4.0, "-20 150 112"], [4.4, "40 150 112"], [6.0, "40 150 112"], [6.5, "-20 150 112"], [D, "-20 150 112"]])}<path d="M150 112V96" stroke="#afafaf" stroke-width="4" stroke-linecap="round"/><circle cx="150" cy="94" r="5.5" fill="#ff4b4b"/></g>`;
+  const led = `<circle cx="160" cy="110" r="3.4" fill="#58cc02">${aA("fill", D, [[0, "#58cc02"], [4.6, "#58cc02"], [4.61, "#ff4b4b"], [4.9, "#ffc800"], [5.2, "#ff4b4b"], [5.5, "#ffc800"], [5.8, "#ff4b4b"], [6.1, "#58cc02"], [D, "#58cc02"]])}</circle>`;
+  const knob = `<g>${aT("rotate", D, [[0, "-50 122 109"], [4, "50 122 109"], [D, "-50 122 109"]])}<circle cx="122" cy="109" r="7" fill="#ffc800"/><path d="M122 109v-6" stroke="#4b4b4b" stroke-width="2.5" stroke-linecap="round"/></g>`;
+  return `<rect x="104" y="66" width="62" height="54" rx="8" fill="#4b4b4b"/><rect x="110" y="72" width="50" height="26" rx="4" fill="#10303f"/>${bar(116, "#1cb0f6", 2)}${bar(128, "#58cc02", -2)}${bar(140, "#ffc800", 1)}${knob}${lever}${led}`;
+}
+function sceneBalloon() { // Infla: pumpuje → balónek roste → PRÁSK → vyskočí leknutím → nový balónek
+  const D = 8;
+  const pump = []; pump.push([0, "0 0"]); for (let t = 0; t < 4.8; t += .5) pump.push([t, "0 0"], [t + .25, "0 10"]); pump.push([4.8, "0 0"], [D, "0 0"]);
+  const scale = aT("scale", D, [[0, .3], [4.8, 1.12], [5.0, 1.45], [5.01, .3], [D, .3]]);
+  const op = aA("opacity", D, [[0, 1], [5.0, 1], [5.01, 0], [6.4, 0], [6.6, 1], [D, 1]]);
+  const burst = `<g stroke="#ffc800" stroke-width="3" stroke-linecap="round" opacity="0">${aA("opacity", D, [[0, 0], [5.0, 0], [5.01, 1], [5.4, 1], [5.6, 0], [D, 0]])}<path d="M154 36v-8M134 48l-6-5M174 48l6-5M132 72h-8M176 72h8"/></g>`;
+  return `<path d="M126 116q20 6 26-30" stroke="#4b4b4b" stroke-width="3" fill="none"/>
    <rect x="112" y="94" width="16" height="26" rx="4" fill="#1cb0f6"/><rect x="108" y="118" width="24" height="5" rx="2" fill="#1899d6"/>
-   <g class="pump"><rect x="118" y="78" width="4" height="18" fill="#777"/><rect x="106" y="74" width="28" height="6" rx="3" fill="#4b4b4b"/></g>
-   <g class="balloon"><ellipse cx="154" cy="66" rx="15" ry="18" fill="#ff4b4b"/><ellipse cx="148" cy="59" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M151 84h6l-3 4z" fill="#ea2b2b"/></g>
-   <g class="burst" stroke="#ffc800" stroke-width="3" stroke-linecap="round"><path d="M154 40v-8M134 50l-6-5M174 50l6-5M134 82l-6 5M174 82l6 5"/></g>`,
-  // 4 Křivka: tabule, na které se kreslí křivka
-  `<path d="M112 98l-6 26M156 98l6 26" stroke="#8a5a2b" stroke-width="3.5" stroke-linecap="round"/>
+   <g>${aT("translate", D, pump)}<rect x="118" y="78" width="4" height="18" fill="#777"/><rect x="106" y="74" width="28" height="6" rx="3" fill="#4b4b4b"/></g>
+   <g transform="translate(154 86)"><g>${scale}${op}<g transform="translate(-154 -86)"><ellipse cx="154" cy="66" rx="15" ry="18" fill="#ff4b4b"/><ellipse cx="148" cy="59" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M151 84h6l-3 4z" fill="#ea2b2b"/></g></g></g>${burst}`;
+}
+function sceneBoard() { // Křivka: nakreslí IS, pak MP → radost → smaže tabuli
+  const D = 8;
+  const draw = (d, c, t0, t1) => `<path d="${d}" stroke="${c}" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-dasharray="64" stroke-dashoffset="64">${aA("stroke-dashoffset", D, [[0, 64], [t0, 64], [t1, 0], [7.2, 0], [7.25, 64], [D, 64]])}${aA("opacity", D, [[0, 1], [6.4, 1], [7.1, 0], [7.3, 1], [D, 1]])}</path>`;
+  const marker = `<g>${aT("translate", D, [[0, "100 98"], [0.5, "114 52"], [1.1, "120 68"], [1.8, "132 80"], [2.5, "156 88"], [2.9, "114 86"], [3.6, "128 78"], [4.3, "142 66"], [5.0, "154 52"], [5.5, "100 98"], [6.4, "100 98"], [6.6, "120 70"], [6.8, "150 70"], [7.0, "122 80"], [7.2, "150 80"], [7.5, "100 98"], [D, "100 98"]])}<rect x="-3" y="-16" width="7" height="16" rx="2" fill="#ffc800" transform="rotate(28)"/><rect x="-3" y="-3" width="7" height="4" fill="#4b4b4b" transform="rotate(28)"/></g>`;
+  return `<path d="M112 98l-6 26M156 98l6 26" stroke="#8a5a2b" stroke-width="3.5" stroke-linecap="round"/>
    <rect x="100" y="40" width="68" height="60" rx="5" fill="#fff" stroke="#c7c7c7" stroke-width="3"/>
    <path d="M108 48v44h54" stroke="#4b4b4b" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-   <path class="draw" d="M114 52c6 20 18 32 42 36" stroke="#ff4b4b" stroke-width="3.4" fill="none" stroke-linecap="round"/>
-   <path class="draw d2" d="M114 86c14-6 28-18 40-34" stroke="#1cb0f6" stroke-width="3.4" fill="none" stroke-linecap="round"/>
-   <g class="marker"><rect x="100" y="94" width="18" height="6" rx="2" fill="#ffc800" transform="rotate(-35 100 94)"/></g>`,
-  // 5 Rovnováha: váhy AS a AD
-  `<path d="M140 120V72" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/><path d="M128 122h24" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
-   <g class="beam"><path d="M114 70h52" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/><circle cx="140" cy="70" r="4" fill="#ffc800"/>
-     <g class="pan l"><path d="M114 70l-7 16M114 70l7 16" stroke="#999" stroke-width="1.4"/><path d="M104 86h20q-2 8-10 8t-10-8z" fill="#ffc800"/><circle cx="114" cy="82" r="5" fill="#1cb0f6"/></g>
-     <g class="pan r"><path d="M166 70l-7 16M166 70l7 16" stroke="#999" stroke-width="1.4"/><path d="M156 86h20q-2 8-10 8t-10-8z" fill="#ffc800"/><circle cx="166" cy="82" r="5" fill="#ff4b4b"/></g></g>`,
-];
+   ${draw("M114 52c6 20 18 32 42 36", "#ff4b4b", .5, 2.5)}${draw("M114 86c14-6 28-18 40-34", "#1cb0f6", 2.9, 5.0)}${marker}`;
+}
+function sceneStack() { // Rovnováha: skládá míčky na sebe → věž se kývá → všechno spadne → pokrčí rameny → znovu
+  const D = 9; const spots = [[150, 85, "#ff4b4b", 1, "14 39"], [150, 71, "#1cb0f6", 2.2, "26 53"], [150, 57, "#ffc800", 3.4, "36 67"]];
+  const balls = spots.map(([x, y, c, t, fall], k) => { const off = `${104 - x} ${96 - y}`, mid = `${(104 - x) / 2} ${(96 - y) / 2 - 24}`;
+    return `<g>${aT("translate", D, [[0, off], [t, off], [t + .3, mid], [t + .6, "0 0"], [5.0, "0 0"], [5.6 + k * .1, fall], [D, fall]])}${aA("opacity", D, [[0, 0], [t, 0], [t + .01, 1], [7.6, 1], [8.2, 0], [D, 0]])}<circle cx="${x}" cy="${y}" r="7" fill="${c}"/><circle cx="${x - 2}" cy="${y - 2.5}" r="2" fill="#fff" opacity=".6"/></g>`; }).join("");
+  const wob = aT("rotate", D, [[0, "0 150 92"], [4.1, "0 150 92"], [4.35, "6 150 92"], [4.6, "-8 150 92"], [4.85, "11 150 92"], [5.0, "0 150 92"], [D, "0 150 92"]]);
+  return `<path d="M150 122V92" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/><path d="M138 124h24" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/><path d="M140 92h20" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/>
+   <g>${wob}${balls}</g>`;
+}
+const SCENES_FN = [sceneGun, scenePress, scenePanel, sceneBalloon, sceneBoard, sceneStack];
+function pennyFlag() { // Penny v cíli: mává šachovnicovou vlajkou, občas vyskočí a zatočí s ní
+  const D = 7;
+  const flagRot = aT("rotate", D, [[0, "-8 138 150"], [.9, "8 138 150"], [1.8, "-8 138 150"], [2.7, "8 138 150"], [3.6, "-8 138 150"], [4.0, "-30 138 150"], [4.3, "28 138 150"], [4.6, "-30 138 150"], [4.9, "28 138 150"], [5.2, "-8 138 150"], [6.1, "8 138 150"], [D, "-8 138 150"]]);
+  const jump = aT("translate", D, [[0, "0 0"], [3.9, "0 0"], [4.15, "0 -18"], [4.4, "0 0"], [4.65, "0 -12"], [4.9, "0 0"], [D, "0 0"]]);
+  const sq = [0, 1, 2, 3].flatMap(i => [0, 1, 2].map(j => (i + j) % 2 ? "" : `<rect x="${200 + i * 9}" y="${18 + j * 9}" width="9" height="9" fill="#2b2b2b"/>`)).join("");
+  return `<svg class="penny-flag" viewBox="0 0 250 210" role="img" aria-label="Penny v cíli"><g>${jump}
+    <g>${flagRot}<path d="M138 150L200 18" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/><rect x="200" y="18" width="36" height="27" fill="#fff" stroke="#2b2b2b" stroke-width="2"/>${sq}</g>
+    ${ham("happy").replace('<svg class="ham', '<svg width="200" height="200" y="8" class="ham')}</g></svg>`;
+}
 function shade(hex, p) { const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.min(255, Math.round(v + 255 * p / 100))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(v => v.toString(16).padStart(2, "0")).join(""); }
 
 /* ---------- router ---------- */
@@ -687,7 +746,7 @@ document.addEventListener("click", e => {
 });
 
 async function render() {
-  document.querySelectorAll(".feedback,.praise,.chip-pop").forEach(f => f.remove());
+  document.querySelectorAll(".feedback,.praise,.chip-pop,.to-bottom").forEach(f => f.remove());
   closeDrawer(); stopSpeak(); TTS.now = ""; document.querySelector(".viewer")?.remove();
   const { parts, q } = route();
   const r = parts[0] || "";
@@ -755,7 +814,7 @@ function viewToday() {
         <button class="tspot ${dir > 0 ? "l" : "r"}" data-teacher="${ui}" aria-label="${esc(TEACHERS[ui].n)}">${teacher(ui, "idle", true)}</button></div></section>`;
   }).join("");
   const exam = `<section class="unit final"><div class="path"><div class="pnode gold big"><button data-node="exam" aria-label="Zkouška nanečisto">${NODE_ICO.quiz}${SPARK}</button><span class="label">Zkouška nanečisto</span></div>
-    <div class="tspot r static">${ham("happy", "idle")}<span class="flipcoin"><svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="#ffc800" stroke="#e5a400" stroke-width="3"/><path d="M11 10h6a3 3 0 0 1 0 6h-6v6M11 10v6" stroke="#b07800" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></span></div></div></section>`;
+    <div class="tspot r static flag">${pennyFlag()}</div></div></section>`;
   view().innerHTML = `${topbar()}<div class="home"><div class="home-main">${quest}${units}${exam}</div>${homeRail(ms)}</div>`;
   const e = $("#early"); if (e) e.onclick = () => { S.startDate = today(); S.planFor = null; save(); confetti(); render(); };
   view().querySelectorAll("[data-node]").forEach(b => b.onclick = ev => { ev.stopPropagation(); nodePop(b); });
@@ -1783,7 +1842,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=22"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=23"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1867,7 +1926,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=22");
+  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=23"); }, 1200);
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
@@ -1891,6 +1950,16 @@ function viewTutor(parts, q) {
   syncVoiceBtn(); attachPreview();
   if (pre) { history.replaceState(null, "", "#/halir"); tin.value = pre; grow(); tin.focus(); }
   const ch = $("#chat"); if (has && ch.lastElementChild) ch.lastElementChild.scrollIntoView({ block: "end" });
+  // šipka dolů: skok na nejnovější zprávu
+  document.body.insertAdjacentHTML("beforeend", `<button class="to-bottom" id="toBottom" aria-label="Na nejnovější zprávu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>`);
+  const tb = $("#toBottom"), bar = $(".tutor-bar");
+  const upd = () => {
+    if (!$("#chat")) { tb.remove(); window.removeEventListener("scroll", upd); return; }
+    document.documentElement.style.setProperty("--tbar-h", bar.offsetHeight + "px");
+    tb.classList.toggle("show", document.documentElement.scrollHeight - scrollY - innerHeight > 240);
+  };
+  window.addEventListener("scroll", upd, { passive: true }); setTimeout(upd, 300);
+  tb.onclick = () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
 }
 
 /* ---------- Penny vedle učení: panel, který neodvede ze stránky ---------- */

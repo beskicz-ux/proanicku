@@ -57,7 +57,7 @@ b,strong{font-weight:800}
    ===================================================================== */
 .app{max-width:640px; margin:0 auto; padding:0 max(var(--gutter), env(safe-area-inset-right)) calc(var(--nav-h) + var(--s6) + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left))}
 .app.enter{animation:enter .18s var(--ease)}
-@keyframes enter{from{opacity:0; transform:translateY(6px)}}
+@keyframes enter{from{opacity:0}}
 
 .topbar{position:sticky; top:0; z-index:18; display:flex; align-items:center; gap:var(--s2); min-height:var(--top-h);
   margin:0 calc(-1 * var(--gutter)) var(--s4); padding:calc(env(safe-area-inset-top) + var(--s2)) var(--gutter) var(--s2);
@@ -582,7 +582,6 @@ details.card summary::-webkit-details-marker{display:none}
 .teacher .tb{transform-origin:62px 128px}
 .teacher.idle .tb{animation:tbob 3.2s ease-in-out infinite}
 .teacher.jump .tb{animation:jump 1s cubic-bezier(.3,1.4,.5,1) 2}
-.teacher .eyes{transform-origin:60px 70px; animation:blink 5s infinite}
 @keyframes tbob{50%{transform:translateY(-5px)}}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)} 97%{transform:scaleY(.1)}}
 .tsay{position:absolute; bottom:calc(100% - 4px); left:4px; width:min(220px, calc(100vw - 48px)); padding:10px 12px; border:2px solid var(--line); border-radius:var(--r-sm); background:var(--bg); color:var(--ink-strong); font-size:14px; font-weight:700; line-height:1.35; text-align:left; animation:popin .18s var(--ease); z-index:3}
@@ -663,54 +662,24 @@ details.card summary::-webkit-details-marker{display:none}
 @media (min-width:1000px) and (max-width:1099px){ body.wide .app{max-width:900px} }
 @media (min-width:700px){ .tiles{display:grid; grid-template-columns:1fr 1fr} }
 
-/* ---- loop scenes beside the path ---- */
+/* ---- loop scenes beside the path (animated with SMIL inside the SVG) ---- */
 .tspot:has(.scene){width:196px}
 .tspot.r .teacher.scene{transform:scaleX(-1)}
 .tspot.l{left:max(-8px, calc(50% - 250px))} .tspot.r{right:max(-8px, calc(50% - 250px))}
 @media (max-width:400px){ .tspot{height:116px} .tspot:has(.scene){width:170px} }
 .welcome.intro .teacher.scene{width:290px; height:198px}
-.scene *{transform-box:fill-box}
-.sc0 .gun{transform-origin:10% 70%; animation:recoil .6s ease-out infinite}
-@keyframes recoil{0%{transform:rotate(-6deg)} 12%{transform:rotate(-18deg) translateX(-3px)} 45%,100%{transform:rotate(-6deg)}}
-.sc0 .bill{transform-origin:center; opacity:0; animation:billfly 2.4s linear infinite}
-@keyframes billfly{0%{opacity:1; transform:translate(0,0) rotate(0)} 35%{opacity:1; transform:translate(26px,-34px) rotate(-40deg)} 100%{opacity:0; transform:translate(44px,34px) rotate(200deg)}}
-.sc1 .lever,.sc2 .lever{transform-origin:50% 100%; animation:lever 1.4s ease-in-out infinite}
-@keyframes lever{0%,100%{transform:rotate(-22deg)} 50%{transform:rotate(22deg)}}
-.sc1 .press{transform-origin:50% 100%; animation:press 1.4s ease-in-out infinite}
-@keyframes press{0%,40%,100%{transform:scale(1,1)} 50%{transform:scale(1.04,.94)} 60%{transform:scale(.98,1.03)}}
-.sc1 .pnote{opacity:0; animation:pnote 1.4s ease-in infinite}
-@keyframes pnote{0%,45%{opacity:0; transform:translateX(-14px)} 55%{opacity:1} 75%{opacity:1; transform:translateX(4px)} 100%{opacity:0; transform:translate(8px,14px) rotate(12deg)}}
-.sc2 .rb{transform-origin:50% 100%; animation:rbar 1.8s ease-in-out infinite}
-@keyframes rbar{0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)}}
-.sc2 .knob{transform-origin:center; animation:knob 3.6s ease-in-out infinite}
-@keyframes knob{0%,100%{transform:rotate(-60deg)} 50%{transform:rotate(60deg)}}
-.sc2 .led{animation:led 1s steps(2) infinite}
-@keyframes led{50%{fill:#ff4b4b}}
-.sc3 .pump{animation:pump .5s ease-in-out infinite}
-@keyframes pump{50%{transform:translateY(10px)}}
-.sc3 .balloon{transform-origin:50% 100%; animation:balloon 3.2s ease-in infinite}
-@keyframes balloon{0%{transform:scale(.3); opacity:1} 84%{transform:scale(1.15); opacity:1} 88%{transform:scale(1.5); opacity:0} 100%{transform:scale(.3); opacity:0}}
-.sc3 .burst{opacity:0; animation:burst 3.2s linear infinite}
-@keyframes burst{0%,85%{opacity:0} 88%{opacity:1} 96%,100%{opacity:0}}
-.sc4 .draw{stroke-dasharray:60; stroke-dashoffset:60; animation:draw 3.6s ease-in-out infinite}
-.sc4 .draw.d2{animation-delay:.9s}
-@keyframes draw{0%{stroke-dashoffset:60; opacity:1} 40%,80%{stroke-dashoffset:0; opacity:1} 95%,100%{stroke-dashoffset:0; opacity:0}}
-.sc4 .marker{animation:marker 3.6s ease-in-out infinite}
-@keyframes marker{0%,100%{transform:translate(0,0)} 20%{transform:translate(8px,-10px)} 40%{transform:translate(18px,-4px)} 60%{transform:translate(10px,-20px)}}
-.sc5 .beam{transform-origin:50% 0%; animation:beam 2.8s ease-in-out infinite}
-.sc5 .pan{transform-origin:50% 0%; animation:pan 2.8s ease-in-out infinite}
-@keyframes beam{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
-@keyframes pan{0%,100%{transform:rotate(12deg)} 50%{transform:rotate(-12deg)}}
-.sc5 .tb{animation:sway 2.8s ease-in-out infinite}
-@keyframes sway{0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)}}
-.flipcoin{position:absolute; left:50%; top:-6px; width:30px; height:30px; margin-left:-15px; animation:coinflip 1.8s cubic-bezier(.3,0,.6,1) infinite}
-.flipcoin svg{width:100%; height:100%}
-@keyframes coinflip{0%,100%{transform:translateY(20px) rotateY(0)} 45%{transform:translateY(-34px) rotateY(540deg)} 70%{transform:translateY(16px) rotateY(720deg)}}
-
-.tspot.r .tsay{left:auto; right:4px}
-.tspot{top:200px}
-.tspot .tsay{z-index:25}
-.tspot:has(.tsay){z-index:24}
+.tspot.flag{width:180px; height:152px; top:-10px}
+.tspot.flag svg{width:100%; height:100%; overflow:visible}
+@media (max-width:400px){ .tspot.flag{width:150px; height:126px} }
 @media (max-width:480px){ .unit-head .gb span{display:none} .unit-head .gb{padding:0 12px} }
 .pnode.fresh > button{background:linear-gradient(118deg, transparent 0 34%, rgba(255,255,255,.22) 34% 50%, transparent 50%), var(--line)}
 @media (prefers-color-scheme:dark){ .pnode.fresh > button{background:linear-gradient(118deg, transparent 0 34%, rgba(255,255,255,.07) 34% 50%, transparent 50%), var(--line)} }
+
+/* chat: skok na nejnovější zprávu */
+.to-bottom{position:fixed; left:50%; bottom:calc(var(--tbar-h, 92px) + 14px + env(safe-area-inset-bottom)); z-index:21; width:48px; height:48px; margin-left:-24px; border-radius:50%; border:2px solid var(--line); background:var(--bg); color:var(--blue-ink); box-shadow:0 4px 0 var(--line), 0 6px 16px rgba(0,0,0,.12); display:grid; place-items:center; opacity:0; transform:translateY(10px) scale(.9); pointer-events:none; transition:opacity .18s, transform .18s}
+.to-bottom svg{width:24px; height:24px}
+.to-bottom.show{opacity:1; transform:none; pointer-events:auto}
+.to-bottom:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+@media (min-width:1000px){ .to-bottom{left:calc(50% + 48px)} }
+@media (min-width:1100px){ .to-bottom{left:calc(50% + 120px)} }
+.topbar .icon-btn{width:48px; height:48px} .topbar .icon-btn svg{width:28px; height:28px}
