@@ -62,6 +62,8 @@ function mergeState(a, b) {
   for (const k of ["essays", "feyn", "lists"]) by(k, (x, y) => ((x.ts || 0) >= (y.ts || 0) ? x : y));
   by("essayDraft", (x, y) => (String(x || "").length >= String(y || "").length ? x : y));
   by("xp", (x, y) => Math.max(x || 0, y || 0));
+  by("uq", (x, y) => Math.max(x || 0, y || 0));
+  by("seen", (x, y) => x || y);
   by("done", (x, y) => { const o = { ...x }; for (const k in y) o[k] = typeof y[k] === "number" ? Math.max(o[k] || 0, y[k]) : (o[k] || y[k]); return o; });
   const ex = {}; [...(a.exams || []), ...(b.exams || [])].forEach(e => ex[e.ts] = e); out.exams = Object.values(ex).sort((x, y) => x.ts - y.ts);
   out.saved = Math.max(a.saved || 0, b.saved || 0);
@@ -505,6 +507,90 @@ document.addEventListener("click", e => {
 }, true);
 const sectionText = s => `${s.title}. ${s.body}${s.analogy ? ". Představ si to takhle: " + s.analogy : ""}`;
 
+/* =================================================================== */
+/* ILUSTRACE: symboly přednášek, učitelé jednotek, truhla, jiskřičky     */
+/* =================================================================== */
+const LI_ = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const LEC_ICON = {
+  "1A": LI_('<path d="M3 9.5L12 4l9 5.5"/><path d="M4 20h16M6 10v8M10 10v8M14 10v8M18 10v8"/>'),                     // budova banky
+  "1B": LI_('<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.6" fill="currentColor"/>'),           // cenovka
+  "2A": LI_('<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6"/><path d="M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/><path d="M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/>'), // mince
+  "2B": LI_('<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 9v.01M18 15v.01"/>'), // bankovka
+  "3A": LI_('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2" fill="currentColor"/><circle cx="15" cy="12" r="2.2" fill="currentColor"/><circle cx="7" cy="18" r="2.2" fill="currentColor"/>'), // ovladače
+  "3B": LI_('<circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4"/><path d="M11 13L21 3M16 3h5v5"/>'),     // terč se šipkou
+  "4A": LI_('<path d="M3 20l6-6 4 3 8-10"/><path d="M15 7h6v6"/>'),                                                 // rostoucí ceny
+  "4B": LI_('<path d="M3 8a2 2 0 0 1 2-2h13v4"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M16 14h2"/>'), // peněženka
+  "5A": LI_('<path d="M4 3v17h17"/><path d="M7 5c2 7 6 11 13 12"/>'),                                               // klesající IS
+  "5B": LI_('<path d="M4 3v17h17"/><path d="M7 17L19 6"/><path d="M7 6c3 6 7 9 12 10"/>'),                         // MP × AD
+  "6A": LI_('<path d="M4 3v17h17"/><path d="M7 6l12 12M7 18L19 6"/><circle cx="13" cy="12" r="1.6" fill="currentColor"/>'), // AS × AD
+  "6B": LI_('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>'), // žárovka
+};
+const NODE_ICO = {
+  check: LI_('<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3.4"/>'),
+  quiz: LI_('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>'),
+  book: LI_('<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>'),
+};
+const SPARK = `<svg class="spark" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0c.8 5.2 4 8.6 10 10-6 1.4-9.2 4.8-10 10-.8-5.2-4-8.6-10-10 6-1.4 9.2-4.8 10-10z" fill="#fff"/></svg>`;
+
+/* Učitelé jednotek — každá jednotka má svou postavičku (lepší zapamatování) */
+const TEACHERS = [
+  { n: "Medvědice Bára", kind: "bear", c: "#c07a45", c2: "#f6dcc0", acc: "bowler", prop: "coin", hi: "Ahoj! Já hlídám centrální banky a ceny." },
+  { n: "Lišák Emil", kind: "fox", c: "#ff8a3d", c2: "#fff1e2", acc: "glasses", prop: "note", hi: "Čau! Ukážu ti, odkud se berou peníze." },
+  { n: "Kocour Repo", kind: "cat", c: "#7f8ea8", c2: "#eef2f8", acc: "tie", prop: "pointer", hi: "Zdravím! Nástroje ČNB mám v malíčku." },
+  { n: "Prasátko Infla", kind: "pig", c: "#ff9cb4", c2: "#ffe4eb", acc: "scarf", prop: "balloon", hi: "Ahoj! Proč všechno zdražuje? To ti povím." },
+  { n: "Žabka Křivka", kind: "frog", c: "#5bc236", c2: "#e4ffd2", acc: "bow", prop: "chart", hi: "Kvák! Křivky IS, MP a AD jsou moje parketa." },
+  { n: "Panda Rovnováha", kind: "panda", c: "#ffffff", c2: "#f1f1f1", acc: "grad", prop: "scale", hi: "Ahoj! Spolu najdeme rovnováhu v AS–AD." },
+];
+const unitIdx = lec => Math.max(0, C.units.findIndex(u => u.ids.includes(lec)));
+function teacher(i, cls = "") {
+  const t = TEACHERS[i % TEACHERS.length]; const K = t.kind, c = t.c, c2 = t.c2, ink = "#2b2b2b";
+  const dark = K === "panda" ? ink : shade(c, -28);
+  let ears = "", face = "", top = "";
+  if (K === "bear") ears = `<circle cx="30" cy="44" r="13" fill="${c}"/><circle cx="90" cy="44" r="13" fill="${c}"/><circle cx="30" cy="44" r="6.5" fill="${c2}"/><circle cx="90" cy="44" r="6.5" fill="${c2}"/>`;
+  if (K === "panda") ears = `<circle cx="30" cy="44" r="13" fill="${ink}"/><circle cx="90" cy="44" r="13" fill="${ink}"/>`;
+  if (K === "fox") ears = `<path d="M24 58L28 20 54 44z" fill="${c}"/><path d="M96 58L92 20 66 44z" fill="${c}"/><path d="M31 50l2-20 13 13z" fill="${c2}"/><path d="M89 50l-2-20-13 13z" fill="${c2}"/>`;
+  if (K === "cat") ears = `<path d="M26 56L30 26 52 44z" fill="${c}"/><path d="M94 56L90 26 68 44z" fill="${c}"/><path d="M33 50l1.5-15 10 9z" fill="#ffb3c6"/><path d="M87 50l-1.5-15-10 9z" fill="#ffb3c6"/>`;
+  if (K === "pig") ears = `<ellipse cx="32" cy="42" rx="13" ry="9" fill="${dark}" transform="rotate(-38 32 42)"/><ellipse cx="88" cy="42" rx="13" ry="9" fill="${dark}" transform="rotate(38 88 42)"/>`;
+  if (K === "frog") ears = `<circle cx="42" cy="42" r="15" fill="${c}"/><circle cx="78" cy="42" r="15" fill="${c}"/>`;
+  const ey = K === "frog" ? 40 : 70;
+  const eyes = K === "frog"
+    ? `<circle cx="42" cy="40" r="9" fill="#fff"/><circle cx="78" cy="40" r="9" fill="#fff"/><circle class="pup" cx="43" cy="42" r="5" fill="${ink}"/><circle class="pup" cx="79" cy="42" r="5" fill="${ink}"/><circle cx="45" cy="39" r="1.8" fill="#fff"/><circle cx="81" cy="39" r="1.8" fill="#fff"/>`
+    : `${K === "panda" ? `<ellipse cx="45" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(-18 45 71)"/><ellipse cx="75" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(18 75 71)"/>` : ""}
+       <g class="eyes"><ellipse cx="46" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/><ellipse cx="74" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/>
+       <circle cx="47" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="75" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="49" cy="${ey - .5}" r="1.8" fill="#fff"/><circle cx="77" cy="${ey - .5}" r="1.8" fill="#fff"/></g>`;
+  if (K === "bear" || K === "panda") face = `<ellipse cx="60" cy="88" rx="13" ry="9" fill="${K === "panda" ? "#fff" : c2}"/><ellipse cx="60" cy="84" rx="5" ry="3.5" fill="${ink}"/><path d="M54 90q6 5 12 0" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  if (K === "fox") face = `<path d="M44 82q16 16 32 0q-4 14-16 14t-16-14z" fill="${c2}"/><ellipse cx="60" cy="85" rx="4.5" ry="3.2" fill="${ink}"/><path d="M55 91q5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  if (K === "cat") face = `<path d="M57 83h6l-3 3.5z" fill="#ff7a9c"/><path d="M55 89q5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/><g stroke="${ink}" stroke-width="1.6" opacity=".5" stroke-linecap="round"><path d="M40 84l-12-2M40 88l-12 2M80 84l12-2M80 88l12 2"/></g>`;
+  if (K === "pig") face = `<ellipse cx="60" cy="87" rx="12" ry="8.5" fill="${dark}"/><ellipse cx="56" cy="87" rx="2.4" ry="3.2" fill="#b4566f"/><ellipse cx="64" cy="87" rx="2.4" ry="3.2" fill="#b4566f"/><path d="M54 98q6 4 12 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  if (K === "frog") face = `<path d="M40 70q20 16 40 0" stroke="${shade(c, -45)}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  const cheeks = K === "frog" ? `<circle cx="34" cy="66" r="5" fill="#ff8fa8" opacity=".5"/><circle cx="86" cy="66" r="5" fill="#ff8fa8" opacity=".5"/>` : `<circle cx="34" cy="84" r="5.5" fill="#ff8fa8" opacity=".45"/><circle cx="86" cy="84" r="5.5" fill="#ff8fa8" opacity=".45"/>`;
+  if (t.acc === "bowler") top = `<path d="M40 38q0-18 20-18t20 18z" fill="#3b3b3b"/><ellipse cx="60" cy="38" rx="27" ry="5.5" fill="#2b2b2b"/><rect x="40" y="31" width="40" height="4" fill="#c0392b"/>`;
+  if (t.acc === "grad") top = `<g transform="rotate(-8 60 30)"><path d="M28 30l32-13 32 13-32 12z" fill="#3c3c3c"/><path d="M42 35v9q18 8 36 0v-9l-18 7z" fill="#2b2b2b"/><path d="M92 30v16" stroke="#ffc800" stroke-width="2.4"/><circle cx="92" cy="48" r="3.4" fill="#ffc800"/></g>`;
+  if (t.acc === "bow") top = `<path d="M60 26l-12-7v14zM60 26l12-7v14z" fill="#ff4b4b"/><circle cx="60" cy="26" r="3.4" fill="#ea2b2b"/>`;
+  let neck = "";
+  if (t.acc === "glasses") face += `<g fill="none" stroke="${ink}" stroke-width="2.6"><circle cx="46" cy="70" r="11"/><circle cx="74" cy="70" r="11"/><path d="M57 70h6"/></g>`;
+  if (t.acc === "tie") neck = `<path d="M54 104h12l-3 4 4 14-7 6-7-6 4-14z" fill="#ff4b4b"/>`;
+  if (t.acc === "scarf") neck = `<path d="M30 102q30 12 60 0l-2 9q-28 10-56 0z" fill="#1cb0f6"/><path d="M76 108l6 16-9 1-3-14z" fill="#1899d6"/>`;
+  const P = {
+    coin: `<g transform="translate(96 96)"><circle r="12" fill="#ffc800" stroke="#e5a400" stroke-width="3"/><text y="5" text-anchor="middle" font-size="13" font-weight="900" fill="#b07800" font-family="Nunito,sans-serif">Kč</text></g>`,
+    note: `<g transform="translate(84 92) rotate(-14)"><rect width="30" height="18" rx="3" fill="#58cc02" stroke="#46a302" stroke-width="2.4"/><circle cx="15" cy="9" r="4.5" fill="#d7ffb8"/></g>`,
+    pointer: `<path d="M96 104L116 74" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/><circle cx="116" cy="74" r="3.5" fill="#ff4b4b"/>`,
+    balloon: `<path d="M102 100q4-14 2-30" stroke="#777" stroke-width="1.6" fill="none"/><ellipse cx="106" cy="58" rx="11" ry="13" fill="#ff4b4b"/><path d="M106 52v10M102 56l4-4 4 4" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+    chart: `<g transform="translate(86 86) rotate(8)"><rect width="30" height="26" rx="4" fill="#fff" stroke="#1cb0f6" stroke-width="2.6"/><path d="M5 6c3 8 9 13 20 15" stroke="#ff4b4b" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`,
+    scale: `<g transform="translate(100 82)"><path d="M0 0v22M-12 4h24" stroke="#777" stroke-width="2.6" stroke-linecap="round"/><path d="M-16 14q4 6 8 0zM8 14q4 6 8 0z" fill="#ffc800" stroke="#e5a400" stroke-width="1.6"/><path d="M-12 4l-4 10M-12 4l4 10M12 4l-4 10M12 4l4 10" stroke="#999" stroke-width="1"/></g>`,
+  }[t.prop] || "";
+  return `<svg class="teacher ${cls}" viewBox="0 0 124 134" aria-label="${esc(t.n)}" role="img">
+<ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
+<g class="tb">${ears}
+<ellipse cx="60" cy="80" rx="42" ry="44" fill="${c}" ${K === "panda" ? `stroke="#e5e5e5" stroke-width="2"` : ""}/>
+<ellipse cx="60" cy="100" rx="26" ry="20" fill="${c2}"/>
+<ellipse cx="22" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(20 22 98)"/>
+<ellipse cx="98" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(-20 98 98)"/>
+<ellipse cx="44" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/><ellipse cx="76" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/>
+${neck}${eyes}${cheeks}${face}${top}${P}</g></svg>`;
+}
+function shade(hex, p) { const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.min(255, Math.round(v + 255 * p / 100))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(v => v.toString(16).padStart(2, "0")).join(""); }
+
 /* ---------- router ---------- */
 let SESSION = null;
 function nav(h) { if (location.hash === h) render(); else location.hash = h; }
@@ -515,25 +601,55 @@ function route() {
 }
 function setNav(k) { $$(".nav a").forEach(a => a.classList.toggle("on", a.dataset.k === k)); }
 /* ---------- horní lišta: jen statistiky (jako Duolingo) ---------- */
+/* ---------- horní lišta: série · kartičky · zkouška (klepnutím vysvětlí) ---------- */
 const SV = {
-  days: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2c3 5 9 8 9 16a9 9 0 0 1-18 0c0-4 2-7 4-9 0 3 1 5 3 6 0-5 1-9 2-13z" fill="#ff9600"/><path d="M16 15c2 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-4 2-5 0 2 1 2 2 3z" fill="#ffc800"/></svg>`,
+  flame: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2c3 5 9 8 9 16a9 9 0 0 1-18 0c0-4 2-7 4-9 0 3 1 5 3 6 0-5 1-9 2-13z" fill="currentColor"/><path d="M16 15c2 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-4 2-5 0 2 1 2 2 3z" fill="#ffc800"/></svg>`,
   cards: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="10" y="3" width="17" height="22" rx="4" fill="#a568cc" transform="rotate(10 18 14)"/><rect x="5" y="6" width="17" height="23" rx="4" fill="#ce82ff"/><path d="M10 15h7M10 20h4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>`,
-  ready: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" fill="#ffc800"/><circle cx="16" cy="16" r="9" fill="#fff"/><circle cx="16" cy="16" r="4.6" fill="#ffc800"/></svg>`,
+  cal: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="23" rx="5" fill="#ff4b4b"/><rect x="4" y="12" width="24" height="17" rx="4" fill="#fff" stroke="#ff4b4b" stroke-width="2.4"/><path d="M10 3v6M22 3v6" stroke="#ea2b2b" stroke-width="3" stroke-linecap="round"/><path d="M10 19h4M18 19h4M10 24h4" stroke="#ff4b4b" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  target: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" fill="#ffc800"/><circle cx="16" cy="16" r="9" fill="#fff"/><circle cx="16" cy="16" r="4.6" fill="#ffc800"/></svg>`,
 };
+SV.days = SV.flame; SV.ready = SV.target;
 function topbar(back = null, right = "") {
-  const rd = C ? Math.round(overallReady().score * 100) : 0; const n = Math.max(0, daysToExam()); const due = C ? dueIds().length : 0;
+  const n = Math.max(0, daysToExam()); const due = C ? dueIds().length : 0; const st = streak(); const lit = xpToday() > 0;
   const left = back ? `<button class="back" data-back="${esc(back)}">${ic.left}<span>Zpět</span></button>` : `<a class="brand" href="#/" aria-label="Penny">${ham("happy")}</a>`;
-  const stats = right || `<a class="stat-chip days" href="#/pripravenost" aria-label="Dní do zkoušky: ${n}">${SV.days}${n}</a>
-    <a class="stat-chip cards" href="#/karty" aria-label="Kartiček k opakování: ${due}">${SV.cards}${due}</a>
-    <a class="stat-chip ready" href="#/pripravenost" aria-label="Připravenost ${rd} %">${SV.ready}${rd}%</a>`;
+  const stats = right || `<button class="stat-chip streak ${lit ? "lit" : ""}" data-chip="streak" aria-label="Série ${st} dní">${SV.flame}${st}</button>
+    <button class="stat-chip cards" data-chip="cards" aria-label="Kartiček k opakování: ${due}">${SV.cards}${due}</button>
+    <button class="stat-chip exam" data-chip="exam" aria-label="Do zkoušky ${n} dní">${SV.cal}${n}</button>`;
   return `<div class="topbar">${left}<div class="sp"></div>${stats}</div>`;
 }
+function chipPop(kind, btn) {
+  const old = $(".chip-pop"); const same = old && old.dataset.k === kind; old?.remove(); $$(".stat-chip").forEach(b => b.classList.remove("open")); if (same) return;
+  let h = "";
+  if (kind === "streak") {
+    const st = streak(); const lit = xpToday() > 0; const D = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
+    const days = Array.from({ length: 7 }, (_, i) => addDays(today(), i - 6));
+    h = `<div class="cp-head">${SV.flame}<div><b>${st} ${plural(st, "den", "dny", "dní")} v řadě</b><span>${lit ? "Dnešek máš. Zítra pokračuj!" : "Dnes se ještě uč, ať série nevyhasne."}</span></div></div>
+      <div class="week">${days.map(d => `<div class="wd ${S.xp[d] ? "on" : ""} ${d === today() ? "now" : ""}"><span>${D[parseD(d).getDay()]}</span><i>${S.xp[d] ? SV.flame : ""}</i></div>`).join("")}</div>`;
+    const nm = missions().find(m => !m.done); if (!lit && nm) h += `<a class="btn block" href="${nm.href}">Učit se</a>`;
+  } else if (kind === "cards") {
+    const due = dueIds().length;
+    h = `<div class="cp-head">${SV.cards}<div><b>${due ? `${due} ${plural(due, "kartička čeká", "kartičky čekají", "kartiček čeká")}` : "Vše zopakováno"}</b><span>${due ? "Opakuj, dokud je to čerstvé." : "Další kartičky dozrají později."}</span></div></div>${due ? `<a class="btn block" style="--c:var(--purple);--lip:var(--purple-lip)" href="#/karty">Opakovat</a>` : ""}`;
+  } else {
+    const pct = Math.round(overallReady().score * 100); const d = parseD(S.examDate); const n = Math.max(0, daysToExam());
+    h = `<div class="cp-head">${SV.cal}<div><b>Zkouška ${d.getDate()}. ${d.getMonth() + 1}. · za ${n} ${plural(n, "den", "dny", "dní")}</b><span>Připravenost ${pct} % · ${levelOf(pct)}</span></div></div>
+      <div class="bar yellow" style="margin:4px 0 14px"><i style="width:${Math.max(3, pct)}%"></i></div><a class="btn block blue" href="#/pripravenost">Můj pokrok</a>`;
+  }
+  btn.classList.add("open");
+  const p = document.createElement("div"); p.className = "chip-pop"; p.dataset.k = kind; p.innerHTML = h;
+  btn.closest(".topbar").appendChild(p);
+  const r = btn.getBoundingClientRect(), tr = btn.closest(".topbar").getBoundingClientRect();
+  p.style.setProperty("--ax", (r.left + r.width / 2 - tr.left) + "px");
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-chip]"); if (c) { e.preventDefault(); chipPop(c.dataset.chip, c); return; }
+  if (!e.target.closest(".chip-pop")) { $(".chip-pop")?.remove(); $$(".stat-chip.open").forEach(b => b.classList.remove("open")); }
+});
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-back]"); if (b) { e.preventDefault(); history.length > 1 ? history.back() : nav(b.dataset.back); }
 });
 
 async function render() {
-  document.querySelectorAll(".feedback").forEach(f => f.remove());
+  document.querySelectorAll(".feedback,.praise,.chip-pop").forEach(f => f.remove());
   closeDrawer(); stopSpeak(); TTS.now = ""; document.querySelector(".viewer")?.remove();
   const { parts, q } = route();
   const r = parts[0] || "";
@@ -551,6 +667,7 @@ async function render() {
   document.body.classList.toggle("focus", !!focus);
   document.body.classList.toggle("tutor", r === "halir");
   document.body.classList.toggle("wide", ["grafy"].includes(r) && !focus);
+  document.body.classList.toggle("home-wide", r === "" || r === "mapa");
   (map[r] || viewToday)(parts, q);
   const v = view(); v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter");
   window.scrollTo(0, 0);
@@ -562,53 +679,100 @@ async function render() {
 /* =================================================================== */
 /* CESTA — domov jako v Duolingu                                        */
 /* =================================================================== */
-const ZIG = [0, 46, 70, 46, 0, -46, -70, -46];
+/* =================================================================== */
+/* CESTA — domov jako v Duolingu                                        */
+/* =================================================================== */
+const ZIG = [0, 70, 30];
 function viewToday() {
   if (!S.onboarded) return viewWelcome();
   const before = beforeStart(); const day = plan()[0]; const tIds = (!before && day?.ids) || [];
   const ids = lectures().map(l => l.id);
   const cur = tIds.find(id => !lectureRead(id)) || ids.find(id => !lectureRead(id));
   const ms = missions(); const next = ms.find(m => !m.done); const doneN = ms.filter(m => m.done).length;
-  let quest;
+  let quest = "";
   if (before) {
     const st = parseD(planStart()); const d = diffDays(today(), planStart());
-    quest = `<div class="quest">${SV.days}<div class="t"><b>Start ${st.getDate()}. ${st.getMonth() + 1}. · za ${d} ${plural(d, "den", "dny", "dní")}</b><span class="small muted">Klidně začni dřív.</span></div><button class="btn sm" id="early">Začít</button></div>`;
+    quest = `<div class="quest">${SV.cal}<div class="t"><b>Start ${st.getDate()}. ${st.getMonth() + 1}. · za ${d} ${plural(d, "den", "dny", "dní")}</b><span class="small muted">Klidně začni dřív.</span></div><button class="btn sm" id="early">Začít</button></div>`;
   } else if (ms.length) {
-    quest = `<a class="quest" href="${next ? next.href : "#/pripravenost"}">${SV.ready}<div class="t"><b>${next ? esc(next.t) : "Dnešek hotový!"}</b><div class="bar yellow"><i style="width:${doneN / ms.length * 100}%"></i></div></div><span class="small muted">${doneN}/${ms.length}</span></a>`;
-  } else quest = "";
-  let k = 0;
-  const node = (html, cls, uc) => `<div class="pnode ${cls}" style="--dx:${ZIG[k++ % ZIG.length]}px">${html}</div>`;
+    quest = `<a class="quest" href="${next ? next.href : "#/pripravenost"}">${SV.target}<div class="t"><b>${next ? esc(next.t) : "Dnešek hotový!"}</b><div class="bar yellow"><i style="width:${Math.max(4, doneN / ms.length * 100)}%"></i></div></div><span class="qn">${doneN}/${ms.length}</span></a>`;
+  }
   const units = C.units.map((u, ui) => {
+    const dir = ui % 2 ? -1 : 1; let k = 0;
+    const node = (html, cls) => `<div class="pnode ${cls}" style="--dx:${ZIG[k++ % ZIG.length] * dir}px">${html}</div>`;
     const lect = u.ids.map(id => {
       const l = LEC[id]; const rd = sectionsRead(id), ns = l.sections.length; const r = Math.round(readiness(id).score * 100);
-      const state = lectureRead(id) ? (r >= 85 ? "gold" : "done") : rd ? "started" : "fresh";
-      const isCur = id === cur;
-      const p = Math.round(rd / ns * 100);
-      return node(`${isCur ? `<span class="startbub">${rd ? "Dál" : "Start"}</span><span class="ring2" style="--p:${p}"></span>` : ""}
-        <button data-node="${id}" aria-label="${id} ${esc(l.title)}">${state === "done" || state === "gold" ? ic.check : `<b>${id}</b>`}</button><span class="label">${esc(l.title)}</span>`,
-        `${state === "fresh" && !isCur ? "fresh" : ""} ${state === "gold" ? "gold" : ""} ${isCur ? "cur" : ""}`);
+      const done = lectureRead(id), gold = done && r >= 85, isCur = id === cur;
+      const cls = gold ? "gold" : done ? "done" : isCur ? "cur" : rd ? "" : "fresh";
+      return node(`${isCur ? `<span class="startbub">${rd ? "Pokračuj" : "Start"}</span><span class="ring2" style="--p:${Math.round(rd / ns * 100)}"></span>` : ""}
+        <button data-node="${id}" aria-label="${id} ${esc(l.title)}">${done ? NODE_ICO.check : LEC_ICON[id] || `<b>${id}</b>`}${gold ? SPARK + SPARK.replace("spark", "spark s2") : ""}</button>
+        <span class="label">${esc(l.title)} <em>${id}</em></span>`, cls);
     }).join("");
-    const quiz = node(`<button data-node="u${ui}" aria-label="Kvíz jednotky">${ic.bolt}</button><span class="label">Kvíz</span>`, u.ids.some(id => sectionsRead(id)) ? "" : "fresh");
-    return `<section class="unit u${ui + 1}"><div class="unit-head"><div class="t"><span class="cap">Jednotka ${ui + 1}</span><b>${esc(u.title)}</b></div></div>
-      <div class="path">${lect}${quiz}</div></section>`;
+    const uq = S.uq?.[ui];
+    const quiz = node(`<button data-node="u${ui}" aria-label="Kvíz jednotky">${uq != null ? NODE_ICO.check : NODE_ICO.quiz}${uq >= 90 ? SPARK : ""}</button><span class="label">Kvíz jednotky</span>`,
+      uq >= 90 ? "gold" : uq != null ? "blue" : u.ids.some(id => sectionsRead(id)) ? "" : "fresh");
+    const gb = u.ids.find(id => !lectureRead(id)) || u.ids[0];
+    return `<section class="unit u${ui + 1}"><div class="unit-head"><div class="t"><span class="cap">Jednotka ${ui + 1}</span><b>${esc(u.title)}</b></div>
+        <a class="gb" href="#/lekce/${gb}" aria-label="Průvodce">${NODE_ICO.book}<span>Průvodce</span></a></div>
+      <div class="path">${lect}${quiz}
+        <button class="tspot ${dir > 0 ? "l" : "r"}" data-teacher="${ui}" aria-label="${esc(TEACHERS[ui].n)}">${teacher(ui, "idle")}</button></div></section>`;
   }).join("");
-  const exam = `<div class="path" style="padding-top:8px">${node(`<button data-node="exam" aria-label="Zkouška nanečisto">${ic.trophy}</button><span class="label">Zkouška nanečisto</span>`, "gold")}</div>`;
-  view().innerHTML = `${topbar()}${quest}${units}<section class="unit u1" style="--uc:var(--yellow);--ul:var(--yellow-lip)">${exam}</section>`;
+  const exam = `<section class="unit final"><div class="path"><div class="pnode gold big"><button data-node="exam" aria-label="Zkouška nanečisto">${NODE_ICO.quiz}${SPARK}</button><span class="label">Zkouška nanečisto</span></div>
+    <div class="tspot r static">${ham("happy", "idle")}</div></div></section>`;
+  view().innerHTML = `${topbar()}<div class="home"><div class="home-main">${quest}${units}${exam}</div>${homeRail(ms)}</div>`;
   const e = $("#early"); if (e) e.onclick = () => { S.startDate = today(); S.planFor = null; save(); confetti(); render(); };
   view().querySelectorAll("[data-node]").forEach(b => b.onclick = ev => { ev.stopPropagation(); nodePop(b); });
+  view().querySelectorAll("[data-teacher]").forEach(b => b.onclick = ev => { ev.stopPropagation(); teacherSay(b); });
   const c = view().querySelector(".pnode.cur"); if (c && !before) setTimeout(() => c.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+}
+function homeRail(ms) {
+  const st = streak(); const pct = Math.round(overallReady().score * 100); const due = dueIds().length;
+  const D = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"]; const days = Array.from({ length: 7 }, (_, i) => addDays(today(), i - 6));
+  return `<aside class="home-rail">
+    <div class="card rail-streak"><div class="cp-head">${SV.flame}<div><b>${st} ${plural(st, "den", "dny", "dní")} v řadě</b><span>${xpToday() ? "Dnešek máš!" : "Dnes se ještě uč."}</span></div></div>
+      <div class="week">${days.map(d => `<div class="wd ${S.xp[d] ? "on" : ""} ${d === today() ? "now" : ""}"><span>${D[parseD(d).getDay()]}</span><i>${S.xp[d] ? SV.flame : ""}</i></div>`).join("")}</div></div>
+    ${ms.length ? `<div class="card"><h3 style="margin-bottom:10px">Dnešní úkoly</h3>${ms.map(m => `<a class="rail-m ${m.done ? "done" : ""}" href="${m.href}"><span class="ico">${m.done ? NODE_ICO.check : m.ico}</span><b>${esc(m.t)}</b></a>`).join("")}</div>` : ""}
+    <a class="card rail-ready" href="#/pripravenost"><div class="ring big" style="--p:${pct};--rc:var(--yellow)"><span>${pct}%</span></div><div><b>Připravenost</b><span>${levelOf(pct)} · ${due} ${plural(due, "kartička", "kartičky", "kartiček")}</span></div></a>
+    <a class="card rail-penny" href="#/halir">${ham("happy", "idle")}<div><b>Zeptej se Penny</b><span>Nahlas nebo písemně</span></div></a>
+  </aside>`;
+}
+function teacherSay(b) {
+  $$(".tsay").forEach(x => x.remove()); const t = TEACHERS[+b.dataset.teacher];
+  b.insertAdjacentHTML("beforeend", `<span class="tsay"><b>${esc(t.n)}</b>${esc(t.hi)}</span>`);
+  b.querySelector(".teacher")?.classList.add("jump"); setTimeout(() => { b.querySelector(".teacher")?.classList.remove("jump"); $$(".tsay").forEach(x => x.remove()); }, 3200);
 }
 function nodePop(b) {
   const open = b.parentElement.querySelector(".pop"); $$(".pop").forEach(p => p.remove()); if (open) return;
   const key = b.dataset.node; let h;
-  if (key === "exam") h = `<b>Zkouška nanečisto</b><p>${EXAM_MC} otázek + esej</p><a class="btn block" href="#/zkouska">Start</a>`;
-  else if (key[0] === "u") { const u = C.units[+key.slice(1)]; h = `<b>Kvíz: ${esc(u.title)}</b><p>12 otázek</p><a class="btn block" href="#/kviz?u=${key.slice(1)}&n=12">Start</a>`; }
+  if (key === "exam") h = `<b>Zkouška nanečisto</b><p>${EXAM_MC} otázek + esej, jako ve škole</p><a class="btn block" href="#/zkouska">Start</a>`;
+  else if (key[0] === "u") { const ui = +key.slice(1), u = C.units[ui], uq = S.uq?.[ui]; h = `<b>Kvíz: ${esc(u.title)}</b><p>${uq != null ? `Nejlépe ${uq} % · zkus 90 % a víc` : "12 otázek z celé jednotky"}</p><a class="btn block" href="#/kviz?u=${ui}&n=12">${uq != null ? "Znovu" : "Start"}</a>`; }
   else {
-    const l = LEC[key]; const rd = sectionsRead(key), ns = l.sections.length;
-    h = lectureRead(key) ? `<b>${esc(l.title)}</b><p>Hotovo · připravenost ${Math.round(readiness(key).score * 100)} %</p><a class="btn block" href="#/karty?l=${key}">Opakovat</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`
+    const l = LEC[key]; const rd = sectionsRead(key), ns = l.sections.length; const r = Math.round(readiness(key).score * 100);
+    h = lectureRead(key) ? `<b>${esc(l.title)}</b><p>${r >= 85 ? "Zlatá úroveň! " : ""}Připravenost ${r} %</p><a class="btn block" href="#/karty?l=${key}">${r >= 85 ? "Udržet zlato" : "Opakovat"}</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`
       : `<b>${esc(l.title)}</b><p>Část ${rd + 1} z ${ns}</p><a class="btn block" href="#/uc/${key}">${rd ? "Pokračovat" : "Start"}</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`;
   }
   b.insertAdjacentHTML("afterend", `<div class="pop">${h}</div>`);
+}
+/* ---------- pochvala od učitele jednotky (max 3× denně) ---------- */
+const PRAISE = { 5: ["5 v řadě! Jsi v ráži.", "Pět správně za sebou. Tak se to dělá!", "5 v řadě! Tohle si pamatuješ."], 10: ["10 v řadě! To je úroveň na jedničku.", "Deset správně za sebou! Klobouk dolů.", "10 v řadě! Zkouška se může bát."] };
+function praise(lec, n) {
+  const d = today(); S.praise = S.praise?.d === d ? S.praise : { d, n: 0 };
+  if (S.praise.n >= 3) return false; S.praise.n++; save();
+  const ui = unitIdx(lec); const el = document.createElement("div"); el.className = "praise";
+  el.innerHTML = `${teacher(ui, "jump")}<div class="pb"><b>${esc(TEACHERS[ui].n)}</b>${esc(pick(PRAISE[n] || PRAISE[5]))}</div>`;
+  document.body.appendChild(el); sfx.done(); setTimeout(() => el.classList.add("out"), 2300); setTimeout(() => el.remove(), 2700);
+  return true;
+}
+function unitIntro(ui, go) {
+  const t = TEACHERS[ui], u = C.units[ui];
+  view().innerHTML = `<div class="welcome intro">${teacher(ui, "jump")}<span class="cap">Jednotka ${ui + 1}</span><h1>${esc(u.title)}</h1>
+    <div class="bubble"><b>${esc(t.n)}</b>${esc(t.hi)} Budu tě provázet ${u.ids.join(" a ")}.</div></div>
+    <div class="dock"><div class="dock-in"><button class="btn block big" id="introGo">Jdeme na to</button></div></div>`;
+  sfx.done();
+  $("#introGo").onclick = () => { S.seen = S.seen || {}; S.seen["u" + ui] = 1; save(); go(); };
+}
+function banner(cls, title, line, art) {
+  return `<div class="banner ${cls}"><div class="t"><h2>${title}</h2><p>${line}</p></div><div class="art">${art}</div>
+    <i class="arc"></i><i class="cloud c1"></i><i class="cloud c2"></i>${SPARK.replace("spark", "spark b1")}${SPARK.replace("spark", "spark b2")}</div>`;
 }
 document.addEventListener("click", e => { if (!e.target.closest(".pop,[data-node]")) $$(".pop").forEach(p => p.remove()); });
 function weakest() {
@@ -623,13 +787,13 @@ function countUp(el) {
   const step = t => { const k = Math.min(1, (t - t0) / 700); el.textContent = pre + Math.round(to * (1 - Math.pow(1 - k, 3))) + suf; if (k < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
-function endScreen({ mood = "happy", title, sub, boxes = [], r0, next, extra = "" }) {
+function endScreen({ mood = "happy", title, sub, boxes = [], r0, next, extra = "", who = null }) {
   const r1 = overallReady().score; const d = Math.round(r1 * 100) - Math.round((r0 ?? r1) * 100);
   const nm = missions().find(m => !m.done);
   const go = next || (nm ? { href: nm.href, label: "Pokračovat" } : { href: "#/", label: "Pokračovat" });
   const all = [...boxes, ["Posun", d, "y", d > 0 ? "+" : d < 0 ? "" : "±", " %"]].slice(0, 3);
   sfx.done(); confetti();
-  view().innerHTML = `<div class="done-screen">${ham(mood, "jump")}<div class="title">${esc(title)}</div>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
+  view().innerHTML = `<div class="done-screen">${who != null ? teacher(who, "jump") : ham(mood, "jump")}<div class="title">${esc(title)}</div>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
     <div class="statboxes">${all.map(([h, v, c, pre = "", suf = ""]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v"><span data-to="${v}" data-pre="${pre}" data-suf="${suf}">${pre}${v}${suf}</span></div></div>`).join("")}</div>
     ${!nm && !next ? `<p class="sub" style="margin-top:24px">Dnešek je hotový. ${esc(tomorrowLine())}.</p>` : ""}${extra}</div>
     <div class="dock"><div class="dock-in"><a class="btn block big" href="${go.href}">${esc(go.label)}</a></div></div>`;
@@ -642,8 +806,7 @@ function viewReadiness() {
   const o = overallReady(); const pct = Math.round(o.score * 100); const es = essayReady(); const p = plan(); const t = today();
   const rows = lectures().map(l => ({ l, r: readiness(l.id) })).sort((a, b) => a.r.score - b.r.score);
   view().innerHTML = `${topbar(null, `<a class="icon-btn" href="#/plan" aria-label="Nastavení">${ic.gear}</a>`)}
-    <div class="card" style="text-align:center"><div class="ring huge" style="--p:${pct};--rc:var(--yellow);margin:8px auto 12px"><span>${pct} %</span></div>
-      <h2>${levelOf(pct)}</h2><p class="muted small" style="margin-top:4px">Zkouška za ${Math.max(0, daysToExam())} ${plural(Math.max(0, daysToExam()), "den", "dny", "dní")} · eseje ${es.done}/${es.n}</p></div>
+    ${banner("c-green", `${pct} % připraveno`, `${levelOf(pct)} · zkouška za ${Math.max(0, daysToExam())} ${plural(Math.max(0, daysToExam()), "den", "dny", "dní")} · eseje ${es.done}/${es.n}`, teacher(5, "idle"))}
     <div class="sec-title"><h2>Plán</h2></div>
     <div class="card">${p.map(d => { const dd = parseD(d.date); const ty = DAYTYPE[d.type];
       return `<div class="dayrow ${d.date === t ? "is-today" : ""}"><div class="d">${dd.getDate()}.</div><div class="what"><b>${ty.name}</b><span>${d.ids.length ? d.ids.join(" · ") : d.date === t ? "dnes" : DOW[dd.getDay()]}</span></div></div>`; }).join("")}
@@ -661,7 +824,7 @@ function viewPractice() {
   const tile = (href, c, ico, t, s, badge) => `<a class="tile ${c}" href="${href}"><div class="t"><b>${t}</b><span>${s}</span></div>${badge ? `<span class="badge">${badge}</span>` : ""}<div class="pic">${ico}</div></a>`;
   const hero = due ? `<a class="tile hero c-purple" href="#/karty"><div class="t"><b>Kartičky</b><span>${due} ${plural(due, "čeká", "čekají", "čeká")} na zopakování</span></div><div class="pic">${ic.cards}</div></a>`
     : `<a class="tile hero c-blue" href="#/kviz?mix=1&n=10"><div class="t"><b>Rychlý kvíz</b><span>10 otázek ze všeho</span></div><div class="pic">${ic.bolt}</div></a>`;
-  view().innerHTML = `${topbar()}<h1 style="margin-bottom:16px">Procvičovat</h1>${hero}
+  view().innerHTML = `${topbar()}${banner("c-purple", "Procvičovat", "Krátce a často. Tak si to mozek uloží nejlíp.", ham("happy", "idle"))}${hero}
     <div class="sec-title"><h2>Všechno</h2></div>
     <div class="tiles">
       ${due ? tile("#/kviz?mix=1&n=10", "c-blue", ic.bolt, "Rychlý kvíz", "10 otázek ze všeho") : tile("#/karty", "c-purple", ic.cards, "Kartičky", "Vše zopakováno")}
@@ -766,6 +929,7 @@ function lectureTab(l, tab) {
 /* =================================================================== */
 function viewLearn(parts) {
   const id = parts[1]; const l = LEC[id]; if (!l) return nav("#/");
+  const ui = unitIdx(id); if (!S.seen?.["u" + ui] && !sectionsRead(id)) return unitIntro(ui, () => render());
   if (!SESSION || SESSION.kind !== "learn" || SESSION.id !== id) {
     const first = l.sections.findIndex(s => !S.read[s.id]);
     SESSION = { kind: "learn", id, si: first < 0 ? 0 : first, phase: "read", r0: overallReady().score, ok: 0, n: 0, t0: Date.now(), s0: first < 0 ? 0 : first };
@@ -800,7 +964,7 @@ function viewLearn(parts) {
       l.flashcards.filter(c => !S.cards[c.id]).forEach(c => { S.cards[c.id] = { reps: 0, ease: 2.4, ivl: 0, lapses: 0, due: Date.now() }; });
       save(); const r0 = st.r0; SESSION = null;
       const nNew = lecCards(id).filter(isDue).length;
-      endScreen({ title: `${id} hotovo!`, sub: l.title, r0,
+      endScreen({ title: `${id} hotovo!`, sub: l.title, r0, who: unitIdx(id),
         boxes: [["Přesnost", st.n ? Math.round(st.ok / st.n * 100) : 100, "g", "", " %"], ["Kartičky", nNew, "p"]],
         next: { href: `#/karty?l=${id}`, label: `Opakovat kartičky` } });
     }
@@ -842,7 +1006,7 @@ function renderQuestion(box, item, onNext, opts = {}) {
     recordQ(item, correct);
     correct ? sfx.right() : sfx.wrong();
     window._combo = correct ? (window._combo || 0) + 1 : 0;
-    if ([3, 5, 10, 15, 20].includes(window._combo)) { const p = document.createElement("div"); p.className = "streakpop"; p.textContent = `${window._combo} v řadě!`; document.body.appendChild(p); setTimeout(() => p.remove(), 1700); }
+    if ((window._combo === 5 || window._combo === 10) && praise(item.lec, window._combo)) { } else if ([3, 5, 10, 15, 20].includes(window._combo)) { const p = document.createElement("div"); p.className = "streakpop"; p.textContent = `${window._combo} v řadě!`; document.body.appendChild(p); setTimeout(() => p.remove(), 1700); }
     const rightTxt = item.t === "tf" ? (item.true ? "Pravda" : "Nepravda") : item.options[item.correct];
     const fb = document.createElement("div");
     fb.className = "feedback " + (correct ? "good" : "badf");
@@ -919,7 +1083,8 @@ function viewQuiz(parts, q) {
 }
 function quizDone(st) {
   const pct = Math.round(st.ok / st.total * 100); const mins = Math.max(1, Math.round((Date.now() - st.t0) / 60000));
-  const dt = doneToday(); if (st.m === "weak") dt.weak = 1; else dt.quiz = (dt.quiz || 0) + 1; save();
+  const dt = doneToday(); if (st.m === "weak") dt.weak = 1; else dt.quiz = (dt.quiz || 0) + 1;
+  const um = /[?&]u=(\d+)/.exec(st.key); if (um) { S.uq = S.uq || {}; S.uq[um[1]] = Math.max(S.uq[um[1]] ?? 0, pct); } save();
   const r0 = st.r0; SESSION = null;
   endScreen({ mood: pct >= 60 ? "happy" : "open", r0, title: pct >= 80 ? "Skvělá jízda!" : pct >= 50 ? "Dobrá práce!" : "Kvíz hotový!",
     boxes: [["Přesnost", pct, "g", "", " %"], ["Čas", mins, "b", "", " min"]] });
@@ -1094,7 +1259,7 @@ function viewEssays(parts) {
     renderEssay($("#ebox"), e, { minutes: 15 });
     return;
   }
-  view().innerHTML = `${topbar("#/procvic")}<h1>Esej</h1><p class="muted" style="margin:8px 0 16px">15 minut na čas, pak srovnání se vzorem.</p>
+  view().innerHTML = `${topbar("#/procvic")}${banner("c-orange", "Esej", "15 minut na čas, pak srovnání se vzorem.", teacher(1, "idle"))}
     <details class="card" style="margin-bottom:16px"><summary><b>Jak napsat esej na výbornou</b></summary><ol class="md small" style="margin-top:8px">
       <li><strong>Teze hned v první větě</strong> — odpověz na otázku, pak to rozveď.</li>
       <li><strong>Mechanismus řetězem</strong> „X ↑ → Y ↑ → Z ↓, protože…“ — za to jsou body.</li>
@@ -1561,7 +1726,15 @@ function slidesFor(answer) {
 const cleanAI = t => String(t || "").replace(/\[[a-z][a-z ,'’-]{1,30}\]\s*(?!\()/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 
 async function tutorStop() { const c = TUT.conv; TUT.conv = null; TUT.mode = "off"; document.body.classList.remove("in-call"); document.getElementById("callbar")?.remove(); if (c) { try { await c.endSession(); } catch (e) { } } }
-function tutorMsg(role, text) { if (role === "ai") text = cleanAI(text); if (!text) return; if (role === "me") TUT.lastQ = text; document.getElementById("chips")?.remove(); const m = { role, text }; if (role === "ai") { m.graph = graphFor(TUT.lastQ, text); m.slides = slidesFor(text); } TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } }
+function thinking(on) {
+  clearTimeout(TUT.thinkT); $$(".msg.typing").forEach(x => x.remove());
+  if (!on) return;
+  const ch = $("#chat"); if (!ch) return;
+  ch.insertAdjacentHTML("beforeend", `<div class="msg ai typing" aria-label="Penny přemýšlí"><i></i><i></i><i></i></div>`);
+  ch.lastElementChild.scrollIntoView({ block: "end", behavior: "smooth" }); tutorStatus("Penny přemýšlí…");
+  TUT.thinkT = setTimeout(() => thinking(false), 30000);
+}
+function tutorMsg(role, text) { if (role === "ai") { thinking(false); text = cleanAI(text); } if (!text) return; if (role === "me") TUT.lastQ = text; document.getElementById("chips")?.remove(); const m = { role, text }; if (role === "ai") { m.graph = graphFor(TUT.lastQ, text); m.slides = slidesFor(text); } TUT.msgs.push(m); if (role === "ai" && S.readAloud && TUT.mode !== "voice") speak(text); const ch = $("#chat"); if (ch) { ch.insertAdjacentHTML("beforeend", msgHTML(m)); const el = role === "ai" ? ch.querySelectorAll(".msg.ai")[ch.querySelectorAll(".msg.ai").length - 1] : ch.lastElementChild; el.scrollIntoView({ block: role === "ai" && text.length > 400 ? "start" : "end", behavior: "smooth" }); } if (role === "me" && AGENT_ID) thinking(true); }
 const aiMd = t => md(String(t).replace(/^[ \t]*\$([^$\n]+)\$[ \t]*$/gm, (_, f) => `$$${f}$$`));
 const msgHTML = m => `<div class="msg ${m.role}">${m.img ? `<img class="msg-img" src="${m.img}" alt="">` : m.file ? `<span class="msg-file">${ic.clip} ${esc(m.file)}</span>` : ""}${m.role === "ai" ? aiMd(m.text) : esc(m.text)}${m.graph || ""}${m.slides ? `<div class="msg-slides">${m.slides}</div>` : ""}</div>`;
 function tutorStatus(t) { const s = $("#tstat"); if (s) s.textContent = t; }
@@ -1572,12 +1745,12 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=20"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=21"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
       onMessage: m => { if ((m.role === "agent" || m.source === "ai") && textOnly && /^Ahoj(!| Aničko)/.test(m.message)) return; if (m.role === "agent" || m.source === "ai") tutorMsg("ai", m.message); else if (!textOnly && m.message) tutorMsg("me", m.message); },
-      onModeChange: ({ mode }) => { tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Penny mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
+      onModeChange: ({ mode }) => { if (mode === "speaking") thinking(false); tutorHam(mode === "speaking" ? "talk" : ""); tutorStatus(mode === "speaking" ? "Penny mluví…" : TUT.mode === "voice" ? "Poslouchám tě… klidně mě přeruš" : "Píšeme si"); },
       onError: (m) => { console.warn("penny", m); tutorStatus("Spojení vypadlo — zkus to znovu."); },
       onDisconnect: () => { TUT.conv = null; TUT.mode = "off"; tutorHam(""); syncVoiceBtn(); tutorStatus("Odpojeno"); },
     });
@@ -1656,7 +1829,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=20");
+  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=21");
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
