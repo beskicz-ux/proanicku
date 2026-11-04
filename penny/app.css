@@ -181,13 +181,13 @@ body.focus .app{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 .pop{position:absolute; top:calc(100% + 14px); left:calc(50% - var(--dx, 0px)); transform:translateX(-50%); z-index:15; width:min(300px, 86vw); padding:var(--s4); border-radius:var(--r); background:var(--uc); color:#fff; box-shadow:0 4px 0 var(--ul); animation:popin .18s var(--ease); text-align:left}
 .pop::before{content:""; position:absolute; bottom:100%; left:calc(50% + var(--dx, 0px)); margin-left:-10px; border:10px solid transparent; border-bottom-color:var(--uc)}
 .pop b{display:block; font-size:19px; line-height:1.2}
-.pop p{opacity:.9; margin:2px 0 var(--s3)}
+.pop p{opacity:.9; margin:4px 0 var(--s4)}
 .pop .btn{--c:#fff; --lip:rgba(0,0,0,.15); --t:var(--uc)}
-.pop .btn-text{color:#fff; min-height:40px}
+.pop .btn-text{display:flex; align-items:center; justify-content:center; width:100%; min-height:48px; margin-top:var(--s3); border:2px solid rgba(255,255,255,.55); border-radius:var(--r); color:#fff}
 .pnode.fresh .pop{background:var(--fill); color:var(--ink); box-shadow:0 4px 0 var(--line); border:2px solid var(--line)}
 .pnode.fresh .pop::before{border-bottom-color:var(--line)}
 .pnode.fresh .pop .btn{--c:var(--green); --lip:var(--green-lip); --t:#fff}
-.pnode.fresh .pop .btn-text{color:var(--blue-ink)}
+.pnode.fresh .pop .btn-text{color:var(--blue-ink); border-color:var(--line)}
 @keyframes popin{from{opacity:0; transform:translate(-50%, -6px) scale(.96)}}
 .path .mascot{position:absolute; width:110px; height:110px; pointer-events:none}
 

@@ -67,11 +67,17 @@ class AudioConcatProcessor extends AudioWorkletProcessor {
     this.currentBuffer = null;
     this.wasInterrupted = false;
     this.finished = false;
+    // Penny: jitter buffer so the start of each answer doesn't stutter
+    this.waiting = true;
+    this.queued = 0;
+    this.waitFrames = 0;
+    this.srcRate = 16000;
 
     this.port.onmessage = ({ data }) => {
       switch (data.type) {
         case "setFormat":
           this.format = data.format;
+          this.srcRate = data.sampleRate || 16000;
           if (globalThis.LibSampleRate && sampleRate !== data.sampleRate) {
             globalThis.LibSampleRate.create(
               1,
@@ -84,6 +90,7 @@ class AudioConcatProcessor extends AudioWorkletProcessor {
           break;
         case "buffer":
           this.wasInterrupted = false;
+          this.queued += data.buffer.byteLength / (this.format === "ulaw" ? 1 : 2);
           this.buffers.push(
             this.format === "ulaw"
               ? new Uint8Array(data.buffer)
@@ -98,6 +105,8 @@ class AudioConcatProcessor extends AudioWorkletProcessor {
             this.wasInterrupted = false;
             this.buffers = [];
             this.currentBuffer = null;
+            this.queued = 0;
+            this.waiting = true;
           }
       }
     };
@@ -105,13 +114,23 @@ class AudioConcatProcessor extends AudioWorkletProcessor {
   process(_, outputs) {
     let finished = false;
     const output = outputs[0][0];
+    if (this.waiting) {
+      if (this.queued > 0) {
+        this.waitFrames += output.length;
+        if (this.queued >= this.srcRate * 0.4 || this.waitFrames >= sampleRate * 0.6) { this.waiting = false; this.waitFrames = 0; }
+        else { output.fill(0); return true; }
+      } else this.waitFrames = 0;
+    }
     for (let i = 0; i < output.length; i++) {
       if (!this.currentBuffer) {
         if (this.buffers.length === 0) {
           finished = true;
+          this.waiting = true;
+          output.fill(0, i);
           break;
         }
         this.currentBuffer = this.buffers.shift();
+        this.queued = Math.max(0, this.queued - this.currentBuffer.length);
         if (this.resampler) {
           this.currentBuffer = this.resampler.full(this.currentBuffer);
         }

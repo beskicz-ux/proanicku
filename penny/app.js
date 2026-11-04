@@ -1572,7 +1572,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=20"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1656,7 +1656,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs");
+  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=20");
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
