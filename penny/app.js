@@ -815,12 +815,12 @@ function viewToday() {
       const l = LEC[id]; const rd = sectionsRead(id), ns = l.sections.length; const r = Math.round(readiness(id).score * 100);
       const done = lectureRead(id), gold = done && r >= 85, isCur = id === cur;
       const cls = gold ? "gold" : done ? "done" : isCur ? "cur" : rd ? "" : "fresh";
-      return node(`${isCur ? ZAP : ""}
+      return node(`<span class="ring2" style="--p:${r}"></span>${isCur ? ZAP : ""}
         <button data-node="${id}" aria-label="${id} ${esc(l.title)}">${done ? NODE_ICO.check : LEC_ICON[id] || `<b>${id}</b>`}${gold ? SPARK + SPARK.replace("spark", "spark s2") : ""}</button>
         <span class="label">${esc(l.title)} <em>${id}</em></span>`, cls);
     }).join("");
     const uq = S.uq?.[ui];
-    const quiz = node(`<button data-node="u${ui}" aria-label="Kvíz jednotky">${uq != null ? NODE_ICO.check : NODE_ICO.quiz}${uq >= 90 ? SPARK : ""}</button><span class="label">Kvíz jednotky</span>`,
+    const quiz = node(`<span class="ring2" style="--p:${uq || 0}"></span><button data-node="u${ui}" aria-label="Kvíz jednotky">${uq != null ? NODE_ICO.check : NODE_ICO.quiz}${uq >= 90 ? SPARK : ""}</button><span class="label">Kvíz jednotky</span>`,
       uq >= 90 ? "gold" : uq != null ? "blue" : u.ids.some(id => sectionsRead(id)) ? "" : "fresh");
     const gb = u.ids.find(id => !lectureRead(id)) || u.ids[0];
     return `<section class="unit u${ui + 1}"><div class="unit-head"><div class="t"><span class="cap">Jednotka ${ui + 1}</span><b>${esc(u.title)}</b></div>
@@ -850,6 +850,8 @@ function homeRail(ms) {
 function teacherSay(b) {
   $$(".tsay").forEach(x => x.remove()); const t = TEACHERS[+b.dataset.teacher];
   b.insertAdjacentHTML("beforeend", `<span class="tsay"><b>${esc(t.n)}</b>${esc(t.hi)}</span>`);
+  const sy = b.querySelector(".tsay"), r = sy.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+  if (r.right > vw - 10) sy.style.marginLeft = `${vw - 10 - r.right}px`; else if (r.left < 10) sy.style.marginLeft = `${10 - r.left}px`;
   b.querySelector(".teacher")?.classList.add("jump"); setTimeout(() => { b.querySelector(".teacher")?.classList.remove("jump"); $$(".tsay").forEach(x => x.remove()); }, 3200);
 }
 function nodePop(b) {
@@ -863,6 +865,7 @@ function nodePop(b) {
       : `<b>${esc(l.title)}</b><p>Část ${rd + 1} z ${ns}</p><a class="btn block" href="#/uc/${key}">${rd ? "Pokračovat" : "Start"}</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`;
   }
   b.insertAdjacentHTML("afterend", `<div class="pop">${h}</div>`);
+  const pp = b.parentElement.querySelector(".pop"); setTimeout(() => pp?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
 }
 /* ---------- pochvala od učitele jednotky (max 3× denně) ---------- */
 const PRAISE = { 5: ["5 v řadě! Jsi v ráži.", "Pět správně za sebou. Tak se to dělá!", "5 v řadě! Tohle si pamatuješ."], 10: ["10 v řadě! To je úroveň na jedničku.", "Deset správně za sebou! Klobouk dolů.", "10 v řadě! Zkouška se může bát."] };
@@ -1857,7 +1860,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=25"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=26"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1941,7 +1944,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=25"); }, 1200);
+  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=26"); }, 1200);
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>

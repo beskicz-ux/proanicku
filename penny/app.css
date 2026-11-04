@@ -702,3 +702,18 @@ details.card summary::-webkit-details-marker{display:none}
 
 .pnode.cur > button{animation:curglow 1.8s ease-in-out infinite}
 @keyframes curglow{0%,100%{filter:none} 50%{filter:brightness(1.1) drop-shadow(0 0 14px rgba(255,255,255,.55))}}
+
+/* kroužek kolem každé lekce = kolik toho umí (připravenost) */
+.pnode .ring2{position:absolute; top:-14px; left:50%; width:108px; height:108px; margin-left:-54px; border-radius:50%; pointer-events:none;
+  background:conic-gradient(var(--rc, var(--uc)) calc(var(--p) * 1%), var(--track) 0);
+  -webkit-mask:radial-gradient(circle, transparent 47px, #000 48px); mask:radial-gradient(circle, transparent 47px, #000 48px)}
+:root{--track:rgba(0,0,0,.08)}
+@media (prefers-color-scheme:dark){ :root{--track:rgba(255,255,255,.08)} }
+.pnode.gold .ring2{--rc:#ffc800}
+.pnode.blue .ring2{--rc:var(--blue)}
+.pnode.big .ring2{display:none}
+.pnode .label{margin-top:24px}
+.tsay{max-width:calc(100vw - 32px)}
+.tsay{animation:fadein .18s ease!important; transform:none!important}
+.pop{scroll-margin-bottom:calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); scroll-margin-top:calc(var(--top-h) + 16px)}
+.unit.final .path{padding-bottom:200px}
