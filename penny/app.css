@@ -717,3 +717,6 @@ details.card summary::-webkit-details-marker{display:none}
 .tsay{animation:fadein .18s ease!important; transform:none!important}
 .pop{scroll-margin-bottom:calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); scroll-margin-top:calc(var(--top-h) + 16px)}
 .unit.final .path{padding-bottom:200px}
+/* v27: no glow on the next lesson (the ring shows progress); labels clear the ring */
+.pnode.cur > button{animation:none!important; filter:none!important}
+.pnode .label,.pnode.cur .label{margin-top:26px}
