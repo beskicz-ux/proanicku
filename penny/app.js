@@ -995,7 +995,7 @@ function viewLecture(parts, q) {
   const ui = C.units.findIndex(u => u.ids.includes(id)); const [uc, ul] = UNIT_C[ui] || UNIT_C[0];
   const due = lecCards(id).filter(c => !S.cards[c] || isDue(c)).length;
   const cta = !lectureRead(id) ? `<a class="btn block big" href="#/uc/${id}">${rd ? "Pokračovat" : "Start"}</a>`
-    : `<div class="grid2"><a class="btn big" href="#/karty?l=${id}">Kartičky${due ? ` · ${due}` : ""}</a><a class="btn blue big" href="#/kviz?l=${id}&n=12">Kvíz</a></div>`;
+    : `<div class="grid2"><a class="btn big nowrap" href="#/karty?l=${id}">Kartičky${due ? ` <span class="cnt">${due}</span>` : ""}</a><a class="btn blue big" href="#/kviz?l=${id}&n=12">Kvíz</a></div>`;
   view().innerHTML = `${topbar("#/")}
     <div class="guide-head" style="--uc:${uc};--ul:${ul}"><div class="t"><span class="cap">Přednáška ${id} · ${rd}/${ns}</span><h1>${esc(l.title)}</h1></div><div class="ring big" style="--p:${r}"><span>${r}%</span></div></div>
     ${cta}
@@ -1399,7 +1399,7 @@ function viewQuestions(parts, q) {
     if (e) { history.replaceState(null, "", "#/otazka/" + e.id); return viewFeynman(["otazka", e.id], q); }
   }
   const qs = Object.values(EXQ).filter(e => !l || e.lec === l);
-  view().innerHTML = `${topbar("#/")}<h1>Vysvětli to Penny</h1><p class="muted" style="margin:8px 0 16px">Zkouškové otázky. Nejlepší způsob, jak zjistit, jestli látce rozumíš: vysvětli ji vlastními slovy, jako bys ji učila křečka.</p>
+  view().innerHTML = `${topbar("#/procvic")}<h1>Vysvětli to Penny</h1><p class="muted" style="margin:8px 0 16px">Zkouškové otázky. Vysvětli je vlastními slovy.</p>
     <div class="tabs"><a class="tab ${!l ? "on" : ""}" href="#/otazky">Vše</a>${lectures().map(x => `<a class="tab ${l === x.id ? "on" : ""}" href="#/otazky?l=${x.id}">${x.id}</a>`).join("")}</div>
     ${qs.map(e => { const f = S.feyn[e.id]; return `<a class="hit" href="#/otazka/${e.id}"><b>${mdi(e.q)}</b><span>${e.lec} · ${f ? `naposledy ${Math.round(f.score * 100)} %` : "nezkoušeno"}</span></a>`; }).join("")}`;
 }
@@ -1570,7 +1570,7 @@ function viewCheat() {
   const dt = doneToday(); if (!dt.tahak) { dt.tahak = 1; addXP(20); save(); }
   view().innerHTML = `${topbar("#/")}<h1>Tahák celého kurzu</h1>
     <p class="muted" style="margin:8px 0 16px">Nejdřív si řekni, o čem přednáška je. Pak čti.</p>
-    ${lectures().map(l => `<details class="card dark" style="margin-bottom:12px"><summary style="cursor:pointer"><b>${l.id} · ${esc(l.title)}</b> <span class="small dim">${Math.round(mastery(l.id) * 100)} % upevněno</span></summary>
+    ${lectures().map(l => `<details class="card dark" style="margin-bottom:12px"><summary style="cursor:pointer"><span><b>${l.id} · ${esc(l.title)}</b><span class="small dim" style="display:block;font-weight:700">${Math.round(mastery(l.id) * 100)} % upevněno</span></span></summary>
       <div class="md" style="margin-top:12px">${md(l.bigPicture)}</div>
       ${l.formulas?.length ? `<p class="cap" style="margin-top:16px">Vzorce</p>` + l.formulas.map(f => `<div class="formula"><b>${esc(f.name)}</b><div class="f">${md("$$" + f.tex + "$$")}</div></div>`).join("") : ""}
       ${l.lists?.length ? `<p class="cap" style="margin-top:16px">Vyjmenuj</p>` + l.lists.map(x => `<div style="margin:8px 0"><b class="small">${esc(x.title)}</b><div class="md small">${x.items.map(i => mdi(i)).join(" · ")}</div></div>`).join("") : ""}
@@ -1638,7 +1638,7 @@ function slider(id, label, min, max, step, val, hint) {
 function viewGraphs(parts, q) {
   GL.tab = q.get("g") || GL.tab;
   view().innerHTML = `${topbar("#/procvic")}<h1>Grafy</h1>
-    <div class="tabs">${[["is", "IS křivka"], ["mp", "MP křivka"], ["ad", "AD–AS model"]].map(([k, n]) => `<button class="tab ${GL.tab === k ? "on" : ""}" data-g="${k}">${n}</button>`).join("")}</div>
+    <div class="tabs">${[["is", "IS"], ["mp", "MP"], ["ad", "AD–AS"]].map(([k, n]) => `<button class="tab ${GL.tab === k ? "on" : ""}" data-g="${k}">${n}</button>`).join("")}</div>
     <div class="graph-lab"><div class="graph" id="gsvg"></div><div class="graph-side"><div class="card" id="gctl"></div><div class="explain md" id="gexp"></div></div></div>
     <div style="margin-top:12px">${askBtn("Vysvětli mi, jak se v tomhle modelu posouvají křivky a proč.", GL.tab === "is" ? "5A IS křivka" : GL.tab === "mp" ? "5B MP křivka" : "6A Model AS-AD")}</div>`;
   bindAsk();
@@ -1860,7 +1860,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=27"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=28"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1944,7 +1944,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=27"); }, 1200);
+  if (AGENT_ID && !window._elMod) setTimeout(() => { window._elMod ||= import("./vendor/elevenlabs.mjs?v=28"); }, 1200);
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
@@ -1996,7 +1996,7 @@ function openDrawer(ctx, pre, shown) {
       ${readBtn()}<button class="icon-btn" id="dClose" aria-label="Zavřít">${ic.x}</button></div>
     <div class="chat" id="chat">${TUT.msgs.length ? TUT.msgs.map(msgHTML).join("") : `<div class="msg sys">Napiš otázku, nebo zmáčkni mikrofon a mluv se mnou nahlas.</div>`}</div>
     <div class="att-preview drawer-att" hidden></div><div class="drawer-compose"><button class="voice-mini" data-voice aria-label="Mluvit s Penny">${ic.mic}</button>${attachBtn()}
-      <textarea id="tin" rows="1" placeholder="Zeptej se na cokoli…" enterkeyhint="send"></textarea><button class="send ready" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
+      <textarea id="tin" rows="1" placeholder="Napiš otázku…" enterkeyhint="send"></textarea><button class="send ready" id="tsend" aria-label="Odeslat">${ic.send}</button></div>`;
   document.body.appendChild(d); document.body.classList.add("drawer-open");
   const tin = $("#tin", d);
   $("#dClose", d).onclick = closeDrawer;

@@ -720,3 +720,8 @@ details.card summary::-webkit-details-marker{display:none}
 /* v27: no glow on the next lesson (the ring shows progress); labels clear the ring */
 .pnode.cur > button{animation:none!important; filter:none!important}
 .pnode .label,.pnode.cur .label{margin-top:26px}
+/* v28 QA fixes */
+@media (max-width:380px){ .back span{display:none} .stat-chip{padding:0 6px; gap:4px; font-size:17px} .stat-chip svg{width:26px; height:26px} }
+@media (min-width:700px){ .tutor-bar .chips{flex-wrap:wrap; overflow:visible; margin:0; padding:0} .tutor-bar .chip{white-space:normal} }
+.btn.nowrap{white-space:nowrap; gap:8px}
+.btn .cnt{display:inline-grid; place-items:center; min-width:26px; height:26px; padding:0 7px; border-radius:13px; background:rgba(255,255,255,.28); font-size:14px}
