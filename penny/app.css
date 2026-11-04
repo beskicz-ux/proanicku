@@ -168,7 +168,7 @@ body.focus .app{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 @media (max-width:420px){ .unit-head .gb span{display:none} .unit-head .gb{padding:0 12px} }
 .unit.u1{--uc:var(--green); --ul:var(--green-lip)} .unit.u2{--uc:#ce82ff; --ul:#a568cc} .unit.u3{--uc:#00cd9c; --ul:#00a47d}
 .unit.u4{--uc:#ff9600; --ul:#e58700} .unit.u5{--uc:#1cb0f6; --ul:#1899d6} .unit.u6{--uc:#ff4b4b; --ul:#ea2b2b}
-.path{position:relative; display:flex; flex-direction:column; align-items:center; gap:26px; padding:64px 0 var(--s5)}
+.path{position:relative; display:flex; flex-direction:column; align-items:center; gap:34px; padding:64px 0 var(--s6)}
 .pnode:has(.pop){z-index:20}
 .pnode.cur .label{margin-top:22px}
 .pnode{position:relative; transform:translateX(var(--dx, 0)); display:flex; flex-direction:column; align-items:center}
@@ -188,8 +188,8 @@ body.focus .app{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 .pnode .spark.s2{top:auto; bottom:14px; left:auto; right:12px; width:11px; height:11px; animation-delay:2.1s}
 @keyframes spark{0%,70%,100%{transform:scale(0) rotate(0)} 80%{transform:scale(1) rotate(45deg)} 90%{transform:scale(.4) rotate(90deg)}}
 .pnode .ring2{position:absolute; top:-13px; left:50%; width:96px; height:96px; margin-left:-48px; border-radius:50%; background:conic-gradient(var(--uc) calc(var(--p) * 1%), var(--line) 0); -webkit-mask:radial-gradient(circle, transparent 47px, #000 48px); mask:radial-gradient(circle, transparent 47px, #000 48px); pointer-events:none}
-.pnode .label{margin-top:var(--s3); font-size:15px; font-weight:800; color:var(--ink); max-width:170px; text-align:center; line-height:1.25}
-.pnode .label em{font-style:normal; color:var(--wolf); font-weight:800; font-size:13px; padding:1px 6px; border:2px solid var(--line); border-radius:8px; margin-left:2px; white-space:nowrap}
+.pnode .label{margin-top:14px; font-size:14px; font-weight:800; color:var(--ink); max-width:150px; text-align:center; line-height:1.25}
+.pnode .label em{font-style:normal; color:var(--hare); font-weight:800; font-size:11px; padding:0 5px; border:1.5px solid var(--line); border-radius:6px; margin-left:3px; white-space:nowrap; vertical-align:1px}
 .pnode.fresh .label{color:var(--wolf)}
 .pnode .startbub{position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%); padding:8px 14px; border:2px solid var(--line); border-radius:var(--r-sm); background:var(--bg); color:var(--uc); font-weight:800; font-size:15px; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; animation:bob 1.6s ease-in-out infinite}
 .pnode .startbub::after{content:""; position:absolute; top:100%; left:50%; margin-left:-8px; border:8px solid transparent; border-top-color:var(--line)}
@@ -585,7 +585,7 @@ details.card summary::-webkit-details-marker{display:none}
 .teacher .eyes{transform-origin:60px 70px; animation:blink 5s infinite}
 @keyframes tbob{50%{transform:translateY(-5px)}}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)} 97%{transform:scaleY(.1)}}
-.tsay{position:absolute; bottom:calc(100% - 6px); left:50%; transform:translateX(-50%); width:200px; padding:10px 12px; border:2px solid var(--line); border-radius:var(--r-sm); background:var(--bg); color:var(--ink-strong); font-size:14px; font-weight:700; line-height:1.35; text-align:left; animation:popin .18s var(--ease); z-index:3}
+.tsay{position:absolute; bottom:calc(100% - 4px); left:4px; width:min(220px, calc(100vw - 48px)); padding:10px 12px; border:2px solid var(--line); border-radius:var(--r-sm); background:var(--bg); color:var(--ink-strong); font-size:14px; font-weight:700; line-height:1.35; text-align:left; animation:popin .18s var(--ease); z-index:3}
 .tsay b{display:block; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--wolf)}
 @media (max-width:400px){ .tspot{width:104px; height:112px} }
 
@@ -662,3 +662,55 @@ details.card summary::-webkit-details-marker{display:none}
 }
 @media (min-width:1000px) and (max-width:1099px){ body.wide .app{max-width:900px} }
 @media (min-width:700px){ .tiles{display:grid; grid-template-columns:1fr 1fr} }
+
+/* ---- loop scenes beside the path ---- */
+.tspot:has(.scene){width:196px}
+.tspot.r .teacher.scene{transform:scaleX(-1)}
+.tspot.l{left:max(-8px, calc(50% - 250px))} .tspot.r{right:max(-8px, calc(50% - 250px))}
+@media (max-width:400px){ .tspot{height:116px} .tspot:has(.scene){width:170px} }
+.welcome.intro .teacher.scene{width:290px; height:198px}
+.scene *{transform-box:fill-box}
+.sc0 .gun{transform-origin:10% 70%; animation:recoil .6s ease-out infinite}
+@keyframes recoil{0%{transform:rotate(-6deg)} 12%{transform:rotate(-18deg) translateX(-3px)} 45%,100%{transform:rotate(-6deg)}}
+.sc0 .bill{transform-origin:center; opacity:0; animation:billfly 2.4s linear infinite}
+@keyframes billfly{0%{opacity:1; transform:translate(0,0) rotate(0)} 35%{opacity:1; transform:translate(26px,-34px) rotate(-40deg)} 100%{opacity:0; transform:translate(44px,34px) rotate(200deg)}}
+.sc1 .lever,.sc2 .lever{transform-origin:50% 100%; animation:lever 1.4s ease-in-out infinite}
+@keyframes lever{0%,100%{transform:rotate(-22deg)} 50%{transform:rotate(22deg)}}
+.sc1 .press{transform-origin:50% 100%; animation:press 1.4s ease-in-out infinite}
+@keyframes press{0%,40%,100%{transform:scale(1,1)} 50%{transform:scale(1.04,.94)} 60%{transform:scale(.98,1.03)}}
+.sc1 .pnote{opacity:0; animation:pnote 1.4s ease-in infinite}
+@keyframes pnote{0%,45%{opacity:0; transform:translateX(-14px)} 55%{opacity:1} 75%{opacity:1; transform:translateX(4px)} 100%{opacity:0; transform:translate(8px,14px) rotate(12deg)}}
+.sc2 .rb{transform-origin:50% 100%; animation:rbar 1.8s ease-in-out infinite}
+@keyframes rbar{0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)}}
+.sc2 .knob{transform-origin:center; animation:knob 3.6s ease-in-out infinite}
+@keyframes knob{0%,100%{transform:rotate(-60deg)} 50%{transform:rotate(60deg)}}
+.sc2 .led{animation:led 1s steps(2) infinite}
+@keyframes led{50%{fill:#ff4b4b}}
+.sc3 .pump{animation:pump .5s ease-in-out infinite}
+@keyframes pump{50%{transform:translateY(10px)}}
+.sc3 .balloon{transform-origin:50% 100%; animation:balloon 3.2s ease-in infinite}
+@keyframes balloon{0%{transform:scale(.3); opacity:1} 84%{transform:scale(1.15); opacity:1} 88%{transform:scale(1.5); opacity:0} 100%{transform:scale(.3); opacity:0}}
+.sc3 .burst{opacity:0; animation:burst 3.2s linear infinite}
+@keyframes burst{0%,85%{opacity:0} 88%{opacity:1} 96%,100%{opacity:0}}
+.sc4 .draw{stroke-dasharray:60; stroke-dashoffset:60; animation:draw 3.6s ease-in-out infinite}
+.sc4 .draw.d2{animation-delay:.9s}
+@keyframes draw{0%{stroke-dashoffset:60; opacity:1} 40%,80%{stroke-dashoffset:0; opacity:1} 95%,100%{stroke-dashoffset:0; opacity:0}}
+.sc4 .marker{animation:marker 3.6s ease-in-out infinite}
+@keyframes marker{0%,100%{transform:translate(0,0)} 20%{transform:translate(8px,-10px)} 40%{transform:translate(18px,-4px)} 60%{transform:translate(10px,-20px)}}
+.sc5 .beam{transform-origin:50% 0%; animation:beam 2.8s ease-in-out infinite}
+.sc5 .pan{transform-origin:50% 0%; animation:pan 2.8s ease-in-out infinite}
+@keyframes beam{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
+@keyframes pan{0%,100%{transform:rotate(12deg)} 50%{transform:rotate(-12deg)}}
+.sc5 .tb{animation:sway 2.8s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)}}
+.flipcoin{position:absolute; left:50%; top:-6px; width:30px; height:30px; margin-left:-15px; animation:coinflip 1.8s cubic-bezier(.3,0,.6,1) infinite}
+.flipcoin svg{width:100%; height:100%}
+@keyframes coinflip{0%,100%{transform:translateY(20px) rotateY(0)} 45%{transform:translateY(-34px) rotateY(540deg)} 70%{transform:translateY(16px) rotateY(720deg)}}
+
+.tspot.r .tsay{left:auto; right:4px}
+.tspot{top:200px}
+.tspot .tsay{z-index:25}
+.tspot:has(.tsay){z-index:24}
+@media (max-width:480px){ .unit-head .gb span{display:none} .unit-head .gb{padding:0 12px} }
+.pnode.fresh > button{background:linear-gradient(118deg, transparent 0 34%, rgba(255,255,255,.22) 34% 50%, transparent 50%), var(--line)}
+@media (prefers-color-scheme:dark){ .pnode.fresh > button{background:linear-gradient(118deg, transparent 0 34%, rgba(255,255,255,.07) 34% 50%, transparent 50%), var(--line)} }

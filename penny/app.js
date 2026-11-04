@@ -542,7 +542,7 @@ const TEACHERS = [
   { n: "Panda Rovnováha", kind: "panda", c: "#ffffff", c2: "#f1f1f1", acc: "grad", prop: "scale", hi: "Ahoj! Spolu najdeme rovnováhu v AS–AD." },
 ];
 const unitIdx = lec => Math.max(0, C.units.findIndex(u => u.ids.includes(lec)));
-function teacher(i, cls = "") {
+function teacher(i, cls = "", scene = false) {
   const t = TEACHERS[i % TEACHERS.length]; const K = t.kind, c = t.c, c2 = t.c2, ink = "#2b2b2b";
   const dark = K === "panda" ? ink : shade(c, -28);
   let ears = "", face = "", top = "";
@@ -579,7 +579,8 @@ function teacher(i, cls = "") {
     chart: `<g transform="translate(86 86) rotate(8)"><rect width="30" height="26" rx="4" fill="#fff" stroke="#1cb0f6" stroke-width="2.6"/><path d="M5 6c3 8 9 13 20 15" stroke="#ff4b4b" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`,
     scale: `<g transform="translate(100 82)"><path d="M0 0v22M-12 4h24" stroke="#777" stroke-width="2.6" stroke-linecap="round"/><path d="M-16 14q4 6 8 0zM8 14q4 6 8 0z" fill="#ffc800" stroke="#e5a400" stroke-width="1.6"/><path d="M-12 4l-4 10M-12 4l4 10M12 4l-4 10M12 4l4 10" stroke="#999" stroke-width="1"/></g>`,
   }[t.prop] || "";
-  return `<svg class="teacher ${cls}" viewBox="0 0 124 134" aria-label="${esc(t.n)}" role="img">
+  const SC = scene ? SCENES[i % SCENES.length] : "";
+  return `<svg class="teacher ${cls} ${scene ? "scene sc" + i : ""}" viewBox="${scene ? "0 0 196 134" : "0 0 124 134"}" aria-label="${esc(t.n)}" role="img">
 <ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
 <g class="tb">${ears}
 <ellipse cx="60" cy="80" rx="42" ry="44" fill="${c}" ${K === "panda" ? `stroke="#e5e5e5" stroke-width="2"` : ""}/>
@@ -587,8 +588,45 @@ function teacher(i, cls = "") {
 <ellipse cx="22" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(20 22 98)"/>
 <ellipse cx="98" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(-20 98 98)"/>
 <ellipse cx="44" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/><ellipse cx="76" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/>
-${neck}${eyes}${cheeks}${face}${top}${P}</g></svg>`;
+${neck}${eyes}${cheeks}${face}${top}${scene ? "" : P}</g>${SC}</svg>`;
 }
+
+/* Smyčkové scénky učitelů vedle cesty (jako postavičky v Duolingu) */
+const BILL = (x, y, d) => `<g class="bill" style="animation-delay:${d}s"><rect x="${x}" y="${y}" width="20" height="11" rx="2" fill="#7ed957" stroke="#46a302" stroke-width="1.6"/><circle cx="${x + 10}" cy="${y + 5.5}" r="2.6" fill="#46a302"/></g>`;
+const SCENES = [
+  // 0 Bára: pistole na peníze
+  `<g class="gun"><rect x="94" y="86" width="36" height="14" rx="4" fill="#58cc02"/><rect x="126" y="88" width="11" height="10" rx="2" fill="#46a302"/><rect x="99" y="97" width="10" height="15" rx="3" fill="#46a302"/><circle cx="113" cy="93" r="4" fill="#ffc800"/><path d="M98 90h10" stroke="#a5ed6e" stroke-width="2.5" stroke-linecap="round"/></g>
+   ${BILL(134, 86, 0)}${BILL(134, 86, .6)}${BILL(134, 86, 1.2)}${BILL(134, 86, 1.8)}`,
+  // 1 Emil: tiskárna peněz
+  `<g class="press"><rect x="106" y="80" width="48" height="38" rx="7" fill="#8a9ba3"/><rect x="106" y="80" width="48" height="11" rx="6" fill="#6b7c85"/><rect x="152" y="98" width="5" height="12" rx="2" fill="#4b5a62"/><circle cx="118" cy="104" r="4" fill="#ffc800"/><circle cx="130" cy="104" r="4" fill="#ff4b4b"/></g>
+   <g class="lever"><path d="M130 81V60" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/><circle cx="130" cy="58" r="6" fill="#ff4b4b"/></g>
+   <g class="pnote"><rect x="155" y="100" width="22" height="12" rx="2" fill="#7ed957" stroke="#46a302" stroke-width="1.6"/><circle cx="166" cy="106" r="2.6" fill="#46a302"/></g>
+   <rect x="160" y="120" width="24" height="4" rx="1" fill="#7ed957" stroke="#46a302"/><rect x="161" y="116" width="24" height="4" rx="1" fill="#7ed957" stroke="#46a302"/>`,
+  // 2 Repo: ovládací pult sazeb
+  `<rect x="104" y="66" width="62" height="54" rx="8" fill="#4b4b4b"/><rect x="110" y="72" width="50" height="26" rx="4" fill="#10303f"/>
+   <rect class="rb" x="116" y="78" width="8" height="18" rx="2" fill="#1cb0f6"/><rect class="rb" style="animation-delay:.3s" x="128" y="78" width="8" height="18" rx="2" fill="#58cc02"/><rect class="rb" style="animation-delay:.6s" x="140" y="78" width="8" height="18" rx="2" fill="#ffc800"/>
+   <g class="knob"><circle cx="122" cy="109" r="7" fill="#ffc800"/><path d="M122 109v-6" stroke="#4b4b4b" stroke-width="2.5" stroke-linecap="round"/></g>
+   <g class="lever"><path d="M150 112V96" stroke="#afafaf" stroke-width="4" stroke-linecap="round"/><circle cx="150" cy="94" r="5.5" fill="#ff4b4b"/></g>
+   <circle class="led" cx="160" cy="110" r="3" fill="#58cc02"/>`,
+  // 3 Infla: pumpa a nafukující se balónek
+  `<path d="M126 116q20 6 26-20" stroke="#4b4b4b" stroke-width="3" fill="none"/>
+   <rect x="112" y="94" width="16" height="26" rx="4" fill="#1cb0f6"/><rect x="108" y="118" width="24" height="5" rx="2" fill="#1899d6"/>
+   <g class="pump"><rect x="118" y="78" width="4" height="18" fill="#777"/><rect x="106" y="74" width="28" height="6" rx="3" fill="#4b4b4b"/></g>
+   <g class="balloon"><ellipse cx="154" cy="66" rx="15" ry="18" fill="#ff4b4b"/><ellipse cx="148" cy="59" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M151 84h6l-3 4z" fill="#ea2b2b"/></g>
+   <g class="burst" stroke="#ffc800" stroke-width="3" stroke-linecap="round"><path d="M154 40v-8M134 50l-6-5M174 50l6-5M134 82l-6 5M174 82l6 5"/></g>`,
+  // 4 Křivka: tabule, na které se kreslí křivka
+  `<path d="M112 98l-6 26M156 98l6 26" stroke="#8a5a2b" stroke-width="3.5" stroke-linecap="round"/>
+   <rect x="100" y="40" width="68" height="60" rx="5" fill="#fff" stroke="#c7c7c7" stroke-width="3"/>
+   <path d="M108 48v44h54" stroke="#4b4b4b" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+   <path class="draw" d="M114 52c6 20 18 32 42 36" stroke="#ff4b4b" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+   <path class="draw d2" d="M114 86c14-6 28-18 40-34" stroke="#1cb0f6" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+   <g class="marker"><rect x="100" y="94" width="18" height="6" rx="2" fill="#ffc800" transform="rotate(-35 100 94)"/></g>`,
+  // 5 Rovnováha: váhy AS a AD
+  `<path d="M140 120V72" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/><path d="M128 122h24" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+   <g class="beam"><path d="M114 70h52" stroke="#4b4b4b" stroke-width="4" stroke-linecap="round"/><circle cx="140" cy="70" r="4" fill="#ffc800"/>
+     <g class="pan l"><path d="M114 70l-7 16M114 70l7 16" stroke="#999" stroke-width="1.4"/><path d="M104 86h20q-2 8-10 8t-10-8z" fill="#ffc800"/><circle cx="114" cy="82" r="5" fill="#1cb0f6"/></g>
+     <g class="pan r"><path d="M166 70l-7 16M166 70l7 16" stroke="#999" stroke-width="1.4"/><path d="M156 86h20q-2 8-10 8t-10-8z" fill="#ffc800"/><circle cx="166" cy="82" r="5" fill="#ff4b4b"/></g></g>`,
+];
 function shade(hex, p) { const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.min(255, Math.round(v + 255 * p / 100))); return "#" + [f(n >> 16), f(n >> 8 & 255), f(n & 255)].map(v => v.toString(16).padStart(2, "0")).join(""); }
 
 /* ---------- router ---------- */
@@ -714,10 +752,10 @@ function viewToday() {
     return `<section class="unit u${ui + 1}"><div class="unit-head"><div class="t"><span class="cap">Jednotka ${ui + 1}</span><b>${esc(u.title)}</b></div>
         <a class="gb" href="#/lekce/${gb}" aria-label="Průvodce">${NODE_ICO.book}<span>Průvodce</span></a></div>
       <div class="path">${lect}${quiz}
-        <button class="tspot ${dir > 0 ? "l" : "r"}" data-teacher="${ui}" aria-label="${esc(TEACHERS[ui].n)}">${teacher(ui, "idle")}</button></div></section>`;
+        <button class="tspot ${dir > 0 ? "l" : "r"}" data-teacher="${ui}" aria-label="${esc(TEACHERS[ui].n)}">${teacher(ui, "idle", true)}</button></div></section>`;
   }).join("");
   const exam = `<section class="unit final"><div class="path"><div class="pnode gold big"><button data-node="exam" aria-label="Zkouška nanečisto">${NODE_ICO.quiz}${SPARK}</button><span class="label">Zkouška nanečisto</span></div>
-    <div class="tspot r static">${ham("happy", "idle")}</div></div></section>`;
+    <div class="tspot r static">${ham("happy", "idle")}<span class="flipcoin"><svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="#ffc800" stroke="#e5a400" stroke-width="3"/><path d="M11 10h6a3 3 0 0 1 0 6h-6v6M11 10v6" stroke="#b07800" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></span></div></div></section>`;
   view().innerHTML = `${topbar()}<div class="home"><div class="home-main">${quest}${units}${exam}</div>${homeRail(ms)}</div>`;
   const e = $("#early"); if (e) e.onclick = () => { S.startDate = today(); S.planFor = null; save(); confetti(); render(); };
   view().querySelectorAll("[data-node]").forEach(b => b.onclick = ev => { ev.stopPropagation(); nodePop(b); });
@@ -764,7 +802,7 @@ function praise(lec, n) {
 }
 function unitIntro(ui, go) {
   const t = TEACHERS[ui], u = C.units[ui];
-  view().innerHTML = `<div class="welcome intro">${teacher(ui, "jump")}<span class="cap">Jednotka ${ui + 1}</span><h1>${esc(u.title)}</h1>
+  view().innerHTML = `<div class="welcome intro">${teacher(ui, "idle", true)}<span class="cap">Jednotka ${ui + 1}</span><h1>${esc(u.title)}</h1>
     <div class="bubble"><b>${esc(t.n)}</b>${esc(t.hi)} Budu tě provázet ${u.ids.join(" a ")}.</div></div>
     <div class="dock"><div class="dock-in"><button class="btn block big" id="introGo">Jdeme na to</button></div></div>`;
   sfx.done();
@@ -1745,7 +1783,7 @@ async function tutorStart(textOnly) {
   if (TUT.conv) await tutorStop();
   TUT.busy = true; tutorStatus("Penny se připojuje…");
   try {
-    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=21"));
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=22"));
     const conv = await Conversation.startSession({
       agentId: AGENT_ID, connectionType: "websocket", textOnly: !!textOnly,
       dynamicVariables: { tema: TUT.ctx || "celý kurz Měnová teorie a politika", jmeno: "Anička", rezim: textOnly ? "psaný chat" : "hlasový hovor" },
@@ -1829,7 +1867,7 @@ async function tutorSend(text, shown) {
 function viewTutor(parts, q) {
   const ctx = q.get("ctx"); const pre = q.get("q");
   if (ctx && ctx !== TUT.ctx) { tutorStop(); TUT.ctx = ctx; }
-  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=21");
+  if (AGENT_ID) window._elMod ||= import("./vendor/elevenlabs.mjs?v=22");
   const has = TUT.msgs.length > 0;
   view().innerHTML = `${topbar("#/", readBtn())}
     <div class="tutor-hero ${has ? "compact" : ""}">${ham("happy", "idle")}<h2>Zeptej se Penny</h2>
