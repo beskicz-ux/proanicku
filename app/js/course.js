@@ -4,6 +4,7 @@ import { t, lang, setLang, itemCount, errText } from "./i18n.js";
 import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
+import { viewVoice } from "./voice.js";
 
 const DAY = 86400000;
 export const TUTORS = [
@@ -99,10 +100,11 @@ async function loadCourse(slug) {
   if (sess.slug !== slug) throw Object.assign(new Error("no_session"), { status: 401 });
   TOKEN = sess.token;
   if (C && SLUG === slug) return;
-  const r = await api("course", { session: TOKEN });
+  const [r, voice] = await Promise.all([api("course", { session: TOKEN }), api("voice_status", { session: TOKEN }).catch(() => null)]);
   const cr = await fetch(r.url);
   if (!cr.ok) throw new Error("server");
   C = await cr.json(); SLUG = slug; STUDENT = r.student;
+  if (voice) C.meta.voice = voice.enabled;
   ITEM = {}; LESSON = {};
   for (const l of allLessons()) { LESSON[l.id] = l; for (const it of l.items) { it._l = l.id; ITEM[it.id] = it; } }
   S = Object.assign(defaults(), store.get(lsKey(), {}));
@@ -125,6 +127,7 @@ export async function courseRoute(parts, nav, render) {
   if (!sub) return viewPath();
   if (sub === "practice") return viewPractice();
   if (sub === "progress") return viewProgress();
+  if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(STUDENT?.tutor || C.meta.tutor, "bob"), topbar: topbar(), onOut: () => { store.del("session"); nav("#/login"); } });
   if (sub === "lesson") return startLesson(arg);
   if (sub === "review") return startReview(arg);
   nav("#/s/" + slug);
@@ -136,6 +139,7 @@ function setTabs(slug, sub) {
   n.hidden = inSession;
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
+    if (k === "hlas") { a.hidden = !C?.meta.voice; a.href = `#/s/${slug}/voice`; a.setAttribute("aria-label", t("navVoice")); a.classList.toggle("on", sub === "voice"); return; }
     a.href = k === "cesta" ? `#/s/${slug}` : k === "procvic" ? `#/s/${slug}/practice` : `#/s/${slug}/progress`;
     a.setAttribute("aria-label", t(k === "cesta" ? "navPath" : k === "procvic" ? "navPractice" : "navProgress"));
     a.classList.toggle("on", (k === "cesta" && !sub) || (k === "procvic" && sub === "practice") || (k === "pokrok" && sub === "progress"));

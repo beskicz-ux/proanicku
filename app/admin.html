@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Penny admin</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pc.css">
+<style>
+  body{background:var(--bg)}
+  .ad{max-width:1100px; margin:0 auto; padding:var(--s4) var(--gutter) var(--s7)}
+  .ad h1{font-size:24px; font-weight:900; color:var(--ink-strong); margin:var(--s4) 0}
+  .ad h2{font-size:18px; font-weight:900; color:var(--ink-strong); margin:var(--s5) 0 var(--s2)}
+  .ad-login{display:flex; flex-direction:column; gap:var(--s3); max-width:360px}
+  .ad-login input,.ad-new{font:inherit; font-weight:700; padding:var(--s3); border:2px solid var(--line); border-radius:var(--r-sm); background:var(--fill); color:var(--ink)}
+  .ad-scroll{overflow-x:auto; border:2px solid var(--line); border-radius:var(--r)}
+  .ad table{border-collapse:collapse; width:100%; font-size:14px; color:var(--ink)}
+  .ad th{font-weight:800; text-align:left; color:var(--wolf); white-space:nowrap}
+  .ad th,.ad td{padding:var(--s2) var(--s3); border-bottom:1px solid var(--line); vertical-align:top}
+  .ad tr:last-child td{border-bottom:0}
+  .ad td button{font:inherit; font-size:13px; font-weight:800; padding:2px var(--s2); margin:0 var(--s1) var(--s1) 0; border:2px solid var(--line); border-radius:8px; background:var(--bg); color:var(--blue-ink); cursor:pointer}
+  .ad-code{font-weight:900; letter-spacing:.1em; color:var(--ink-strong); user-select:all}
+  .ad-err{color:var(--red-ink); font-weight:800}
+  .ad-muted{color:var(--wolf)}
+  .ad-note{margin:var(--s3) 0; padding:var(--s3); border:2px solid var(--green); border-radius:var(--r-sm); font-weight:700; color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="ad" id="ad"></div>
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

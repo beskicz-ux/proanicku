@@ -1,6 +1,6 @@
 // Router, landing, invite, onboarding, store, wait page, login.
 import { $, $$, view, esc, store, api, today, addDays, fmtDate, ic, toast, confetti, sfx } from "./util.js";
-import { t, lang, setLang, errText, days as daysTxt, pages as pagesTxt, hours as hoursTxt, fileCount } from "./i18n.js";
+import { t, lang, setLang, errText, days as daysTxt, pages as pagesTxt, hours as hoursTxt, fileCount, lessonCount, minutesLeft } from "./i18n.js";
 import { ham } from "./art.js";
 import { forecast, scenarios, countPages, validFile, daysBetween } from "./forecast.js";
 import { courseRoute, tutorArt, TUTORS } from "./course.js";
@@ -260,18 +260,45 @@ async function viewStore() {
 
 /* ---------- wait page ---------- */
 let waitTimer = null;
+const STAGE_STEP = { outline: 1, lessons: 2, checking: 2, publishing: 3 };
+const buildMinutes = pages => Math.max(3, Math.round(pages / 12) + 2); // same formula as scripts/gen/cost.mjs
+function stepsHtml(status, build) {
+  const stage = build?.progress?.stage;
+  const active = status === "building" && STAGE_STEP[stage] ? STAGE_STEP[stage] : { paid_test: 1, draft: 1, building: 2, ready: 4, failed: 1 }[status] ?? 1;
+  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
+}
+// What's being built, how long it should take, and which lesson it's on.
+function buildHtml(status, build) {
+  if (!build || status === "ready" || status === "failed") return "";
+  const p = status === "building" ? build.progress : null, pages = p?.pages || build.pages || 0;
+  const stale = p && build.progressAge > 180;
+  const files = build.files.length ? `<ul class="pc-build-files">${build.files.slice(0, 3).map(f => `<li>${esc(f)}</li>`).join("")}${build.files.length > 3 ? `<li>+${build.files.length - 3}</li>` : ""}</ul>` : "";
+  const time = stale ? t("buildStale") : p ? (p.etaSeconds > 0 ? minutesLeft(p.etaSeconds) : t("buildAlmost")) : status === "building" ? t("buildTotal").replace("%", buildMinutes(pages)) : t("buildQueued").replace("%", buildMinutes(pages));
+  const pct = p?.total ? Math.round(p.done / p.total * 100) : 0;
+  const lessons = p?.lessons || [];
+  return `<div class="pc-build"><span>${t("buildWhat")}</span>
+    ${p?.title ? `<b>${esc(p.title)}</b>` : ""}
+    <p>${[build.files.length ? fileCount(build.files.length) : "", pages ? pagesTxt(pages) : "", lessons.length ? lessonCount(lessons.length) : ""].filter(Boolean).join(" · ")}</p>
+    ${lessons.length ? "" : files}
+    <p class="pc-build-time">${time}</p>
+    ${p ? `<div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><p class="pc-build-stage">${t("buildStage_" + p.stage)}</p>` : ""}
+    ${lessons.length ? `<ul class="pc-build-lessons">${lessons.map(l => `<li class="${l.done ? "done" : ""}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
 async function viewWait() {
   hideNav();
   const s = session(); if (!s) return nav("#/login");
-  const paint = (status, student) => {
+  let painted = null;
+  const paint = (status, student, build) => {
+    if (painted === status && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(status, build) + buildHtml(status, build); return; } // keeps the mascot animation running
+    painted = status;
     const code = store.get("code");
     const tutor = student?.tutor || "penny";
-    const active = { paid_test: 1, draft: 1, building: 2, ready: 4, failed: 1 }[status] ?? 1;
     const ready = status === "ready", failed = status === "failed";
     view().innerHTML = `<div class="pc-wait"><div class="pc-land-top"><span class="pc-badge">${t("testBadge")}</span>${langToggle()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutorArt(tutor, "bob")}</div>
       <h1>${t(ready ? "waitReady" : failed ? "waitFailed" : "waitTitle")}</h1><p class="pc-sub">${t(ready ? "waitReadySub" : failed ? "waitFailedSub" : "waitSub")}</p>
-      ${failed ? "" : `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`}
+      ${failed ? "" : `<div id="pcLive">${stepsHtml(status, build) + buildHtml(status, build)}</div>`}
       ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn ghost sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
       </div>${ready ? `<div class="dock"><div class="dock-in"><a class="btn block big" href="#/s/${esc(s.slug)}" id="startCourse">${t("waitStart")}</a></div></div>` : ""}`;
     bindLang();
@@ -284,12 +311,12 @@ async function viewWait() {
     try {
       const r = await api("status", { session: s.token });
       if (r.status === "ready" && store.get("readySeen") === s.slug) return nav("#/s/" + s.slug);
-      paint(r.status, r.student);
+      paint(r.status, r.student, r.build);
       if (r.status === "ready") { store.set("readySeen", s.slug); confetti(); sfx.done(); return; }
     } catch (e) {
       if (e.status === 401) { store.del("session"); return nav("#/login"); }
     }
-    waitTimer = setTimeout(poll, 15000);
+    waitTimer = setTimeout(poll, 10000);
   };
   if (store.get("readySeen") !== s.slug) paint("paid_test", null);
   poll();
