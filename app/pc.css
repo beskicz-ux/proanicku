@@ -21,6 +21,7 @@ body{background:var(--bg)}
 .pc-lang button{min-width:44px; min-height:40px; border:0; background:none; color:var(--wolf); font:800 14px var(--font); cursor:pointer}
 .pc-lang button.on{background:var(--blue-soft); color:var(--blue-ink)}
 .pc-hero{width:170px; margin:var(--s4) auto var(--s3)}
+.pc-wait .pc-hero{min-height:170px}
 .pc-hero svg{width:100%; height:auto; display:block}
 .bob{animation:pcbob 2.6s ease-in-out infinite}
 @keyframes pcbob{50%{transform:translateY(-8px)}}
@@ -170,3 +171,6 @@ body{background:var(--bg)}
 .pc-set > div{display:flex; justify-content:space-between; align-items:center; min-height:48px; font-weight:700; color:var(--ink)}
 .pc-set > div + div{border-top:2px solid var(--line)}
 @media (prefers-reduced-motion:reduce){.bob,.pc-steps li.now i{animation:none}}
+/* Screens without the menu: base.css reserves its space on desktop, so give it back and keep them centred. */
+@media (min-width:1000px){body:has(#nav[hidden]){padding-left:0}}
+@media (min-width:700px){.pc-wait{max-width:480px; margin-inline:auto} .pc-steps{width:fit-content; margin-inline:auto}}

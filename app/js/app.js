@@ -265,7 +265,7 @@ const buildMinutes = pages => Math.max(3, Math.round(pages / 12) + 2); // same f
 function stepsHtml(status, build) {
   const stage = build?.progress?.stage;
   const active = status === "building" && STAGE_STEP[stage] ? STAGE_STEP[stage] : { paid_test: 1, draft: 1, building: 2, ready: 4, failed: 1 }[status] ?? 1;
-  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
+  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 && status !== "paid_test" ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
 }
 // What's being built, how long it should take, and which lesson it's on.
 function buildHtml(status, build) {
@@ -290,13 +290,13 @@ async function viewWait() {
   const s = session(); if (!s) return nav("#/login");
   let painted = null;
   const paint = (status, student, build) => {
-    if (painted === status && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(status, build) + buildHtml(status, build); return; } // keeps the mascot animation running
-    painted = status;
+    const tutor = student ? student.tutor || "penny" : null, key = status + tutor;
+    if (painted === key && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(status, build) + buildHtml(status, build); return; } // keeps the mascot animation running
+    painted = key;
     const code = store.get("code");
-    const tutor = student?.tutor || "penny";
     const ready = status === "ready", failed = status === "failed";
     view().innerHTML = `<div class="pc-wait"><div class="pc-land-top"><span class="pc-badge">${t("testBadge")}</span>${langToggle()}</div>
-      <div class="pc-hero ${ready ? "" : "working"}">${tutorArt(tutor, "bob")}</div>
+      <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
       <h1>${t(ready ? "waitReady" : failed ? "waitFailed" : "waitTitle")}</h1><p class="pc-sub">${t(ready ? "waitReadySub" : failed ? "waitFailedSub" : "waitSub")}</p>
       ${failed ? "" : `<div id="pcLive">${stepsHtml(status, build) + buildHtml(status, build)}</div>`}
       ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn ghost sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
