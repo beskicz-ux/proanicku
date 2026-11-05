@@ -1,0 +1,149 @@
+/* Onboarding, store, wait page and the two new item types. Uses the tokens from base.css (Penny's design rules). */
+.nav[hidden]{display:none}
+body{background:var(--bg)}
+.app.no-dock{padding-bottom:var(--s6)}
+.pc-step{padding:var(--s4) 0 calc(96px + env(safe-area-inset-bottom))}
+.pc-step h1,.pc-center h1,.pc-land h1,.pc-wait h1{font-size:26px; font-weight:900; color:var(--ink-strong); line-height:1.2; margin:0}
+.pc-sub{color:var(--wolf); font-size:17px; font-weight:600; margin:var(--s2) 0 var(--s4)}
+.pc-sub.small{font-size:15px; margin:var(--s1) 0 0}
+.pc-h2{font-size:19px; font-weight:800; margin:var(--s5) 0 var(--s3); color:var(--ink-strong)}
+.pc-note{color:var(--wolf); font-size:14px; font-weight:600; margin-top:var(--s4)}
+.pc-err{color:var(--red-ink); font-weight:800; margin:var(--s3) 0 0}
+.pc-total{font-weight:800; color:var(--ink); margin-top:var(--s3)}
+.pc-inline{font-weight:800; color:var(--orange); font-size:18px; margin-top:var(--s3); text-align:center}
+
+/* landing */
+.pc-land,.pc-wait{padding:var(--s3) 0 var(--s6); display:flex; flex-direction:column; align-items:center; text-align:center}
+.pc-wait{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+.pc-land-top{width:100%; display:flex; justify-content:space-between; align-items:center; min-height:44px}
+.pc-badge{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--orange); border:2px solid var(--line); border-radius:var(--r-sm); padding:6px 10px}
+.pc-lang{display:inline-flex; border:2px solid var(--line); border-radius:var(--r-sm); overflow:hidden}
+.pc-lang button{min-width:44px; min-height:40px; border:0; background:none; color:var(--wolf); font:800 14px var(--font); cursor:pointer}
+.pc-lang button.on{background:var(--blue-soft); color:var(--blue-ink)}
+.pc-hero{width:170px; margin:var(--s4) auto var(--s3)}
+.pc-hero svg{width:100%; height:auto; display:block}
+.bob{animation:pcbob 2.6s ease-in-out infinite}
+@keyframes pcbob{50%{transform:translateY(-8px)}}
+.pc-how{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s2); width:100%; margin:var(--s2) 0 var(--s5)}
+.pc-how div{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:13px; font-weight:800; color:var(--ink); line-height:1.2}
+.pc-how b{width:36px; height:36px; border-radius:50%; background:var(--blue-soft); color:var(--blue-ink); display:grid; place-items:center; font-size:16px}
+.pc-land-cta{width:100%; display:flex; flex-direction:column; gap:var(--s3)}
+
+/* code forms */
+.pc-center{padding:var(--s5) 0; text-align:center}
+.pc-center .ham,.pc-small{width:110px; height:auto; display:block; margin:0 auto var(--s3)}
+.pc-center-art{margin:var(--s3) 0 var(--s4)}
+.pc-input{width:100%; min-height:56px; border:2px solid var(--line); border-radius:var(--r); background:var(--fill); color:var(--ink-strong); font:800 18px var(--font); padding:0 var(--s4); margin-bottom:var(--s3)}
+.pc-input:focus{outline:none; border-color:var(--blue)}
+.pc-input.code{text-align:center; letter-spacing:.14em; text-transform:uppercase; font-size:22px}
+#f .btn{margin-top:var(--s3)}
+
+/* upload */
+.pc-drop{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s2); min-height:150px; border:2px dashed var(--hare); border-radius:var(--r); color:var(--blue-ink); cursor:pointer; background:var(--fill)}
+.pc-drop.over{border-color:var(--blue); background:var(--blue-soft)}
+.pc-drop svg{width:40px; height:40px}
+.pc-drop b{font-size:17px; font-weight:800}
+.pc-file{display:flex; align-items:center; gap:var(--s3); padding:var(--s3); border:2px solid var(--line); border-radius:var(--r-sm); margin-top:var(--s3)}
+.pc-file > svg{width:26px; height:26px; flex:none; color:var(--wolf)}
+.pc-file .t{flex:1; min-width:0}
+.pc-file b{display:block; color:var(--ink-strong); font-size:15px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pc-file span{font-size:13px; color:var(--wolf); font-weight:700}
+.pc-file .x{width:44px; height:44px; border:0; background:none; color:var(--hare); cursor:pointer; display:grid; place-items:center; flex:none}
+.pc-file .x svg{width:22px; height:22px}
+.pc-file .bar{height:10px; margin-top:6px}
+
+/* teachers */
+.pc-tutors{display:grid; grid-template-columns:repeat(2,1fr); gap:var(--s3)}
+.pc-tutor{display:flex; flex-direction:column; align-items:center; gap:4px; padding:var(--s3); border:2px solid var(--line); border-bottom-width:4px; border-radius:var(--r); background:var(--card); font-family:var(--font); cursor:pointer; color:var(--ink)}
+.pc-tutor svg{width:90px; height:90px}
+.pc-tutor b{font-size:17px; font-weight:800; color:var(--ink-strong)}
+.pc-tutor span{font-size:13px; font-weight:600; color:var(--wolf); line-height:1.25}
+.pc-tutor.sel{border-color:var(--blue); background:var(--blue-soft)}
+.pc-tutor:first-child{grid-column:1 / -1}
+
+/* time and forecast */
+.pc-lbl{display:flex; justify-content:space-between; font-size:15px; font-weight:800; color:var(--ink); margin:var(--s4) 0 var(--s2)}
+.pc-lbl b{color:var(--blue-ink); font-size:19px}
+.pc-slider{width:100%; height:32px; accent-color:var(--blue)}
+.pc-days{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
+.pc-days button{min-height:48px; border:2px solid var(--line); border-bottom-width:4px; border-radius:var(--r-sm); background:var(--card); color:var(--ink); font:800 17px var(--font); cursor:pointer}
+.pc-days button.on{background:var(--blue-soft); border-color:var(--blue); color:var(--blue-ink)}
+.pc-fchead{font-size:19px; font-weight:800; color:var(--ink-strong); margin:var(--s5) 0 var(--s3); line-height:1.25}
+.pc-fc{border:2px solid var(--line); border-radius:var(--r); padding:var(--s4); --mc:var(--green)}
+.pc-fc b{display:block; font-size:19px; font-weight:900; color:var(--ink-strong); margin-top:var(--s3)}
+.pc-fc span{font-size:15px; font-weight:600; color:var(--wolf)}
+.meter{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+.meter i{height:14px; border-radius:7px; background:var(--line); transition:background .25s var(--ease)}
+.pc-fc.red,.meter.red{--mc:var(--red)} .pc-fc.orange,.meter.orange{--mc:var(--orange)} .pc-fc.blue,.meter.blue{--mc:var(--blue)} .pc-fc.green,.meter.green{--mc:var(--green)}
+.meter i.on{background:var(--mc)}
+.pc-prep{grid-column:1 / -1; margin-top:var(--s2); height:10px}
+.pc-prep.red > i{background:var(--red)} .pc-prep.orange > i{background:var(--orange)} .pc-prep.blue > i{background:var(--blue)} .pc-prep.green > i{background:var(--green)}
+.pc-fcnums{margin-top:var(--s3)}
+.pc-step .sbox{animation:none}
+.pc-compare{margin-top:var(--s4); display:flex; flex-direction:column; gap:var(--s2)}
+.pc-row{display:grid; grid-template-columns:1fr auto; gap:0 var(--s3); text-align:left; padding:var(--s3); border:2px solid var(--line); border-bottom-width:4px; border-radius:var(--r-sm); background:var(--card); font-family:var(--font); cursor:pointer; color:var(--ink)}
+.pc-row.you{border-bottom-width:2px; background:var(--fill); cursor:default}
+.pc-row b{display:block; font-size:15px; font-weight:800; color:var(--ink-strong)}
+.pc-row span{font-size:13px; font-weight:700; color:var(--wolf)}
+.pc-row .r{display:flex; flex-direction:column; text-align:right}
+
+/* store */
+.pc-testmode{background:var(--yellow-soft); border:2px solid var(--yellow); border-radius:var(--r-sm); padding:var(--s3); font-size:14px; font-weight:800; color:var(--ink-strong); margin:var(--s3) 0}
+.pc-recap{display:flex; align-items:center; gap:var(--s3); border:2px solid var(--line); border-radius:var(--r); padding:var(--s3); margin-bottom:var(--s4)}
+.pc-recap svg{width:72px; height:72px; margin:0; flex:none}
+.pc-recap b{display:block; color:var(--ink-strong); font-weight:800}
+.pc-recap span{display:block; font-size:14px; font-weight:600; color:var(--wolf)}
+.pc-plans{display:flex; flex-direction:column; gap:var(--s4)}
+.pc-plan{position:relative; border:2px solid var(--line); border-radius:var(--r); padding:var(--s4)}
+.pc-plan.best{border-color:var(--green)}
+.pc-best{position:absolute; top:-13px; left:var(--s4); background:var(--green); color:#fff; border-radius:var(--r-sm); padding:3px 10px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase}
+.pc-plan h2{font-size:19px; font-weight:800; color:var(--ink-strong); margin:0}
+.pc-plan .price{font-size:30px; font-weight:900; color:var(--ink-strong); margin:var(--s1) 0 var(--s3)}
+.pc-plan ul{list-style:none; padding:0; margin:0 0 var(--s4); display:flex; flex-direction:column; gap:var(--s2)}
+.pc-plan li{display:flex; gap:var(--s2); font-size:15px; font-weight:600; color:var(--ink)}
+.pc-plan li svg{width:20px; height:20px; color:var(--green); flex:none; margin-top:1px}
+
+/* wait */
+.pc-steps{list-style:none; padding:0; margin:var(--s2) 0 var(--s4); width:100%; display:flex; flex-direction:column; gap:var(--s2); text-align:left}
+.pc-steps li{display:flex; align-items:center; gap:var(--s3); font-weight:800; color:var(--hare); font-size:16px}
+.pc-steps i{width:32px; height:32px; border-radius:50%; background:var(--line); display:grid; place-items:center; color:#fff; font-style:normal; font-size:14px; flex:none}
+.pc-steps i svg{width:18px; height:18px}
+.pc-steps li.done{color:var(--ink-strong)} .pc-steps li.done i{background:var(--green)}
+.pc-steps li.now{color:var(--blue-ink)} .pc-steps li.now i{background:var(--blue); animation:pcpulse 1.4s ease-in-out infinite}
+@keyframes pcpulse{50%{transform:scale(1.12)}}
+.pc-code{width:100%; border:2px solid var(--line); border-radius:var(--r); padding:var(--s4); display:flex; flex-direction:column; align-items:center; gap:var(--s2)}
+.pc-code span{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--wolf)}
+.pc-code b{font-size:30px; font-weight:900; letter-spacing:.12em; color:var(--ink-strong); user-select:all}
+.pc-code small{font-size:14px; font-weight:600; color:var(--wolf)}
+
+/* course */
+.pc-title h1{font-size:24px; font-weight:800; color:var(--ink-strong); margin:var(--s2) 0 var(--s3)}
+.pc-say{display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s3)}
+.pc-mini{width:64px; height:64px; flex:none}
+.pc-say .bubble{border:2px solid var(--line); border-radius:var(--r); padding:var(--s2) var(--s3); font-size:15px; font-weight:700; color:var(--ink)}
+.pc-read{padding:var(--s3) 0 calc(110px + env(safe-area-inset-bottom))}
+.pc-read h1{font-size:24px; font-weight:800; color:var(--ink-strong); margin:0 0 var(--s3)}
+.pc-source{font-size:13px; font-weight:700; color:var(--wolf); margin:var(--s2) 0 var(--s3)}
+.pc-expl{margin-top:var(--s2); color:var(--wolf)}
+.pc-fill{font-size:19px; font-weight:700; color:var(--ink-strong); line-height:1.8; padding-top:var(--s2)}
+.pc-gap{display:inline-block; width:10em; max-width:100%; min-height:48px; margin:2px 4px; border:2px solid var(--line); border-radius:var(--r-sm); background:var(--fill); color:var(--ink-strong); font:800 18px var(--font); padding:0 var(--s3)}
+.pc-gap:focus{outline:none; border-color:var(--blue)}
+.pc-gap.right{border-color:var(--green); background:var(--green-soft)} .pc-gap.wrong{border-color:var(--red); background:var(--red-soft)}
+.pc-match{display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s3)}
+.pc-match > div{display:flex; flex-direction:column; gap:var(--s2)}
+.pc-match .opt{justify-content:center; text-align:center; min-height:64px; width:100%; padding:var(--s2)}
+.pc-tiles{display:flex; flex-direction:column; gap:var(--s3); margin-top:var(--s3)}
+.pc-tile{display:block; padding:var(--s4); border:2px solid var(--line); border-bottom-width:4px; border-radius:var(--r); text-decoration:none}
+.pc-tile b{display:block; font-size:19px; font-weight:800; color:var(--ink-strong)}
+.pc-tile span{font-size:15px; font-weight:700; color:var(--wolf)}
+.pc-tile.purple:not(.off){border-color:var(--purple)} .pc-tile.red:not(.off){border-color:var(--red)} .pc-tile.blue:not(.off){border-color:var(--blue)}
+.pc-tile.off{opacity:.55}
+.pc-step .statboxes{margin-top:var(--s3)}
+.pc-step .card{margin-top:var(--s3)}
+.pc-pace{display:flex; justify-content:space-between; gap:var(--s3); font-weight:800; color:var(--ink)}
+.pc-pace span{color:var(--blue-ink)}
+.pc-unitbar{margin-top:var(--s3); font-size:14px; font-weight:800; color:var(--ink)}
+.pc-unitbar .bar{margin-top:4px; height:12px}
+.pc-set > div{display:flex; justify-content:space-between; align-items:center; min-height:48px; font-weight:700; color:var(--ink)}
+.pc-set > div + div{border-top:2px solid var(--line)}
+@media (prefers-reduced-motion:reduce){.bob,.pc-steps li.now i{animation:none}}

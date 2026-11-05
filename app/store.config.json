@@ -1,0 +1,12 @@
+{
+  "testMode": true,
+  "currency": "Kč",
+  "plans": [
+    { "id": "course", "price": 299, "highlight": true,
+      "name": { "cs": "Kurz", "en": "Course" },
+      "features": { "cs": ["Celý kurz z tvých slidů", "Kartičky, kvízy, doplňování a spojování", "Plán podle data testu", "Pokrok na všech zařízeních"], "en": ["A full course from your slides", "Flashcards, quizzes, gap fills and matching", "A plan built around your test date", "Progress on all your devices"] } },
+    { "id": "course_voice", "price": 499,
+      "name": { "cs": "Kurz + hlas", "en": "Course + voice" },
+      "features": { "cs": ["Všechno z kurzu", "Hlasový doučovatel, 60 minut (připravujeme)"], "en": ["Everything in Course", "Voice tutor, 60 minutes (coming soon)"] } }
+  ]
+}
