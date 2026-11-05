@@ -297,7 +297,7 @@ async function viewWait() {
     const ready = status === "ready", failed = status === "failed";
     view().innerHTML = `<div class="pc-wait"><div class="pc-land-top"><span class="pc-badge">${t("testBadge")}</span>${langToggle()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
-      <h1>${t(ready ? "waitReady" : failed ? "waitFailed" : "waitTitle")}</h1><p class="pc-sub">${t(ready ? "waitReadySub" : failed ? "waitFailedSub" : "waitSub")}</p>
+      <h1>${t(ready ? "waitReady" : failed ? "waitFailed" : status === "paid_test" ? "waitQueued" : "waitTitle")}</h1><p class="pc-sub">${t(ready ? "waitReadySub" : failed ? "waitFailedSub" : "waitSub")}</p>
       ${failed ? "" : `<div id="pcLive">${stepsHtml(status, build) + buildHtml(status, build)}</div>`}
       ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn ghost sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
       </div>${ready ? `<div class="dock"><div class="dock-in"><a class="btn block big" href="#/s/${esc(s.slug)}" id="startCourse">${t("waitStart")}</a></div></div>` : ""}`;
