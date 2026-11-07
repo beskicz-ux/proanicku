@@ -23,9 +23,10 @@ export function tutorArt(id, cls = "", mood = "open") {
 }
 
 /* ---------- state ---------- */
+let ACCESS = { paid: true, building: false, status: "ready" }, restTimer = null;
 let C = null, SLUG = null, STUDENT = null, S = defaults(), ITEM = {}, LESSON = {}, TOKEN = null;
 const lsKey = () => "progress." + SLUG;
-export function resetCourse() { C = null; SLUG = null; }
+export function resetCourse() { C = null; SLUG = null; clearTimeout(restTimer); }
 const SYNC = {
   timer: null, state: "ok",
   later() { clearTimeout(this.timer); this.timer = setTimeout(() => this.push(), 1500); this.state = "saving"; badge(); },
@@ -80,6 +81,8 @@ const mistakeIds = () => Object.keys(S.q).filter(id => ITEM[id] && !S.q[id].ok);
 const lessonPct = l => l.items.length ? l.items.filter(mastered).length / l.items.length : (S.lessons[l.id] ? 1 : 0);
 function record(it, ok) { S.q[it.id] = { ok, last: Date.now(), n: (S.q[it.id]?.n || 0) + 1 }; save(); }
 const allLessons = () => C.units.flatMap(u => u.lessons);
+const openLessons = () => allLessons().filter(l => !l.locked);
+const lockedCount = () => allLessons().length - openLessons().length;
 const dailyGoal = () => Math.max(5, Math.round((STUDENT?.minutes || 20) * 1.5)); // roughly 40 seconds an item
 
 function srcText(s) {
@@ -103,7 +106,8 @@ async function loadCourse(slug) {
   const [r, voice] = await Promise.all([api("course", { session: TOKEN }), api("voice_status", { session: TOKEN }).catch(() => null)]);
   const cr = await fetch(r.url);
   if (!cr.ok) throw new Error("server");
-  C = await cr.json(); SLUG = slug; STUDENT = r.student;
+  C = await cr.json(); SLUG = slug; STUDENT = r.student; ACCESS = r.access || { paid: true, building: false, status: "ready" };
+  for (const l of allLessons()) l.items ||= [];
   if (voice) C.meta.voice = voice.enabled;
   ITEM = {}; LESSON = {};
   for (const l of allLessons()) { LESSON[l.id] = l; for (const it of l.items) { it._l = l.id; ITEM[it.id] = it; } }
@@ -154,13 +158,13 @@ function topbar() {
 /* ---------- path ---------- */
 const ZIG = [0, 70, 30];
 function viewPath() {
-  const ls = allLessons();
-  const cur = ls.find(l => lessonPct(l) < 1) || null;
+  const cur = openLessons().find(l => lessonPct(l) < 1) || null, locked = lockedCount();
   const goal = dailyGoal(), did = doneToday().items || 0;
   const tu = tutorOf(STUDENT?.tutor || C.meta.tutor);
   const units = C.units.map((u, ui) => {
     const dir = ui % 2 ? -1 : 1;
     const nodes = u.lessons.map((l, k) => {
+      if (l.locked) return `<div class="pnode locked" style="--dx:${ZIG[k % ZIG.length] * dir}px"><button data-locked="${esc(l.id)}" aria-label="${esc(l.title)}: ${t("lockedLesson")}">${ic.lock}</button><span class="label">${esc(l.title)}</span></div>`;
       const p = lessonPct(l), done = p >= 1, isCur = cur && l.id === cur.id;
       const cls = done ? "gold" : isCur ? "cur" : p > 0 ? "" : "fresh";
       return `<div class="pnode ${cls}" style="--dx:${ZIG[k % ZIG.length] * dir}px"><span class="ring2" style="--p:${Math.round(p * 100)}"></span>
@@ -172,18 +176,40 @@ function viewPath() {
   view().innerHTML = `${topbar()}<div class="home-main">
     <div class="pc-title"><h1>${esc(C.meta.title)}</h1></div>
     <div class="pc-say">${tutorArt(tu.id, "pc-mini")}<div class="bubble">${esc(tu.hi[lang()])}</div></div>
-    <a class="quest" href="${cur ? `#/s/${SLUG}/lesson/${esc(cur.id)}` : `#/s/${SLUG}/practice`}"><div class="t"><b>${t("todayGoal")}: ${Math.min(did, goal)} / ${goal} ${t("todayItems")}</b><div class="bar yellow"><i style="width:${Math.min(100, did / goal * 100)}%"></i></div></div></a>
-    ${units}</div>`;
+    <a class="quest" href="${cur ? `#/s/${SLUG}/lesson/${esc(cur.id)}` : locked && !ACCESS.paid ? "#/unlock" : `#/s/${SLUG}/practice`}"><div class="t"><b>${t("todayGoal")}: ${Math.min(did, goal)} / ${goal} ${t("todayItems")}</b><div class="bar yellow"><i style="width:${Math.min(100, did / goal * 100)}%"></i></div></div></a>
+    ${unlockCard(locked)}${units}</div>`;
+  $$("[data-locked]").forEach(b => b.onclick = () => ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock"));
   $$("[data-lesson]").forEach(b => b.onclick = () => ctx.nav(`#/s/${SLUG}/lesson/${b.dataset.lesson}`));
   const c = $(".pnode.cur");
   if (c) setTimeout(() => c.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+  if (locked && ACCESS.building) watchRest();
+}
+// Free start: the card that sells the rest, or says the rest is being written.
+function unlockCard(locked) {
+  if (!locked) return "";
+  if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock">${ic.lock}<div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div></a>`;
+  if (ACCESS.status === "failed") return `<div class="pc-unlock off" role="status"><div><b>${t("restFailed")}</b></div></div>`;
+  return `<div class="pc-unlock off" role="status"><div><b>${t("restBuilding")}</b><span>${t("restBuildingSub")}</span></div></div>`;
+}
+// While the rest of a paid course is written, checks every 20 s and reloads the path when it's there. Progress stays: lesson IDs don't change.
+function watchRest() {
+  clearTimeout(restTimer);
+  const slug = SLUG;
+  restTimer = setTimeout(async () => {
+    if (location.hash !== "#/s/" + slug || SLUG !== slug) return;
+    try {
+      const r = await api("status", { session: TOKEN });
+      if (r.building) return watchRest();
+      resetCourse(); toast(t(r.status === "failed" ? "restFailed" : "restReady")); ctx.render();
+    } catch (e) { watchRest(); }
+  }, 20000);
 }
 
 /* ---------- session runner ---------- */
 const ROUND = 10;
 function startLesson(id) {
   const l = LESSON[id];
-  if (!l) return ctx.nav("#/s/" + SLUG);
+  if (!l || l.locked) return ctx.nav(l && !ACCESS.paid ? "#/unlock" : "#/s/" + SLUG);
   const unread = (l.reading || []).filter(s => !S.read[s.id]);
   const todo = l.items.filter(it => !mastered(it));
   const pool = todo.length ? todo : l.items;

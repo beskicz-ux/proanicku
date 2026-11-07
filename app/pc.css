@@ -174,3 +174,23 @@ body{background:var(--bg)}
 /* Screens without the menu: base.css reserves its space on desktop, so give it back and keep them centred. */
 @media (min-width:1000px){body:has(#nav[hidden]){padding-left:0}}
 @media (min-width:700px){.pc-wait{max-width:480px; margin-inline:auto} .pc-steps{width:fit-content; margin-inline:auto}}
+
+/* account, sign-in, free start, privacy */
+.pc-form{width:100%; text-align:left}
+.pc-form .pc-lbl{margin-top:var(--s2)}
+.pc-lbl span{color:var(--wolf); font-weight:700; font-size:13px}
+.pc-check{display:flex; gap:var(--s3); align-items:flex-start; font-size:14px; font-weight:700; color:var(--ink); margin:var(--s3) 0; cursor:pointer; line-height:1.4}
+.pc-check input{width:22px; height:22px; flex:none; margin:0; accent-color:var(--blue)}
+.pc-check a, .pc-note a{color:var(--blue-ink); font-weight:800}
+.pnode.locked > button{background:var(--line); color:var(--wolf); box-shadow:0 8px 0 var(--hare)}
+.pnode.locked > button svg{width:30px; height:30px}
+.pnode.locked .label{color:var(--wolf)}
+.pc-unlock{display:flex; gap:var(--s3); align-items:center; text-decoration:none; background:var(--yellow-soft); border:2px solid var(--yellow); border-radius:var(--r); padding:var(--s3) var(--s4); margin:var(--s3) 0; color:var(--ink-strong)}
+.pc-unlock svg{width:28px; height:28px; flex:none}
+.pc-unlock div{display:flex; flex-direction:column}
+.pc-unlock b{font-size:17px; font-weight:800}
+.pc-unlock span{font-size:14px; font-weight:700; color:var(--ink)}
+.pc-unlock.off{background:var(--fill); border-color:var(--line)}
+.pc-privacy{text-align:left}
+.pc-privacy h2{font-size:18px; margin:var(--s4) 0 var(--s2)}
+.pc-privacy p{font-size:15px; line-height:1.5; color:var(--ink)}

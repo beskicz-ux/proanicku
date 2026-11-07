@@ -1,4 +1,4 @@
-// Admin page: courses, students, last activity, voice minutes, code reset. The key stays in memory only, so a reload asks again.
+// Admin page: orders, courses, accounts (with marketing consent), students, last activity, voice minutes, code reset. The key stays in memory only, so a reload asks again.
 import { esc, api } from "./util.js";
 
 const root = document.getElementById("ad");
@@ -33,6 +33,9 @@ function paint() {
   <h2>Courses (${data.courses.length})</h2>
   <div class="ad-scroll"><table><tr><th>Course</th><th>Items</th><th>Version</th><th>Students</th><th>Voice</th><th></th></tr>
   ${data.courses.map(c => `<tr><td><b>${esc(c.title)}</b><br><span class="ad-muted">${esc(c.slug)}</span></td><td>${total(c.counts)}</td><td>${c.version}</td><td>${(bySlug[c.slug] || []).length}</td><td>${c.voice ? (c.voice_agent_id ? "on" : "on, no agent yet") : "off"}</td><td><button data-voice="${esc(c.slug)}" data-on="${c.voice ? "" : "1"}">${c.voice ? "Turn voice off" : "Turn voice on"}</button></td></tr>`).join("")}</table></div>
+  <h2>Accounts (${(data.accounts || []).length})</h2>
+  <div class="ad-scroll"><table><tr><th>Name</th><th>Email</th><th>Phone</th><th>Born</th><th>Marketing</th><th>Joined</th><th>Last login</th></tr>
+  ${(data.accounts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${esc(a.email)}</td><td>${esc(a.phone || "–")}</td><td>${a.birth_year || "–"}</td><td>${a.marketing ? `yes, ${when(a.marketing_at)}` : "no"}</td><td>${when(a.created_at)}</td><td>${when(a.last_login_at)}</td></tr>`).join("")}</table></div>
   <h2>Students (${data.students.length})</h2>
   <div class="ad-scroll"><table><tr><th>Course</th><th>Tutor</th><th>Exam</th><th>Joined</th><th>Last activity</th><th>Voice min</th><th></th></tr>
   ${data.students.map(s => `<tr><td>${esc(s.slug)}</td><td>${esc(s.tutor_id || "–")}</td><td>${esc(s.exam_date || "–")}</td><td>${when(s.created_at)}</td><td>${when(s.lastActivity)}</td><td>${mins(s.voiceUsedSeconds)} of ${mins(s.voice_cap_seconds)}${s.voiceUnsettled ? ` <span class="ad-muted">(${s.voiceUnsettled} unsettled)</span>` : ""}</td><td><button data-reset="${esc(s.id)}">Reset code</button><button data-grant="${esc(s.id)}">+60 min</button></td></tr>`).join("")}</table></div>`;

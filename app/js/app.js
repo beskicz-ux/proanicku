@@ -1,14 +1,15 @@
-// Router, landing, invite, onboarding, store, wait page, login.
-import { $, $$, view, esc, store, api, today, addDays, fmtDate, ic, toast, confetti, sfx } from "./util.js";
-import { t, lang, setLang, errText, days as daysTxt, pages as pagesTxt, hours as hoursTxt, fileCount, lessonCount, minutesLeft } from "./i18n.js";
+// Router, landing, invite, onboarding, account, wait page, login, unlock (store), privacy.
+import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx } from "./util.js";
+import { t, lang, setLang, errText, days as daysTxt, pages as pagesTxt, fileCount, lessonCount, minutesLeft } from "./i18n.js";
 import { ham } from "./art.js";
 import { forecast, scenarios, countPages, validFile, daysBetween } from "./forecast.js";
-import { courseRoute, tutorArt, TUTORS } from "./course.js";
+import { courseRoute, tutorArt, TUTORS, resetCourse } from "./course.js";
 
-const draft = () => store.get("draft", null);
+const draft = () => { const d = store.get("draft", null); if (d?.step === "store") d.step = "account"; return d; }; // drafts from before accounts
 const saveDraft = d => store.set("draft", d);
 const session = () => store.get("session", null);
-const STEPS = ["files", "tutor", "date", "time", "store"];
+const STEPS = ["files", "tutor", "date", "time", "account"];
+const MIN_AGE = 15; // same as pc-api
 const nav = h => { if (location.hash === h) render(); else location.hash = h; };
 const fail = (el, e) => { el.textContent = errText(e.code || e.message); el.hidden = false; sfx.wrong(); };
 const hideNav = () => { $("#nav").hidden = true; document.body.classList.remove("has-dock"); };
@@ -35,7 +36,7 @@ function viewLanding() {
     <div class="pc-hero">${ham("happy", "bob")}</div>
     <h1>${t("landingTitle")}</h1><p class="pc-sub">${t("landingSub")}</p>
     <div class="pc-how">${[1, 2, 3, 4].map(n => `<div><b>${n}</b><span>${t("how" + n)}</span></div>`).join("")}</div>
-    <div class="pc-land-cta">${main}<a class="btn ghost block" href="#/login">${t("landingHaveCode")}</a></div></div>`;
+    <div class="pc-land-cta">${main}<a class="btn ghost block" href="#/login">${t("landingSignIn")}</a></div></div>`;
   bindLang();
 }
 
@@ -63,14 +64,32 @@ function viewInvite() {
     nav("#/new/files");
   } });
 }
+function signedIn(r, code) {
+  store.set("session", { token: r.session, slug: r.student.slug });
+  if (code) store.set("code", code.toUpperCase());
+  resetCourse();
+  nav(r.course ? "#/s/" + r.student.slug : "#/wait");
+}
 function viewLogin() {
-  codeForm({ title: t("loginTitle"), sub: t("loginSub"), ph: t("loginPh"), go: t("loginGo"), onSubmit: async v => {
-    const r = await api("login", { code: v });
-    store.set("session", { token: r.session, slug: r.student.slug });
-    store.set("code", v.toUpperCase());
-    setLang(lang());
-    nav(r.status === "ready" ? "#/s/" + r.student.slug : "#/wait");
-  } });
+  hideNav();
+  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
+    <div class="pc-center">${ham("open", "pc-small")}<h1>${t("signinTitle")}</h1>
+    <form id="f" class="pc-form"><input class="pc-input" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
+    <input class="pc-input" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
+    <p class="pc-err" id="err" hidden role="alert"></p><button class="btn block big" id="go">${t("loginGo")}</button></form>
+    <p class="pc-note">${t("signinForgot")}</p><a class="btn ghost block" href="#/login/code">${t("signinCode")}</a></div>`;
+  $("#stepBack").onclick = () => nav("#/");
+  $("#email").focus();
+  $("#f").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("#email").value.trim(), password = $("#pass").value;
+    if (!email || !password) return;
+    $("#go").classList.add("off"); $("#err").hidden = true;
+    try { signedIn(await api("login", { email, password })); } catch (er) { fail($("#err"), er); $("#go").classList.remove("off"); }
+  };
+}
+function viewCodeLogin() {
+  codeForm({ title: t("loginTitle"), sub: t("loginSub"), ph: t("loginPh"), go: t("loginGo"), onSubmit: async v => signedIn(await api("login", { code: v }), v) });
 }
 
 /* ---------- step 1: files ---------- */
@@ -204,7 +223,7 @@ function viewTime() {
   view().innerHTML = `${stepTop("time")}<div class="pc-step"><h1>${t("timeTitle")}</h1>
     <label class="pc-lbl" for="minS">${t("timeMin")} <b id="minV"></b></label><input class="pc-slider" id="minS" type="range" min="5" max="180" step="5" value="${d.minutes}">
     <div class="pc-lbl">${t("timeDays")}</div><div class="pc-days" role="group" aria-label="${t("timeDays")}">${[1, 2, 3, 4, 5, 6, 7].map(n => `<button data-d="${n}">${n}</button>`).join("")}</div>
-    <div id="fc"></div></div>
+    <div id="fc"></div><p class="pc-err" id="err" hidden role="alert"></p></div>
     <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn">${t("next")}</button></div></div>`;
   bindStepBack("time");
   const paint = () => {
@@ -216,60 +235,120 @@ function viewTime() {
   };
   $("#minS").oninput = e => { const cur = draft(); cur.minutes = +e.target.value; saveDraft(cur); paint(); };
   $$("[data-d]").forEach(b => b.onclick = () => { const cur = draft(); cur.days = +b.dataset.d; saveDraft(cur); sfx.flip(); paint(); });
-  $("#nextBtn").onclick = () => {
-    const cur = draft(); cur.step = "store"; saveDraft(cur);
-    api("update_order", { orderToken: cur.orderToken, minutes: cur.minutes, days: cur.days }).catch(() => { });
-    nav("#/new/store");
+  $("#nextBtn").onclick = async () => {
+    const cur = draft(), btn = $("#nextBtn");
+    btn.classList.add("off"); $("#err").hidden = true;
+    try { // the free lessons start building now, while the student makes an account
+      await api("update_order", { orderToken: cur.orderToken, pages: cur.pages, tutor: cur.tutor, examDate: cur.examDate, minutes: cur.minutes, days: cur.days, lang: lang() });
+      const { slug } = await api("queue_free", { orderToken: cur.orderToken });
+      const x = draft(); x.slug = slug; x.step = "account"; saveDraft(x);
+      nav("#/new/account");
+    } catch (e) { fail($("#err"), e); btn.classList.remove("off"); }
   };
   paint();
 }
 
-/* ---------- step 5: store ---------- */
-async function viewStore() {
-  const d = draft();
-  const cfg = await fetch("store.config.json").then(r => r.json());
-  const f = forecast({ pages: d.pages || 1, today: today(), examDate: d.examDate, minutes: d.minutes, days: d.days });
-  view().innerHTML = `${stepTop("store")}<div class="pc-step"><h1>${t("storeTitle")}</h1>
+/* ---------- step 5: account, while the free lessons build ---------- */
+function viewAccount() {
+  const d = draft(), y = new Date().getFullYear(), a = d.acc || {};
+  view().innerHTML = `${stepTop("account")}<div class="pc-step"><h1>${t("accTitle")}</h1>
+    <div class="pc-say">${tutorArt(d.tutor, "pc-mini")}<div class="bubble">${t("accBuilding")}</div></div>
+    <form id="f" class="pc-form" novalidate>
+      <label class="pc-lbl" for="aName">${t("accName")}</label><input class="pc-input" id="aName" autocomplete="given-name" maxlength="80" value="${esc(a.name || "")}">
+      <label class="pc-lbl" for="aEmail">${t("accEmail")}</label><input class="pc-input" id="aEmail" type="email" autocomplete="email" maxlength="200" value="${esc(a.email || "")}">
+      <label class="pc-lbl" for="aPass">${t("accPass")}<span>${t("accPassHint")}</span></label><input class="pc-input" id="aPass" type="password" autocomplete="new-password" maxlength="200">
+      <label class="pc-lbl" for="aYear">${t("accYear")}<span>${t("accYearHint")}</span></label><input class="pc-input" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" value="${esc(a.year || "")}">
+      <label class="pc-lbl" for="aPhone">${t("accPhone")}<span>${t("accOptional")}</span></label><input class="pc-input" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
+      <label class="pc-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
+      <label class="pc-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
+      <p class="pc-err" id="err" hidden role="alert"></p>
+    </form><p class="pc-note">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p></div>
+    <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn" type="submit" form="f">${t("accGo")}</button></div></div>`;
+  $("#stepBack").onclick = () => nav("#/");
+  const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); };
+  if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail(err, e));
+  // Remembers what's typed on this device, except the password and phone, so a reload doesn't lose it.
+  const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value }; saveDraft(x); } };
+  ["#aName", "#aEmail", "#aYear"].forEach(s => $(s).oninput = keep);
+  $("#f").onsubmit = async e => {
+    e.preventDefault(); err.hidden = true;
+    const v = { name: $("#aName").value.trim(), email: $("#aEmail").value.trim(), password: $("#aPass").value, birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked };
+    if (!v.name) return show("bad_name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) return show("bad_email");
+    if (v.password.length < 8) return show("bad_password");
+    if (!(v.birthYear >= y - 100 && v.birthYear <= y)) return show("bad_year");
+    if (y - v.birthYear < MIN_AGE) return show("too_young");
+    if (v.phone && !/^\+?\d{9,15}$/.test(v.phone.replace(/[\s()-]/g, ""))) return show("bad_phone");
+    if (!v.privacy) return show("no_privacy");
+    const btn = $("#nextBtn"); btn.classList.add("off"); btn.textContent = t("storeBuying");
+    try {
+      const r = await api("signup", { orderToken: draft().orderToken, ...v });
+      store.set("session", { token: r.session, slug: r.slug });
+      store.set("code", r.code);
+      store.del("draft");
+      confetti(); sfx.done();
+      nav("#/wait");
+    } catch (er) { fail(err, er); btn.classList.remove("off"); btn.textContent = t("accGo"); }
+  };
+}
+
+/* ---------- unlock: the store, after the free lessons ---------- */
+const storeConfig = () => fetch("store.config.json").then(r => r.json());
+async function viewUnlock() {
+  hideNav();
+  const s = session(); if (!s) return nav("#/login");
+  const [cfg, st] = await Promise.all([storeConfig(), api("status", { session: s.token }).catch(e => e)]);
+  if (st.status === 401) { store.del("session"); return nav("#/login"); }
+  if (st.paid) return nav("#/s/" + s.slug);
+  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
+    <div class="pc-step"><h1>${t("unlockTitle")}</h1><p class="pc-sub">${t("unlockSub")}</p>
     ${cfg.testMode ? `<div class="pc-testmode" role="note">${t("storeTest")}</div>` : ""}
-    <div class="pc-recap">${tutorArt(d.tutor, "pc-small")}<div><b>${t("storeRecap")}</b>
-      <span>${fileCount(d.files.length)} · ~${pagesTxt(d.pages || 0)}</span>
-      <span>${t("storeTestDate")}: ${esc(fmtDate(d.examDate, lang()))}</span>
-      <span>${d.minutes} ${t("minPerDay")}, ${d.days}${t("perWeek")} · ${hoursTxt(f.hours)}</span></div></div>
     <div class="pc-plans">${cfg.plans.map(p => `<div class="pc-plan ${p.highlight ? "best" : ""}">${p.highlight ? `<span class="pc-best">${t("storeBest")}</span>` : ""}
       <h2>${esc(p.name[lang()])}</h2><div class="price">${p.price} ${esc(cfg.currency)}</div>
       <ul>${p.features[lang()].map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>
       <button class="btn block big ${p.highlight ? "" : "blue"}" data-plan="${p.id}">${t("storeBuy")}</button></div>`).join("")}</div>
     <p class="pc-err" id="err" hidden role="alert"></p></div>`;
   $(".app").classList.add("no-dock");
-  bindStepBack("store");
+  $("#stepBack").onclick = () => nav("#/s/" + s.slug);
   $$("[data-plan]").forEach(b => b.onclick = async () => {
     const label = b.textContent;
     $$("[data-plan]").forEach(x => x.classList.add("off")); b.textContent = t("storeBuying"); $("#err").hidden = true;
     try {
-      const cur = draft();
-      await api("update_order", { orderToken: cur.orderToken, pages: cur.pages, tutor: cur.tutor, examDate: cur.examDate, minutes: cur.minutes, days: cur.days, lang: lang() });
-      const r = await api("buy", { orderToken: cur.orderToken, plan: b.dataset.plan });
-      store.set("session", { token: r.session, slug: r.slug });
-      store.set("code", r.code);
-      store.del("draft");
-      confetti(); sfx.done();
-      nav("#/wait");
+      await api("buy", { session: s.token, plan: b.dataset.plan });
+      resetCourse();
+      confetti(); sfx.done(); toast(t("unlockDone"));
+      nav("#/s/" + s.slug);
     } catch (e) { fail($("#err"), e); $$("[data-plan]").forEach(x => x.classList.remove("off")); b.textContent = label; }
   });
+}
+
+/* ---------- privacy ---------- */
+async function viewPrivacy() {
+  hideNav();
+  const op = (await storeConfig().catch(() => ({}))).operator || {};
+  const who = op.name ? `${esc(op.name)}${op.email ? `, <a href="mailto:${esc(op.email)}">${esc(op.email)}</a>` : ""}` : t("privOperatorTbd");
+  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
+    <div class="pc-step pc-privacy"><h1>${t("privTitle")}</h1><p class="pc-note">${t("privVersion")}</p>
+    ${[1, 2, 3, 4, 5, 6].map(n => `<h2>${t("privH" + n)}</h2><p>${t("privP" + n)}</p>`).join("")}
+    <h2>${t("privOperator")}</h2><p>${who}</p></div>`;
+  $(".app").classList.add("no-dock");
+  $("#stepBack").onclick = () => history.length > 1 ? history.back() : nav("#/");
 }
 
 /* ---------- wait page ---------- */
 let waitTimer = null;
 const STAGE_STEP = { outline: 1, lessons: 2, checking: 2, publishing: 3 };
-const buildMinutes = pages => Math.max(3, Math.round(pages / 12) + 2); // same formula as scripts/gen/cost.mjs
+const buildMinutesOf = pages => Math.max(3, Math.round(pages / 12) + 2); // same formula as scripts/gen/cost.mjs
 function stepsHtml(status, build) {
   const stage = build?.progress?.stage;
-  const active = status === "building" && STAGE_STEP[stage] ? STAGE_STEP[stage] : { paid_test: 1, draft: 1, building: 2, ready: 4, failed: 1 }[status] ?? 1;
-  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 && status !== "paid_test" ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
+  const active = status === "building" && STAGE_STEP[stage] ? STAGE_STEP[stage] : { paid_test: 1, free_queued: 1, draft: 1, building: 2, free_ready: 4, ready: 4, failed: 1 }[status] ?? 1;
+  const queued = status === "paid_test" || status === "free_queued";
+  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 && !queued ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
 }
 // What's being built, how long it should take, and which lesson it's on.
-function buildHtml(status, build) {
-  if (!build || status === "ready" || status === "failed") return "";
+function buildHtml(status, build, free) {
+  if (!build || ["ready", "free_ready", "failed"].includes(status)) return "";
+  const buildMinutes = free ? () => "1–2" : buildMinutesOf;
   const p = status === "building" ? build.progress : null, pages = p?.pages || build.pages || 0;
   const stale = p && build.progressAge > 180;
   const files = build.files.length ? `<ul class="pc-build-files">${build.files.slice(0, 3).map(f => `<li>${esc(f)}</li>`).join("")}${build.files.length > 3 ? `<li>+${build.files.length - 3}</li>` : ""}</ul>` : "";
@@ -289,18 +368,21 @@ async function viewWait() {
   hideNav();
   const s = session(); if (!s) return nav("#/login");
   let painted = null;
-  const paint = (status, student, build) => {
-    const tutor = student ? student.tutor || "penny" : null, key = status + tutor;
-    if (painted === key && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(status, build) + buildHtml(status, build); return; } // keeps the mascot animation running
+  const paint = r => {
+    const { status, student, build } = r, free = !r.paid, ready = !!r.course, failed = !ready && status === "failed";
+    const tutor = student ? student.tutor || "penny" : null, key = [status, tutor, ready, free].join();
+    const shown = ready ? (free ? "free_ready" : "ready") : status;
+    if (painted === key && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(shown, build) + buildHtml(shown, build, free); return; } // keeps the mascot animation running
     painted = key;
     const code = store.get("code");
-    const ready = status === "ready", failed = status === "failed";
+    const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (status === "free_queued" ? "waitFreeQueued" : "waitFreeTitle") : status === "paid_test" ? "waitQueued" : "waitTitle";
+    const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : free ? "waitFreeSub" : "waitSub";
     view().innerHTML = `<div class="pc-wait"><div class="pc-land-top"><span class="pc-badge">${t("testBadge")}</span>${langToggle()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
-      <h1>${t(ready ? "waitReady" : failed ? "waitFailed" : status === "paid_test" ? "waitQueued" : "waitTitle")}</h1><p class="pc-sub">${t(ready ? "waitReadySub" : failed ? "waitFailedSub" : "waitSub")}</p>
-      ${failed ? "" : `<div id="pcLive">${stepsHtml(status, build) + buildHtml(status, build)}</div>`}
+      <h1>${t(title)}</h1><p class="pc-sub">${t(sub)}</p>
+      ${failed ? "" : `<div id="pcLive">${stepsHtml(shown, build) + buildHtml(shown, build, free)}</div>`}
       ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn ghost sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
-      </div>${ready ? `<div class="dock"><div class="dock-in"><a class="btn block big" href="#/s/${esc(s.slug)}" id="startCourse">${t("waitStart")}</a></div></div>` : ""}`;
+      </div>${ready ? `<div class="dock"><div class="dock-in"><a class="btn block big" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div></div>` : ""}`;
     bindLang();
     const c = $("#copy");
     if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(code); toast(t("codeCopied")); } catch (e) { } };
@@ -310,15 +392,15 @@ async function viewWait() {
     if (!location.hash.startsWith("#/wait")) return;
     try {
       const r = await api("status", { session: s.token });
-      if (r.status === "ready" && store.get("readySeen") === s.slug) return nav("#/s/" + s.slug);
-      paint(r.status, r.student, r.build);
-      if (r.status === "ready") { store.set("readySeen", s.slug); confetti(); sfx.done(); return; }
+      if (r.course && store.get("readySeen") === s.slug) return nav("#/s/" + s.slug);
+      paint(r);
+      if (r.course) { store.set("readySeen", s.slug); confetti(); sfx.done(); return; }
     } catch (e) {
       if (e.status === 401) { store.del("session"); return nav("#/login"); }
     }
-    waitTimer = setTimeout(poll, 10000);
+    waitTimer = setTimeout(poll, 5000);
   };
-  if (store.get("readySeen") !== s.slug) paint("paid_test", null);
+  if (store.get("readySeen") !== s.slug) paint({ status: "free_queued", paid: false });
   poll();
 }
 
@@ -333,15 +415,18 @@ function render() {
   window.scrollTo(0, 0);
   if (!parts.length) return viewLanding();
   if (parts[0] === "start") return viewInvite();
-  if (parts[0] === "login") return viewLogin();
+  if (parts[0] === "login") return parts[1] === "code" ? viewCodeLogin() : viewLogin();
   if (parts[0] === "wait") return viewWait();
+  if (parts[0] === "unlock") return viewUnlock();
+  if (parts[0] === "privacy") return viewPrivacy();
   if (parts[0] === "new") {
     hideNav();
     const d = draft();
     if (!d) return nav("#/start");
-    const step = parts[1] || d.step;
+    const step = d.slug ? "account" : parts[1] || d.step; // once the free lessons are queued, the setup can't change
+    if (step !== (parts[1] || d.step)) return nav("#/new/" + step);
     if (STEPS.indexOf(step) > STEPS.indexOf(d.step || "files")) return nav("#/new/" + (d.step || "files"));
-    const stepView = { files: viewFiles, tutor: viewTutor, date: viewDate, time: viewTime, store: viewStore }[step];
+    const stepView = { files: viewFiles, tutor: viewTutor, date: viewDate, time: viewTime, account: viewAccount }[step];
     return stepView ? stepView() : nav("#/");
   }
   if (parts[0] === "s") return courseRoute(parts.slice(1), nav, render);
