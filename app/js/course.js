@@ -154,9 +154,11 @@ function setTabs(slug, sub) {
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
     a.href = `#/s/${slug}` + { home: "", notes: "/notes", review: "/practice", progress: "/progress" }[k];
-    a.setAttribute("aria-label", t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress" }[k]));
+    const label = t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress" }[k]);
+    a.setAttribute("aria-label", label);
     a.style.setProperty("--tc", TAB_COL[k]);
-    if (!a.querySelector("svg")) a.innerHTML = TAB_ICONS[k];
+    if (!a.querySelector("svg")) a.innerHTML = TAB_ICONS[k] + '<span class="nl" aria-hidden="true"></span>';
+    a.querySelector(".nl").textContent = label;
     a.classList.toggle("on", k === on);
     if (k === on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
@@ -194,6 +196,7 @@ function nodes() {
   out.forEach((n, i) => { n.cur = i === cur && !n.locked; n.next = cur >= 0 && i > cur; });
   return { list: out, cur };
 }
+const MAPMAX = 620; // widest the map gets; wider screens get the side panel instead of empty map
 const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 200, BOTPAD = 120;
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -227,9 +230,10 @@ function examLine() {
 function viewMap() {
   const { list, cur } = nodes(), locked = lockedCount(), dark = isDark();
   document.body.classList.add("map-page");
-  view().innerHTML = `<div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`;
+  view().innerHTML = `<div class="mlay"><div class="mmain"><div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div></div>${sidePanel(locked)}</div>`;
   bindTopbar();
-  const mw = $("#mw"), W = Math.min(480, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375);
+  const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = Math.min(1.7, W / 375);
+  mw.dataset.w = W;
   const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
   const chH = byCh.map(ns => DIVH + ns.length * STEPY + (ns.some(n => n.cur) ? CURX : 0));
   const total = TOPPAD + chH.reduce((a, b) => a + b, 0) + BOTPAD;
@@ -243,7 +247,7 @@ function viewMap() {
     out += `<div class="div" style="top:${y - DIVH / 2 + 8}px"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`;
     y -= DIVH;
     byCh[ui].forEach(n => {
-      const big = n.cur ? CURX : 0, ny = y - STEPY / 2 - big * .25, nx = CX + SWAY[k % SWAY.length] * sc;
+      const big = n.cur ? CURX : 0, ny = y - STEPY / 2 - big * .25, nx = CX + SWAY[k % SWAY.length] * sw;
       pts.push([nx, ny]); ptCol.push(col);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
       const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
@@ -289,10 +293,27 @@ function viewMap() {
     if (st === "next") return toast(t(b.dataset.test != null ? "testLocked" : "levelLocked"));
     ctx.nav(b.dataset.test != null ? `#/s/${SLUG}/test/${b.dataset.test}` : `#/s/${SLUG}/lesson/${b.dataset.lesson}`);
   });
-  requestAnimationFrame(() => { scrollTo(0, Math.max(0, mwTop() + (curPt >= 0 ? curY : total - BOTPAD) - innerHeight * .55)); onScroll(); });
+  requestAnimationFrame(() => { scrollTo({ top: Math.max(0, mwTop() + (curPt >= 0 ? curY : total - BOTPAD) - innerHeight * .55), behavior: "instant" }); onScroll(); });
   if (locked && ACCESS.building) watchRest();
 }
 // Free start: the card that sells the rest, or says the rest is being written.
+// Wide screens only (CSS hides it below 1200px): readiness, exam, today's goal, chapters.
+const FLAME = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2.200 1-3.600 2-4.600 0 1.600.800 2.600 2 2.600 0-3.400-1.200-5.800 1-9z" fill="#FF9600"/><path d="M12 12c.6 2 2.400 2.800 2.400 4.600a2.400 2.400 0 0 1-4.800 0c0-1.400.800-2.200 1.400-2.800.1.900.500 1.300 1 1.300 0-1.300-.300-2.100 0-3.100z" fill="#FFC800"/></svg>`;
+function sidePanel(locked) {
+  const r = readiness(), left = daysToExam(), goal = STUDENT?.minutes || 20, todayM = Math.round((doneToday().ms || 0) / 60000);
+  const gp = Math.min(100, Math.round(todayM / goal * 100));
+  const chs = C.units.map((u, ui) => { const its = u.lessons.flatMap(l => l.items), p = its.length ? Math.round(its.filter(mastered).length / its.length * 100) : 0;
+    return `<a class="sch" href="#/s/${SLUG}/notes/${ui}" style="--chc:${chapterColour(ui)}"><span class="sq">${ui + 1}</span><div><b>${esc(u.title)}</b><div class="bar"><i style="width:${p}%"></i></div></div><em>${p} %</em></a>`; }).join("");
+  const studied = d => (S.done[d]?.ms || 0) > 0, td = today();
+  let streak = 0; for (let d = studied(td) ? td : addDays(td, -1); studied(d); d = addDays(d, -1)) streak++;
+  const week = Array.from({ length: 7 }, (_, i) => addDays(td, i - 6)).map(d => `<div class="${studied(d) ? "on" : ""} ${d === td ? "now" : ""}"><span>${esc(new Date(d + "T12:00").toLocaleDateString(lang(), { weekday: "narrow" }))}</span><i>${studied(d) ? FLAME : ""}</i></div>`).join("");
+  return `<aside class="side">
+    <div class="sc sc-streak"><div class="sc-st">${FLAME}<div><b>${esc(daysTxt(streak))} ${t("inARow")}</b><span>${t(studied(td) ? "todayDone" : "todayNot")}</span></div></div><div class="wk">${week}</div></div>
+    <div class="sc sc-ready">${ringIcon(r, 64)}<div><b>${r} %</b><span>${t("readiness")}</span></div>${left == null ? "" : `<div class="sc-exam">${calIcon(new Date(examDate() + "T12:00").getDate())}<div><b>${esc(daysTxt(Math.max(0, left)))}</b><span>${t("toExam")}</span></div></div>`}</div>
+    <div class="sc"><div class="sc-h"><b>${t("setGoal")}</b><span>${t("timeM", { m: todayM })} / ${t("timeM", { m: goal })}</span></div><div class="bar goal"><i style="width:${gp}%"></i></div></div>
+    ${locked ? unlockCard(locked) : ""}
+    <div class="sc"><div class="sc-h"><b>${t("profChapters")}</b></div><div class="schs">${chs}</div></div></aside>`;
+}
 function unlockCard(locked) {
   if (!locked) return "";
   if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock">${ic.lock}<div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div></a>`;
@@ -364,7 +385,7 @@ function runSession(cfg) {
 function step(st) {
   const now = Date.now(); doneToday().ms = (doneToday().ms || 0) + Math.min(120e3, now - st.tick); st.tick = now; // study time, capped per step
   window.onkeydown = null;
-  window.scrollTo(0, 0);
+  window.scrollTo({ top: 0, behavior: "instant" });
   if (st.reading.length) return playReading(st);
   if (!st.queue.length) return finish(st);
   const it = st.queue[0];
@@ -502,7 +523,7 @@ function playMatch(st, it) {
       b.classList.add("sel"); sel = b; sfx.flip(); return;
     }
     if (sel.dataset.i === b.dataset.i) {
-      [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("right"); x.disabled = true; });
+      [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("right"); x.disabled = true; setTimeout(() => x.classList.add("gone"), 350); });
       sel = null; left--; sfx.flip();
       if (!left) answered(st, it, mistakes === 0, { verdict: mistakes ? t("mistakeMatch") : undefined });
     } else {
@@ -630,3 +651,13 @@ function paySheet() {
     ${ACCESS.paid ? "" : `<button class="btn-p" id="payGo">${t("payUnlock")}</button>`}`);
   const b = $("#payGo"); if (b) b.onclick = () => { s.close(); ctx.nav("#/unlock"); };
 }
+
+// Redraw the map when its width changes (window resize, iPad rotation), so nodes stay centred.
+let resizeT = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => {
+    const mw = document.getElementById("mw");
+    if (mw && Math.min(MAPMAX, mw.parentNode.clientWidth) !== +mw.dataset.w) viewMap();
+  }, 150);
+});

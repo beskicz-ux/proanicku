@@ -55,11 +55,14 @@ function tone(seq) {
     }
   } catch (e) { }
 }
+// Haptics: phones that allow vibration in the browser (Android Chrome). iPhone Safari ignores it, so this simply does nothing there.
+const touch = (() => { try { return matchMedia("(pointer:coarse)").matches; } catch (e) { return false; } })();
+export const buzz = p => { if (touch && navigator.vibrate && store.get("haptics", true) !== false) try { navigator.vibrate(p); } catch (e) { } };
 export const sfx = {
-  right: () => tone([[660, .12], [990, .22]]),
-  wrong: () => tone([[220, .2, "triangle", .12], [180, .25, "triangle", .1]]),
-  flip: () => tone([[520, .06, "sine", .06]]),
-  done: () => tone([[523, .12], [659, .12], [784, .12], [1046, .3]]),
+  right: () => { buzz(18); tone([[660, .12], [990, .22]]); },
+  wrong: () => { buzz([35, 50, 35]); tone([[220, .2, "triangle", .12], [180, .25, "triangle", .1]]); },
+  flip: () => { buzz(8); tone([[520, .06, "sine", .06]]); },
+  done: () => { buzz([20, 40, 20, 40, 60]); tone([[523, .12], [659, .12], [784, .12], [1046, .3]]); },
 };
 export function confetti() {
   const box = document.createElement("div"); box.className = "confetti";

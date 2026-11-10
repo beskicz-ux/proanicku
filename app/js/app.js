@@ -463,7 +463,7 @@ export function render() {
   window.onkeydown = null; window.onscroll = null;
   const h = location.hash.replace(/^#/, "") || "/";
   const parts = h.split("/").filter(Boolean);
-  window.scrollTo(0, 0);
+  window.scrollTo({ top: 0, behavior: "instant" });
   if (!parts.length) return viewWelcome();
   if (parts[0] === "start") return nav("#/"); // the old invite page
   if (parts[0] === "login") return parts[1] === "code" ? viewCodeLogin() : viewLogin();
