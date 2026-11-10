@@ -194,3 +194,9 @@ body{background:var(--bg)}
 .pc-privacy{text-align:left}
 .pc-privacy h2{font-size:18px; margin:var(--s4) 0 var(--s2)}
 .pc-privacy p{font-size:15px; line-height:1.5; color:var(--ink)}
+
+/* launch: legal links under the landing buttons, consent box in the store, toast below the top bar */
+.pc-legal{margin-top:var(--s4); font-size:13px; font-weight:700; color:var(--wolf); text-align:center}
+.pc-legal a{color:var(--wolf); text-decoration:underline}
+.pc-plans + .pc-check{margin-top:var(--s5)}
+.toast{top:calc(env(safe-area-inset-top) + 64px)}
