@@ -21,6 +21,8 @@ export const store = {
 
 const API = "https://mlgedjxcoqaccbzxtmsu.supabase.co/functions/v1/pc-api";
 export async function api(action, body = {}) {
+  // Local testing only: a fake backend from scripts/dev (never on the live site, which isn't 127.0.0.1).
+  if (location.hostname === "127.0.0.1" && localStorage.getItem("pc.dev.mock")) return (await import("/scripts/dev/mock-api.js")).mock(action, body);
   let r;
   try { r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }) }); }
   catch (e) { const err = new Error("offline"); err.code = "offline"; throw err; }

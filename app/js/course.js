@@ -1,22 +1,26 @@
-// The course itself: path, lessons, the five item players, practice, progress, sync.
-import { $, $$, view, esc, store, api, today, addDays, fmtDate, shuffle, pick, norm, md, mdi, sfx, confetti, toast, ic } from "./util.js";
-import { t, lang, setLang, itemCount, errText } from "./i18n.js";
+// The course itself: the map, notes, review, the profile with settings, the lesson players and sync.
+import { $, $$, view, esc, store, api, today, addDays, shuffle, pick, norm, md, mdi, sfx, confetti, toast, ic } from "./util.js";
+import { t, lang, itemCount, errText, days as daysTxt, inDays, inWeeks, fmtDay, studyTime, courseLang } from "./i18n.js";
 import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
+import { mix, chapterColour, TAB_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
+import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel } from "./app.js";
 
 const DAY = 86400000;
 export const TUTORS = [
-  { id: "penny", idx: -1, name: "Penny", hi: { cs: "Křeček, který všechno vysvětlí.", en: "A hamster who explains it all." } },
-  { id: "bear", idx: 0, name: "Bára", hi: { cs: "Klidná. Pomalu a pořádně.", en: "Calm. Slow and thorough." } },
-  { id: "fox", idx: 1, name: "Emil", hi: { cs: "Chytrý. Najde zkratku.", en: "Clever. Finds the shortcut." } },
-  { id: "cat", idx: 2, name: "Oskar", hi: { cs: "Přesný. Žádné zbytečnosti.", en: "Precise. No fluff." } },
-  { id: "pig", idx: 3, name: "Rozárka", hi: { cs: "Veselá. S ní to uteče.", en: "Cheerful. Time flies." } },
-  { id: "frog", idx: 4, name: "Kvido", hi: { cs: "Skočí rovnou na věc.", en: "Jumps straight to the point." } },
-  { id: "panda", idx: 5, name: "Mia", hi: { cs: "V pohodě. Krok za krokem.", en: "Relaxed. Step by step." } },
+  { id: "penny", idx: -1, name: "Penny", with: "s Penny" },
+  { id: "bear", idx: 0, name: "Bára", with: "s Bárou" },
+  { id: "fox", idx: 1, name: "Emil", with: "s Emilem" },
+  { id: "cat", idx: 2, name: "Oskar", with: "s Oskarem" },
+  { id: "pig", idx: 3, name: "Rozárka", with: "s Rozárkou" },
+  { id: "frog", idx: 4, name: "Kvido", with: "s Kvidem" },
+  { id: "panda", idx: 5, name: "Mia", with: "s Miou" },
 ];
 const tutorOf = id => TUTORS.find(x => x.id === id) || TUTORS[0];
+// Czech needs the instrumental ("Učit se s Emilem"); the other languages take the plain name in {name}.
+export const tutorWith = id => lang() === "cs" ? tutorOf(id).with : tutorOf(id).name;
 export function tutorArt(id, cls = "", mood = "open") {
   const x = tutorOf(id);
   return x.idx < 0 ? ham(mood, cls) : teacher(x.idx, cls);
@@ -29,32 +33,25 @@ const lsKey = () => "progress." + SLUG;
 export function resetCourse() { C = null; SLUG = null; clearTimeout(restTimer); }
 const SYNC = {
   timer: null, state: "ok",
-  later() { clearTimeout(this.timer); this.timer = setTimeout(() => this.push(), 1500); this.state = "saving"; badge(); },
+  later() { clearTimeout(this.timer); this.timer = setTimeout(() => this.push(), 1500); this.state = "saving"; },
   async pull() {
     try { const r = await api("progress_load", { session: TOKEN }); S = mergeState(S, r.data); store.set(lsKey(), S); this.state = "ok"; } catch (e) { this.state = "offline"; }
-    badge();
   },
   async push() {
     clearTimeout(this.timer);
     try { const r = await api("progress_save", { session: TOKEN, data: S }); S = mergeState(S, r.data); store.set(lsKey(), S); this.state = "ok"; } catch (e) { this.state = "offline"; }
-    badge();
   },
 };
-const badge = () => { const b = $("#syncState"); if (b) b.textContent = t(SYNC.state === "ok" ? "synced" : SYNC.state === "offline" ? "offline" : "syncing"); };
 addEventListener("online", () => { if (TOKEN) SYNC.push(); });
 document.addEventListener("visibilitychange", () => { if (!TOKEN) return; if (document.hidden) { if (SYNC.state !== "ok") SYNC.push(); } else SYNC.pull(); });
 function save() { S.saved = Date.now(); store.set(lsKey(), S); SYNC.later(); }
 
 const doneToday = () => { const d = today(); S.done[d] = S.done[d] || {}; return S.done[d]; };
 function addXP(n) { const d = today(); S.xp[d] = (S.xp[d] || 0) + n; doneToday().items = (doneToday().items || 0) + 1; save(); }
-function streak() {
-  let n = 0, d = today();
-  if (!S.xp[d]) d = addDays(d, -1);
-  while (S.xp[d]) { n++; d = addDays(d, -1); }
-  return n;
-}
+const totalMs = () => Object.values(S.done).reduce((a, d) => a + (d.ms || 0), 0);
 const examDate = () => STUDENT?.examDate || C?.meta.examDate || null;
 const daysToExam = () => examDate() ? daysBetween(today(), examDate()) : null;
+const curTutor = () => store.get("tutor." + SLUG, null) || STUDENT?.tutor || C?.meta.tutor || "penny";
 
 /* ---------- spaced repetition, same rules as Penny ---------- */
 function grade(id, g) {
@@ -76,6 +73,8 @@ function grade(id, g) {
   return s;
 }
 const mastered = it => it.type === "flashcard" ? (S.cards[it.id]?.reps || 0) >= 1 : !!S.q[it.id]?.ok;
+// Gold: every card repeated at least twice and every question answered right after two tries or more.
+const solid = it => it.type === "flashcard" ? (S.cards[it.id]?.reps || 0) >= 2 : !!S.q[it.id]?.ok && (S.q[it.id]?.n || 0) >= 2;
 const dueIds = () => Object.keys(S.cards).filter(id => ITEM[id] && S.cards[id].due <= Date.now());
 const mistakeIds = () => Object.keys(S.q).filter(id => ITEM[id] && !S.q[id].ok);
 const lessonPct = l => l.items.length ? l.items.filter(mastered).length / l.items.length : (S.lessons[l.id] ? 1 : 0);
@@ -83,7 +82,13 @@ function record(it, ok) { S.q[it.id] = { ok, last: Date.now(), n: (S.q[it.id]?.n
 const allLessons = () => C.units.flatMap(u => u.lessons);
 const openLessons = () => allLessons().filter(l => !l.locked);
 const lockedCount = () => allLessons().length - openLessons().length;
-const dailyGoal = () => Math.max(5, Math.round((STUDENT?.minutes || 20) * 1.5)); // roughly 40 seconds an item
+const lastReview = l => Math.max(0, ...l.items.map(it => Math.max(S.cards[it.id]?.last || 0, S.q[it.id]?.last || 0)), S.lessons[l.id]?.ts || 0);
+// Readiness: the average over every topic of how much is mastered; a topic's score halves for each 7 days since it was last reviewed.
+function readiness() {
+  const ls = allLessons(); if (!ls.length) return 0;
+  const now = Date.now();
+  return Math.round(ls.reduce((a, l) => { const last = lastReview(l); return a + lessonPct(l) * (last ? Math.pow(.5, Math.max(0, now - last) / (7 * DAY)) : 0); }, 0) / ls.length * 100);
+}
 
 function srcText(s) {
   if (!s) return "";
@@ -116,72 +121,175 @@ async function loadCourse(slug) {
 }
 export async function courseRoute(parts, nav, render) {
   const [slug, sub, arg] = parts;
-  $("#view").innerHTML = `<p class="empty">…</p>`;
+  if (!C || SLUG !== slug) $("#view").innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`;
   try { await loadCourse(slug); }
   catch (e) {
     if (e.status === 401) { store.del("session"); toast(t("sessionExpired")); return nav("#/login"); }
     if (e.code === "not_ready") return nav("#/wait");
     $("#nav").hidden = true;
-    view().innerHTML = `<div class="pc-center">${ham("sad")}<h1>${t("courseFail")}</h1><p class="pc-sub">${esc(errText(e.code))}</p><button class="btn block big" id="again">${t("retry")}</button></div>`;
+    view().innerHTML = `<div class="ob ob-center">${ham("sad")}<h1 class="ob-h">${t("courseFail")}</h1><p class="ob-sub">${esc(errText(e.code))}</p><div class="ob-foot"><button class="btn-p" id="again">${t("retry")}</button></div></div>`;
     $("#again").onclick = render;
     return;
   }
   ctx = { nav, render, slug };
   setTabs(slug, sub);
-  if (!sub) return viewPath();
+  if (!sub) return viewMap();
+  if (sub === "notes") return viewNotes(arg);
   if (sub === "practice") return viewPractice();
-  if (sub === "progress") return viewProgress();
-  if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(STUDENT?.tutor || C.meta.tutor, "bob"), topbar: topbar(), onOut: () => { store.del("session"); nav("#/login"); } });
+  if (sub === "progress") return viewProfile();
+  if (sub === "settings") return viewSettings();
+  if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(curTutor(), "bob"), topbar: "", onOut: () => { store.del("session"); nav("#/login"); } });
   if (sub === "lesson") return startLesson(arg);
+  if (sub === "test") return startTest(+arg);
   if (sub === "review") return startReview(arg);
   nav("#/s/" + slug);
 }
 let ctx = null;
+const TAB_COL = { home: "#E9773A", notes: "#3B82F6", review: "#22A06B", progress: "#A855F7" };
 function setTabs(slug, sub) {
   const n = $("#nav");
-  const inSession = sub === "lesson" || sub === "review";
-  n.hidden = inSession;
+  const show = !sub || ["notes", "practice", "progress"].includes(sub);
+  n.hidden = !show; document.body.classList.toggle("has-tabs", show);
+  const on = { "": "home", notes: "notes", practice: "review", progress: "progress" }[sub || ""];
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
-    if (k === "hlas") { a.hidden = !C?.meta.voice; a.href = `#/s/${slug}/voice`; a.setAttribute("aria-label", t("navVoice")); a.classList.toggle("on", sub === "voice"); return; }
-    a.href = k === "cesta" ? `#/s/${slug}` : k === "procvic" ? `#/s/${slug}/practice` : `#/s/${slug}/progress`;
-    a.setAttribute("aria-label", t(k === "cesta" ? "navPath" : k === "procvic" ? "navPractice" : "navProgress"));
-    a.classList.toggle("on", (k === "cesta" && !sub) || (k === "procvic" && sub === "practice") || (k === "pokrok" && sub === "progress"));
+    a.href = `#/s/${slug}` + { home: "", notes: "/notes", review: "/practice", progress: "/progress" }[k];
+    a.setAttribute("aria-label", t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress" }[k]));
+    a.style.setProperty("--tc", TAB_COL[k]);
+    if (!a.querySelector("svg")) a.innerHTML = TAB_ICONS[k];
+    a.classList.toggle("on", k === on);
+    if (k === on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
 }
+
+/* ---------- top bar: subject, readiness, days to the exam ---------- */
 function topbar() {
-  const left = daysToExam(), due = dueIds().length, st = streak();
-  const exam = left == null ? "" : `<a class="stat-chip exam" href="#/s/${SLUG}/progress" aria-label="${left} ${t("daysLeft")}">📅 ${Math.max(0, left)}</a>`;
-  return `<div class="topbar">${exam}<span class="sp"></span><a class="stat-chip cards" href="#/s/${SLUG}/practice" aria-label="${t("pracDue")}">🃏 ${due}</a><a class="stat-chip streak ${st ? "lit" : ""}" href="#/s/${SLUG}/progress" aria-label="${t("progStreak")}">🔥 ${st}</a></div>`;
+  const left = daysToExam(), r = readiness(), title = C.meta.subject || C.meta.title || "";
+  return `<header class="tb"><button class="subj" id="subjBtn"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(title)}</b>${CHEV_DOWN}</button>
+    <div class="mets"><a class="met ready" href="#/s/${SLUG}/progress" aria-label="${t("readinessTitle")}: ${r} %">${ringIcon(r)}<span>${r} %</span></a>
+    ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
+}
+function bindTopbar() {
+  const b = $("#subjBtn"); if (!b) return;
+  const title = C.meta.subject || C.meta.title || "";
+  b.onclick = () => {
+    const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list">
+      <button class="subrow on" id="subCur"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${examDate() ? esc(fmtDay(examDate())) : ""}</small></div><i class="lok">${TICK}</i></button>
+      <button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("soon")}</small></div></button></div>`);
+    $("#subCur").onclick = s.close;
+    $("#subNew").onclick = () => { s.close(); toast(t("subjSoon")); };
+  };
 }
 
-/* ---------- path ---------- */
-const ZIG = [0, 70, 30];
-function viewPath() {
-  const cur = openLessons().find(l => lessonPct(l) < 1) || null, locked = lockedCount();
-  const goal = dailyGoal(), did = doneToday().items || 0;
-  const tu = tutorOf(STUDENT?.tutor || C.meta.tutor);
-  const units = C.units.map((u, ui) => {
-    const dir = ui % 2 ? -1 : 1;
-    const nodes = u.lessons.map((l, k) => {
-      if (l.locked) return `<div class="pnode locked" style="--dx:${ZIG[k % ZIG.length] * dir}px"><button data-locked="${esc(l.id)}" aria-label="${esc(l.title)}: ${t("lockedLesson")}">${ic.lock}</button><span class="label">${esc(l.title)}</span></div>`;
-      const p = lessonPct(l), done = p >= 1, isCur = cur && l.id === cur.id;
-      const cls = done ? "gold" : isCur ? "cur" : p > 0 ? "" : "fresh";
-      return `<div class="pnode ${cls}" style="--dx:${ZIG[k % ZIG.length] * dir}px"><span class="ring2" style="--p:${Math.round(p * 100)}"></span>
-        ${isCur ? `<span class="startbub">${t("startBubble")}</span>` : ""}
-        <button data-lesson="${esc(l.id)}" aria-label="${esc(l.title)}">${done ? ic.check : ic.star}</button><span class="label">${esc(l.title)}</span></div>`;
-    }).join("");
-    return `<section class="unit u${(ui % 6) + 1}"><div class="unit-head"><div class="t"><span class="cap">${t("unit")} ${ui + 1}</span><b>${esc(u.title)}</b></div></div><div class="path">${nodes}</div></section>`;
-  }).join("");
-  view().innerHTML = `${topbar()}<div class="home-main">
-    <div class="pc-title"><h1>${esc(C.meta.title)}</h1></div>
-    <div class="pc-say">${tutorArt(tu.id, "pc-mini")}<div class="bubble">${esc(tu.hi[lang()])}</div></div>
-    <a class="quest" href="${cur ? `#/s/${SLUG}/lesson/${esc(cur.id)}` : locked && !ACCESS.paid ? "#/unlock" : `#/s/${SLUG}/practice`}"><div class="t"><b>${t("todayGoal")}: ${Math.min(did, goal)} / ${goal} ${t("todayItems")}</b><div class="bar yellow"><i style="width:${Math.min(100, did / goal * 100)}%"></i></div></div></a>
-    ${unlockCard(locked)}${units}</div>`;
-  $$("[data-locked]").forEach(b => b.onclick = () => ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock"));
-  $$("[data-lesson]").forEach(b => b.onclick = () => ctx.nav(`#/s/${SLUG}/lesson/${b.dataset.lesson}`));
-  const c = $(".pnode.cur");
-  if (c) setTimeout(() => c.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+/* ---------- the map: one column, bottom-up, chapters in colour ---------- */
+// Every chapter ends with a test (a mixed round of the chapter's items). Levels open one after another.
+function nodes() {
+  const out = [];
+  C.units.forEach((u, ui) => {
+    u.lessons.forEach((l, k) => out.push({ kind: "lesson", ui, l, k, done: lessonPct(l) >= 1, gold: l.items.length > 0 && l.items.every(solid), locked: !!l.locked }));
+    const items = u.lessons.flatMap(l => l.items);
+    if (items.length) { const r = S.lessons["test:" + (u.id || ui)]; out.push({ kind: "test", ui, done: !!r, gold: !!r && r.best >= .9, locked: u.lessons.some(l => l.locked) }); }
+  });
+  const cur = out.findIndex(n => !n.done);
+  out.forEach((n, i) => { n.cur = i === cur && !n.locked; n.next = cur >= 0 && i > cur; });
+  return { list: out, cur };
+}
+const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 200, BOTPAD = 120;
+const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
+const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+// Scenery only at the edges (hills, trees, clouds); the path stays clean. Right-side pieces are shifted with the width.
+function scenery(col, h, W, dark) {
+  const base = dark ? "#141821" : "#ffffff", h1 = mix(col, base, dark ? .74 : .7), h2 = mix(col, base, dark ? .68 : .6);
+  const tree = dark ? "#00000030" : "#00000014", cloud = dark ? "#ffffff12" : "#ffffffe6", R = W - 375;
+  let s = "", i = 0;
+  for (let y = 60; y < h; y += 170, i++) {
+    const L = i % 2 === 0;
+    s += `<path d="M-20 ${y + 120} C20 ${y + 40} 60 ${y + 50} 92 ${y + 120}Z" fill="${h1}"/><path d="M-20 ${y + 130} C10 ${y + 80} 40 ${y + 90} 70 ${y + 130}Z" fill="${h2}"/>`;
+    s += `<path d="M${395 + R} ${y + 40} C${350 + R} ${y - 30} ${310 + R} ${y - 20} ${290 + R} ${y + 40}Z" fill="${h1}"/><path d="M${395 + R} ${y + 50} C${365 + R} ${y + 5} ${335 + R} ${y + 10} ${315 + R} ${y + 50}Z" fill="${h2}"/>`;
+    const tx = L ? 30 : 345 + R, ty = y + (L ? 92 : 22);
+    s += `<path d="M${tx} ${ty - 26} l11 22 h-22z" fill="${tree}"/><rect x="${tx - 1.5}" y="${ty - 4}" width="3" height="6" fill="${tree}"/>`;
+    if (L) { const cx = 336 + R, cy = y + 112; s += `<g fill="${cloud}"><circle cx="${cx - 12}" cy="${cy}" r="9"/><circle cx="${cx + 1}" cy="${cy - 5}" r="13"/><circle cx="${cx + 14}" cy="${cy + 1}" r="8"/><rect x="${cx - 22}" y="${cy}" width="45" height="9" rx="4.5"/></g>`; }
+  }
+  return s;
+}
+const smooth = P => P.map((p, i) => {
+  if (!i) return `M${p[0]} ${p[1]}`;
+  const a = P[i - 2] || P[i - 1], b = P[i - 1], c = p, e = P[i + 1] || p;
+  return `C${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6} ${c[1] - (e[1] - b[1]) / 6} ${c[0]} ${c[1]}`;
+}).join(" ");
+function examLine() {
+  const left = daysToExam();
+  if (left == null) return "";
+  if (left < 0) return t("examPast");
+  if (left === 0) return t("examToday");
+  return `${fmtDay(examDate())} · ${left < 14 ? inDays(left) : inWeeks(Math.round(left / 7))}`;
+}
+function viewMap() {
+  const { list, cur } = nodes(), locked = lockedCount(), dark = isDark();
+  document.body.classList.add("map-page");
+  view().innerHTML = `<div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`;
+  bindTopbar();
+  const mw = $("#mw"), W = Math.min(480, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375);
+  const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
+  const chH = byCh.map(ns => DIVH + ns.length * STEPY + (ns.some(n => n.cur) ? CURX : 0));
+  const total = TOPPAD + chH.reduce((a, b) => a + b, 0) + BOTPAD;
+  let out = "", y = total - BOTPAD, k = 0, curPt = -1, curY = 0;
+  const pts = [], ptCol = [], chTop = [];
+  C.units.forEach((u, ui) => {
+    const col = chapterColour(ui), top = y - chH[ui], hh = chH[ui] + (ui === 0 ? BOTPAD : 0);
+    const g1 = dark ? mix(col, "#141821", .86) : mix(col, "#ffffff", .9), g2 = dark ? mix(col, "#141821", .82) : mix(col, "#ffffff", .85);
+    chTop.push([top, y]);
+    out += `<div class="band" style="top:${top}px;height:${hh}px;background:linear-gradient(${g1},${g2})"><svg viewBox="0 0 ${W} ${hh}" width="${W}" height="${hh}">${scenery(col, hh, W, dark)}</svg></div>`;
+    out += `<div class="div" style="top:${y - DIVH / 2 + 8}px"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`;
+    y -= DIVH;
+    byCh[ui].forEach(n => {
+      const big = n.cur ? CURX : 0, ny = y - STEPY / 2 - big * .25, nx = CX + SWAY[k % SWAY.length] * sc;
+      pts.push([nx, ny]); ptCol.push(col);
+      const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
+      const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
+      const label = n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title;
+      const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
+      out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
+        <button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button>
+        ${n.cur ? `<div class="start">${t("startBubble")}</div>` : ""}</div>`;
+      if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 120 * sc : nx + 120 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
+      y -= STEPY + big; k++;
+    });
+  });
+  out = `<div class="band" style="top:0;height:${TOPPAD}px;background:linear-gradient(${dark ? "#141821,#202036" : "#FFF6EA,#E7E3F4"})"></div>` + out;
+  out += `<div class="exam" style="top:${TOPPAD / 2 + 10}px;left:${CX}px"><div class="c">${LEVEL_ICONS.flag}</div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
+  const all = [...pts, [CX, TOPPAD / 2 + 10]], walkedTo = curPt < 0 ? (list.length && list.every(n => n.done) ? all.length - 1 : 0) : curPt;
+  let walked = "", i = 0;
+  while (i < walkedTo) { let j = i; while (j < walkedTo && ptCol[j + 1] === ptCol[i]) j++; if (j === i) j = i + 1; walked += `<path d="${smooth(all.slice(i, j + 1))}" fill="none" stroke="${ptCol[Math.min(j, ptCol.length - 1)]}" stroke-opacity=".75" stroke-width="9" stroke-linecap="round"/>`; i = j; }
+  const road = dark ? "#00000040" : "#ffffffa6", edge = dark ? "#ffffff10" : "#00000010";
+  out += `<svg class="trail" style="width:${W}px;height:${total}px" viewBox="0 0 ${W} ${total}" aria-hidden="true">
+    <path d="${smooth(all)}" fill="none" stroke="${edge}" stroke-width="26" stroke-linecap="round"/><path d="${smooth(all)}" fill="none" stroke="${road}" stroke-width="22" stroke-linecap="round"/>${walked}</svg>`;
+  mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
+  // The header shows the chapter in view.
+  const curIdx = cur < 0 ? list.length : cur;
+  const head = ui => {
+    const col = chapterColour(ui), h = $("#unitHead"); if (!h || h.dataset.ui == ui) return;
+    h.dataset.ui = ui;
+    h.style.background = `linear-gradient(118deg, transparent 0 60%, #ffffff14 60% 74%, transparent 74%), ${col}`;
+    h.style.setProperty("--uc", col);
+    h.innerHTML = `<div class="ut">${tutorArt(curTutor())}</div><div><small>${t("chapter", { n: ui + 1 })} · ${t("levelOf", { x: Math.min(list.length, curIdx + 1), y: list.length })}</small><b>${esc(C.units[ui].title)}</b></div><a class="unotes" href="#/s/${SLUG}/notes/${ui}" aria-label="${t("navNotes")}">${NOTES_ICON}</a>`;
+  };
+  const mwTop = () => mw.getBoundingClientRect().top + scrollY;
+  const onScroll = () => {
+    const mid = scrollY + innerHeight * .55 - mwTop();
+    let ui = chTop.findIndex(([top, bot]) => mid >= top && mid <= bot);
+    if (ui < 0) ui = mid < (chTop.at(-1)?.[0] ?? 0) ? C.units.length - 1 : 0;
+    head(ui);
+  };
+  head(cur >= 0 ? list[cur].ui : C.units.length - 1);
+  window.onscroll = onScroll;
+  $$("[data-lesson],[data-test]", mw).forEach(b => b.onclick = () => {
+    const st = b.dataset.state;
+    if (st === "paywall") return ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock");
+    if (st === "next") return toast(t(b.dataset.test != null ? "testLocked" : "levelLocked"));
+    ctx.nav(b.dataset.test != null ? `#/s/${SLUG}/test/${b.dataset.test}` : `#/s/${SLUG}/lesson/${b.dataset.lesson}`);
+  });
+  requestAnimationFrame(() => { scrollTo(0, Math.max(0, mwTop() + (curPt >= 0 ? curY : total - BOTPAD) - innerHeight * .55)); onScroll(); });
   if (locked && ACCESS.building) watchRest();
 }
 // Free start: the card that sells the rest, or says the rest is being written.
@@ -191,7 +299,7 @@ function unlockCard(locked) {
   if (ACCESS.status === "failed") return `<div class="pc-unlock off" role="status"><div><b>${t("restFailed")}</b></div></div>`;
   return `<div class="pc-unlock off" role="status"><div><b>${t("restBuilding")}</b><span>${t("restBuildingSub")}</span></div></div>`;
 }
-// While the rest of a paid course is written, checks every 20 s and reloads the path when it's there. Progress stays: lesson IDs don't change.
+// While the rest of a paid course is written, checks every 20 s and reloads the map when it's there. Progress stays: lesson IDs don't change.
 function watchRest() {
   clearTimeout(restTimer);
   const slug = SLUG;
@@ -205,6 +313,22 @@ function watchRest() {
   }, 20000);
 }
 
+/* ---------- notes: the reading sections, chapter by chapter ---------- */
+function viewNotes(arg) {
+  const chapters = C.units.map((u, ui) => {
+    const col = chapterColour(ui);
+    const secs = u.lessons.flatMap(l => l.locked ? [] : (l.reading || []));
+    const anyLocked = u.lessons.some(l => l.locked);
+    const body = secs.length ? secs.map(s => `<details class="note"><summary>${esc(s.title)}${CHEV}</summary><div class="md">${md(s.body)}</div>${srcLine(s)}</details>`).join("")
+      : `<p class="note-empty">${t(anyLocked ? "notesLocked" : "notesEmpty")}</p>`;
+    return `<section class="nch" id="nch${ui}" style="--chc:${col}"><div class="nch-h"><small>${t("chapter", { n: ui + 1 })}</small><b>${esc(u.title)}</b></div>${body}${anyLocked && secs.length ? `<p class="note-empty">${t("notesLocked")}</p>` : ""}</section>`;
+  }).join("");
+  view().innerHTML = `${topbar()}<div class="pg"><h1 class="pg-h">${t("notesTitle")}</h1>${C.units.length ? chapters : `<p class="note-empty">${t("notesNone")}</p>`}</div>`;
+  bindTopbar();
+  if (arg != null && $("#nch" + arg)) { const s = $("#nch" + arg); s.querySelector("details")?.setAttribute("open", ""); requestAnimationFrame(() => s.scrollIntoView({ block: "start" })); }
+}
+
+
 /* ---------- session runner ---------- */
 const ROUND = 10;
 function startLesson(id) {
@@ -214,6 +338,14 @@ function startLesson(id) {
   const todo = l.items.filter(it => !mastered(it));
   const pool = todo.length ? todo : l.items;
   runSession({ title: l.title, reading: unread, items: pool.slice(0, ROUND), lesson: l, back: "#/s/" + SLUG });
+}
+// The chapter test: a mixed round of everything in the chapter.
+function startTest(ui) {
+  const u = C.units[ui];
+  if (!u || u.lessons.some(l => l.locked)) return ctx.nav("#/s/" + SLUG);
+  const items = shuffle(u.lessons.flatMap(l => l.items)).slice(0, 12);
+  if (!items.length) return ctx.nav("#/s/" + SLUG);
+  runSession({ title: `${t("testTitle")}: ${u.title}`, reading: [], items, test: u.id || ui, back: "#/s/" + SLUG });
 }
 function startReview(kind) {
   const list = kind === "due" ? dueIds().map(id => ITEM[id]) : kind === "mistakes" ? mistakeIds().map(id => ITEM[id])
@@ -226,10 +358,11 @@ function sessionTop(st) {
   return `<div class="session-top"><button class="x" id="quit" aria-label="${t("close")}">${ic.x}</button><div class="bar"><i style="width:${Math.max(3, done / Math.max(1, st.total) * 100)}%"></i></div></div>`;
 }
 function runSession(cfg) {
-  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Set(), wrongFirst: new Set() };
+  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Set(), wrongFirst: new Set(), started: Date.now(), tick: Date.now() };
   step(st);
 }
 function step(st) {
+  const now = Date.now(); doneToday().ms = (doneToday().ms || 0) + Math.min(120e3, now - st.tick); st.tick = now; // study time, capped per step
   window.onkeydown = null;
   window.scrollTo(0, 0);
   if (st.reading.length) return playReading(st);
@@ -286,13 +419,13 @@ function playCard(st, it) {
   };
   const reveal = () => {
     sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal");
-    $("#ctrl").innerHTML = `<div class="grades">
+    // Two honest choices instead of Anki's four: students can't reliably tell "hard" from "good" from "easy",
+    // and the choice itself costs attention. Knew it = normal spacing; didn't = comes back this round.
+    $("#ctrl").innerHTML = `<div class="grades two">
       <button class="btn bad" data-g="0">${t("gNo")}<small>${t("gNoS")}</small></button>
-      <button class="btn ghost" data-g="1">${t("gHard")}<small>${t("gHardS")}</small></button>
-      <button class="btn ok" data-g="2">${t("gYes")}<small>${t("gYesS")}</small></button>
-      <button class="btn blue" data-g="3">${t("gEasy")}<small>${t("gEasyS")}</small></button></div>`;
+      <button class="btn ok" data-g="2">${t("gYes")}<small>${t("gYesS")}</small></button></div>`;
     $$("[data-g]").forEach(b => b.onclick = () => doGrade(+b.dataset.g));
-    window.onkeydown = e => { if ("1234".includes(e.key)) doGrade(+e.key - 1); };
+    window.onkeydown = e => { if (e.key === "1") doGrade(0); else if (e.key === "2") doGrade(2); };
   };
   $("#reveal").onclick = reveal;
   window.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); reveal(); } };
@@ -358,9 +491,9 @@ function playFill(st, it) {
 /* match pairs */
 function playMatch(st, it) {
   const lefts = shuffle(it.pairs.map((p, i) => ({ i, s: p.left }))), rights = shuffle(it.pairs.map((p, i) => ({ i, s: p.right })));
-  view().innerHTML = `${sessionTop(st)}<div class="qcard"><div class="lbl">${t("matchQ")}</div><div class="pc-match">
-    <div>${lefts.map(x => `<button class="opt" data-side="l" data-i="${x.i}">${mdi(x.s)}</button>`).join("")}</div>
-    <div>${rights.map(x => `<button class="opt" data-side="r" data-i="${x.i}">${mdi(x.s)}</button>`).join("")}</div></div></div>`;
+  // One grid, row by row, so each left box lines up with the right box next to it.
+  view().innerHTML = `${sessionTop(st)}<div class="qcard"><div class="lbl">${t("matchQ")}</div><div class="pc-match mx">
+    ${lefts.map((x, r) => `<button class="opt ml" data-side="l" data-i="${x.i}">${mdi(x.s)}</button><button class="opt mr" data-side="r" data-i="${rights[r].i}">${mdi(rights[r].s)}</button>`).join("")}</div></div>`;
   let sel = null, mistakes = 0, left = it.pairs.length;
   $$(".pc-match .opt").forEach(b => b.onclick = () => {
     if (b.disabled) return;
@@ -381,56 +514,119 @@ function playMatch(st, it) {
   });
 }
 
+
 /* end of a round */
 function finish(st) {
   const l = st.lesson;
-  if (l) { S.lessons[l.id] = { ts: Date.now(), best: Math.max(S.lessons[l.id]?.best || 0, lessonPct(l)) }; save(); }
-  SYNC.push();
-  const more = l && lessonPct(l) < 1;
   const pct = st.answered ? Math.round(st.right / st.answered * 100) : 100;
-  const tu = STUDENT?.tutor || C.meta.tutor;
+  if (l) S.lessons[l.id] = { ts: Date.now(), best: Math.max(S.lessons[l.id]?.best || 0, lessonPct(l)) };
+  if (st.test != null) { const k = "test:" + st.test; S.lessons[k] = { ts: Date.now(), best: Math.max(S.lessons[k]?.best || 0, pct / 100) }; }
+  save(); SYNC.push();
+  const more = l && lessonPct(l) < 1;
   sfx.done(); confetti();
-  const boxes = [[t("xp"), st.xp, "y"], [t("correct"), pct + " %", "g"], [t("streak"), streak(), "b"]];
-  view().innerHTML = `<div class="done-screen">${tutorArt(tu, "jump", "happy")}<div class="title">${t(more ? "doneMore" : "doneTitle")}</div>${l ? `<p class="sub">${esc(l.title)}</p>` : ""}
+  const boxes = [[t("xp"), st.xp, "y"], [t("correct"), pct + " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), "b"]];
+  view().innerHTML = `<div class="done-screen">${tutorArt(curTutor(), "jump", "happy")}<div class="title">${t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle")}</div>${l || st.test != null ? `<p class="sub">${esc(st.title)}</p>` : ""}
     <div class="statboxes">${boxes.map(([h, v, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></div>
     ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : st.back}" id="endNext">${t("cont")}</a>`)}`;
 }
 
-/* ---------- practice ---------- */
+/* ---------- review ---------- */
 function viewPractice() {
   const due = dueIds().length, mis = mistakeIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length;
-  const tile = (kind, title, n, color) => `<a class="pc-tile ${color} ${n ? "" : "off"}" ${n ? `href="#/s/${SLUG}/review/${kind}"` : ""}><b>${title}</b><span>${n ? itemCount(n) : t("pracNone")}</span></a>`;
-  view().innerHTML = `${topbar()}<div class="pc-step"><h1>${t("pracTitle")}</h1>
-    ${seen ? "" : `<p class="pc-sub">${t("pracEmpty")}</p>`}
-    <div class="pc-tiles">${tile("due", t("pracDue"), due, "purple")}${tile("mistakes", t("pracMistakes"), mis, "red")}${tile("mix", t("pracMix"), Math.min(seen, ROUND), "blue")}</div></div>`;
+  const tile = (kind, title, n, color, icon) => `<a class="rv ${color} ${n ? "" : "off"}" ${n ? `href="#/s/${SLUG}/review/${kind}"` : `aria-disabled="true"`}><span class="rv-ic">${icon}</span><div><b>${title}</b><span>${n ? itemCount(n) : t("pracNone")}</span></div>${n ? CHEV : ""}</a>`;
+  view().innerHTML = `${topbar()}<div class="pg"><h1 class="pg-h">${t("pracTitle")}</h1><p class="pg-sub">${seen ? t("pracSub") : t("pracEmpty")}</p>
+    <div class="rvs">${tile("due", t("pracDue"), due, "purple", TAB_ICONS.review)}${tile("mistakes", t("pracMistakes"), mis, "red", LEVEL_ICONS.test)}${tile("mix", t("pracMix"), Math.min(seen, ROUND), "blue", TAB_ICONS.notes)}</div></div>`;
+  bindTopbar();
 }
 
-/* ---------- progress ---------- */
-function viewProgress() {
-  const items = Object.values(ITEM), done = items.filter(mastered).length, left = daysToExam();
-  const code = store.get("code");
-  const remaining = items.length - done;
-  const studyDays = left > 0 ? Math.max(1, Math.floor(left * (STUDENT?.days || 7) / 7)) : 1;
-  const pace = Math.ceil(remaining / studyDays);
-  view().innerHTML = `${topbar()}<div class="pc-step"><h1>${t("progTitle")}</h1>
-    <div class="statboxes"><div class="sbox g"><div class="h">${t("progLearned")}</div><div class="v">${done}/${items.length}</div></div>
-      <div class="sbox y"><div class="h">${t("progStreak")}</div><div class="v">${streak()}</div></div>
-      <div class="sbox b"><div class="h">${t("progDays")}</div><div class="v">${left == null ? "–" : Math.max(0, left)}</div></div></div>
-    ${left != null && left > 0 && remaining ? `<div class="card pc-pace"><b>${t("progPaceNeed")}</b><span>~${itemCount(pace)} ${t("paceDaily")}</span></div>` : ""}
-    <div class="card"><b>${t("progPlan")}</b><p class="pc-sub small">${STUDENT?.minutes ? `${STUDENT.minutes} ${t("minPerDay")}, ${STUDENT.days}${t("perWeek")}` : t("noPlan")}${examDate() ? ` · ${esc(fmtDate(examDate(), lang()))}` : ""}</p></div>
-    ${C.units.map(u => { const its = u.lessons.flatMap(l => l.items), p = its.length ? its.filter(mastered).length / its.length * 100 : 0; return `<div class="pc-unitbar"><span>${esc(u.title)}</span><div class="bar"><i style="width:${p}%"></i></div></div>`; }).join("")}
-    <h2 class="pc-h2">${t("settings")}</h2>
-    <div class="card pc-set"><div><span>${t("setLang")}</span><div class="pc-lang"><button data-lang="cs" class="${lang() === "cs" ? "on" : ""}">CS</button><button data-lang="en" class="${lang() === "en" ? "on" : ""}">EN</button></div></div>
-      <div><span>${t("setSound")}</span><button class="btn ghost sm" id="snd">${store.get("sound", true) ? t("setOn") : t("setOff")}</button></div>
-      ${code ? `<div><span>${t("setCode")}</span><b>${esc(code)}</b></div>` : ""}
-      <div><span id="syncState"></span><button class="btn ghost sm" id="logout">${t("setLogout")}</button></div></div></div>`;
-  badge();
-  $$("[data-lang]").forEach(b => b.onclick = () => { setLang(b.dataset.lang); api("update_student", { session: TOKEN, lang: lang() }).catch(() => { }); viewProgress(); setTabs(SLUG, "progress"); });
-  $("#snd").onclick = () => { store.set("sound", !store.get("sound", true)); viewProgress(); };
-  $("#logout").onclick = async () => {
-    if (!confirm(t("setLogoutQ"))) return;
-    await SYNC.push();
-    store.del("session"); store.del("code"); store.del("readySeen"); store.del(lsKey()); TOKEN = null; resetCourse();
-    ctx.nav("#/");
+/* ---------- profile ---------- */
+function viewProfile() {
+  const ls = allLessons(), done = ls.filter(l => lessonPct(l) >= 1).length, left = daysToExam(), r = readiness();
+  const name = store.get("name", "") || t("student"), tu = curTutor();
+  const tutorLine = lang() === "cs" ? tutorWith(tu) : t("withTutor", { name: tutorOf(tu).name });
+  const tile = (icon, v, label) => `<div class="pt">${icon}<div><b>${esc(v)}</b><span>${esc(label)}</span></div></div>`;
+  view().innerHTML = `<div class="prof"><div class="prof-hero"><div class="prof-t"><h1>${esc(name)}</h1><p>${esc(C.meta.subject || C.meta.title || "")} · ${esc(tutorLine)}</p></div>
+      <a class="prof-gear" href="#/s/${SLUG}/settings" aria-label="${t("settings")}">${GEAR}</a><div class="prof-art">${tutorArt(tu)}</div></div>
+    <div class="pg"><h2 class="grp">${t("profOverview")}</h2><div class="ptiles">
+      ${tile(ringIcon(r, 34), r + " %", t("readiness"))}${tile(calIcon(examDate() ? new Date(examDate() + "T12:00").getDate() : ""), left == null ? "–" : daysTxt(Math.max(0, left)), t("toExam"))}
+      ${tile(doneIcon, `${done}/${ls.length}`, t("profLevels"))}${tile(timeIcon, studyTime(totalMs()), t("profTime"))}</div>
+    <h2 class="grp">${t("profChapters")}</h2><div class="pchs">${C.units.map((u, ui) => { const its = u.lessons.flatMap(l => l.items), p = its.length ? Math.round(its.filter(mastered).length / its.length * 100) : 0; return `<div class="pch" style="--chc:${chapterColour(ui)}"><span class="sq">${ui + 1}</span><div><b>${esc(u.title)}</b><div class="bar"><i style="width:${p}%"></i></div></div><em>${p} %</em></div>`; }).join("")}</div></div></div>`;
+}
+
+/* ---------- settings: full screen, closes with X ---------- */
+function viewSettings() {
+  const th = store.get("theme", "auto"), snd = store.get("sound", true), email = store.get("email", "");
+  const row = (k, icon, label, value = "", { chev = true, cls = "" } = {}) => `<button class="srow ${cls}" data-s="${k}">${setIcon(icon)}<b>${label}</b><span class="sv">${value}</span>${chev ? CHEV : ""}</button>`;
+  view().innerHTML = `<div class="set"><header class="set-h"><a class="set-x" href="#/s/${SLUG}/progress" aria-label="${t("close")}">${CLOSE}</a><h1>${t("settings")}</h1><span></span></header>
+    <h2 class="grp">${t("grpLearn")}</h2><div class="sgrp">
+      ${row("date", "date", t("setDate"), examDate() ? esc(fmtDay(examDate())) : "")}
+      ${row("goal", "goal", t("setGoal"), STUDENT?.minutes ? t("timeM", { m: STUDENT.minutes }) : "")}
+      <button class="srow" data-s="tutor"><span class="s-ic stut">${tutorArt(curTutor())}</span><b>${t("setTutor")}</b><span class="sv">${esc(tutorOf(curTutor()).name)}</span>${CHEV}</button>
+      ${row("remind", "bell", t("setRemind"), `<span class="soon">${t("soon")}</span>`)}
+      ${C.meta.voice ? row("voice", "voice", t("setVoice")) : ""}</div>
+    <h2 class="grp">${t("grpApp")}</h2><div class="sgrp">
+      ${row("lang", "lang", t("setLang"), esc(langName(lang())))}
+      <label class="srow">${setIcon("sound")}<b>${t("setSound")}</b><span class="sv"></span><input type="checkbox" class="sw" id="sndSw" ${snd ? "checked" : ""} role="switch"></label>
+      ${row("look", "look", t("setLook"), t({ auto: "lookAuto", light: "lookLight", dark: "lookDark" }[th] || "lookAuto"))}</div>
+    <h2 class="grp">${t("grpAccount")}</h2><div class="sgrp">
+      ${row("email", "mail", t("setEmail"), esc(email), { chev: false, cls: "static" })}
+      ${row("pay", "pay", t("setSubjects"), "1")}
+      ${row("out", "out", t("setLogout"), "", { chev: false, cls: "muted" })}</div>
+    <p class="set-foot"><a href="#/terms">${t("footTerms")}</a> · <a href="#/privacy">${t("footPrivacy")}</a> · <a href="#" id="contact">${t("footContact")}</a></p>
+    <p class="set-foot"><a href="#" id="delAcc" class="del">${t("setDelete")}</a></p></div>`;
+  $("#sndSw").onchange = e => { store.set("sound", e.target.checked); if (e.target.checked) sfx.right?.(); };
+  $("#contact").onclick = async e => {
+    e.preventDefault();
+    const op = (await fetch("store.config.json").then(r => r.json()).catch(() => ({}))).operator || {};
+    if (op.email) location.href = "mailto:" + op.email; else toast(t("contactSoon"));
   };
+  $("#delAcc").onclick = e => { e.preventDefault(); toast(t("deleteSoon")); };
+  const H = {
+    date: dateSheet, goal: goalSheet, tutor: tutorSheet, look: lookSheet, pay: paySheet,
+    remind: () => toast(t("setRemindSoon")),
+    voice: () => ctx.nav(`#/s/${SLUG}/voice`),
+    lang: () => langSheet(l => { if (l === "cs" || l === "en") api("update_student", { session: TOKEN, lang: courseLang() }).catch(() => { }); viewSettings(); }),
+    out: async () => {
+      if (!confirm(t("setLogoutQ"))) return;
+      await SYNC.push();
+      ["session", "code", "readySeen", "email", "name", lsKey()].forEach(k => store.del(k)); TOKEN = null; resetCourse();
+      ctx.nav("#/");
+    },
+  };
+  $$("[data-s]").forEach(b => b.onclick = () => H[b.dataset.s]?.());
+}
+async function saveStudent(fields) {
+  try { const r = await api("update_student", { session: TOKEN, ...fields }); STUDENT = { ...STUDENT, ...(r.student || fields) }; toast(t("saved")); return true; }
+  catch (e) { toast(errText(e.code)); return false; }
+}
+function dateSheet() {
+  const start = examDate() ? daysBetween(today(), examDate()) : 42;
+  const s = sheet(`<h2 class="sh-h">${t("setDate")}</h2><div class="dbig"><b id="dDate"></b><span id="dRel"></span></div><div class="dbadge" id="dBadge"></div>${rulerHtml()}<button class="btn-p" id="shSave">${t("save")}</button>`);
+  let pickIso = null;
+  const pages = allLessons().reduce((a, l) => a + l.items.length, 0) / 3;
+  bindRuler(start, (n, iso) => { pickIso = iso; const p = datePanel(n, iso, pages); $("#dDate").textContent = p.date; $("#dRel").textContent = p.rel; $("#dBadge").innerHTML = p.badge; });
+  $("#shSave").onclick = async () => { if (await saveStudent({ examDate: pickIso })) { s.close(); viewSettings(); } };
+}
+function goalSheet() {
+  const cur = STUDENT?.minutes || 20;
+  const s = sheet(`<h2 class="sh-h">${t("goalTitle")}</h2><div class="chips">${[10, 15, 20, 30, 45, 60, 90].map(m => `<button class="chip ${m === cur ? "on" : ""}" data-m="${m}">${t("timeM", { m })}</button>`).join("")}</div><button class="btn-p" id="shSave">${t("save")}</button>`);
+  let m = cur;
+  $$("[data-m]", s.el).forEach(b => b.onclick = () => { m = +b.dataset.m; $$("[data-m]", s.el).forEach(x => x.classList.toggle("on", x === b)); });
+  $("#shSave").onclick = async () => { if (await saveStudent({ minutes: m })) { s.close(); viewSettings(); } };
+}
+function tutorSheet() {
+  const s = sheet(`<h2 class="sh-h">${t("tutorChange")}</h2><div class="sh-car">${carouselHtml()}</div><p class="sh-note">${t("tutorLocal")}</p><button class="btn-p" id="shSave">${t("save")}</button>`);
+  const car = bindCarousel(curTutor(), () => { });
+  $("#shSave").onclick = () => { store.set("tutor." + SLUG, car.get().id); s.close(); toast(t("saved")); viewSettings(); };
+}
+function lookSheet() {
+  const cur = store.get("theme", "auto");
+  const s = sheet(`<h2 class="sh-h">${t("setLook")}</h2><div class="sh-list">${["auto", "light", "dark"].map(k => `<button class="lrow ${k === cur ? "on" : ""}" data-th="${k}"><b>${t({ auto: "lookAuto", light: "lookLight", dark: "lookDark" }[k])}</b>${k === cur ? `<i class="lok">${TICK}</i>` : ""}</button>`).join("")}</div>`);
+  $$("[data-th]", s.el).forEach(b => b.onclick = () => { store.set("theme", b.dataset.th); applyTheme(); s.close(); viewSettings(); });
+}
+function paySheet() {
+  const title = C.meta.subject || C.meta.title || "";
+  const s = sheet(`<h2 class="sh-h">${t("setSubjects")}</h2><div class="sh-list"><div class="subrow on"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${t(ACCESS.paid ? "payPaid" : "payFree")}</small></div></div></div>
+    ${ACCESS.paid ? "" : `<button class="btn-p" id="payGo">${t("payUnlock")}</button>`}`);
+  const b = $("#payGo"); if (b) b.onclick = () => { s.close(); ctx.nav("#/unlock"); };
 }

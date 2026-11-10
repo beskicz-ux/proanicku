@@ -1,123 +1,133 @@
-// Router, landing, invite, onboarding, account, wait page, login, unlock (store), privacy.
+// Router, welcome, onboarding (slides → date → tutor, then the account), wait page, login, unlock (store), terms and privacy.
 import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx } from "./util.js";
-import { t, lang, setLang, errText, days as daysTxt, pages as pagesTxt, fileCount, lessonCount, minutesLeft } from "./i18n.js";
+import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
-import { forecast, scenarios, countPages, validFile, daysBetween } from "./forecast.js";
-import { courseRoute, tutorArt, TUTORS, resetCourse } from "./course.js";
+import { countPages, validFile, daysBetween } from "./forecast.js";
+import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse } from "./course.js";
+import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
-const draft = () => { const d = store.get("draft", null); if (d?.step === "store") d.step = "account"; return d; }; // drafts from before accounts
+const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
 const saveDraft = d => store.set("draft", d);
 const session = () => store.get("session", null);
-const STEPS = ["files", "tutor", "date", "time", "account"];
+const STEPS = ["files", "date", "tutor", "account"], COUNTED = 3; // the account step isn't counted in the progress bar
 const MIN_AGE = 15; // same as pc-api
 const nav = h => { if (location.hash === h) render(); else location.hash = h; };
 const fail = (el, e) => { el.textContent = errText(e.code || e.message); el.hidden = false; sfx.wrong(); };
-const hideNav = () => { $("#nav").hidden = true; document.body.classList.remove("has-dock"); };
+const hideNav = () => { $("#nav").hidden = true; document.body.classList.remove("has-tabs"); };
 let cfgP = null;
 const storeConfig = () => cfgP ||= fetch("store.config.json").then(r => r.json()).catch(e => { cfgP = null; throw e; });
-// The "test version" badge shows only while store.config.json says testMode.
 const testBadge = () => `<span class="pc-badge" data-testbadge style="display:none">${t("testBadge")}</span>`;
 const showBadge = () => storeConfig().then(c => { if (c.testMode) $$("[data-testbadge]").forEach(b => b.style.display = ""); }).catch(() => { });
-const legalLinks = () => `<p class="pc-legal"><a href="#/terms">${t("termsTitle")}</a> · <a href="#/privacy">${t("privTitle")}</a></p>`;
+const legalLinks = () => `<p class="ob-legal"><a href="#/terms">${t("termsTitle")}</a> · <a href="#/privacy">${t("privTitle")}</a></p>`;
+const plain = () => document.body.classList.add("plain"); // screens without the tab bar: centred on desktop
+const globe = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-3 3.2-3 13.8 0 17M12 3.5c3 3.2 3 13.8 0 17"/></svg>`;
+const langBtn = () => `<button class="ob-lang" id="langBtn" aria-label="${t("setLang")}">${globe}<span>${lang().toUpperCase()}</span></button>`;
+function bindLang() {
+  const b = $("#langBtn"); if (!b) return;
+  b.onclick = () => langSheet(async l => {
+    const d = draft();
+    if (d?.orderToken) api("update_order", { orderToken: d.orderToken, lang: courseLang() }).catch(() => { });
+    render();
+  });
+}
 
-function stepTop(step) {
-  const i = STEPS.indexOf(step);
-  return `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${i ? ic.back : ic.x}</button><div class="bar"><i style="width:${(i + 1) / STEPS.length * 100}%"></i></div></div>`;
+/* ---------- the onboarding frame: back, 3 segments, title, body, one button ---------- */
+function frame(step, { title, body, btn, btnId = "nextBtn", sub = "" }) {
+  const i = STEPS.indexOf(step), segs = i < COUNTED ? `<div class="ob-segs">${Array.from({ length: COUNTED }, (_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</div>` : `<div class="ob-segs"></div>`;
+  return `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${i ? BACK : CLOSE}</button>${segs}<span class="ob-bkpad"></span></div>
+    <h1 class="ob-h">${title}</h1>${sub ? `<p class="ob-sub">${sub}</p>` : ""}
+    <div class="ob-body">${body}</div>
+    <div class="ob-foot"><button class="btn-p" id="${btnId}">${btn}</button></div></div>`;
 }
 function bindStepBack(step) { const i = STEPS.indexOf(step); $("#stepBack").onclick = () => nav(i ? "#/new/" + STEPS[i - 1] : "#/"); }
-function langToggle() {
-  return `<div class="pc-lang" role="group" aria-label="${t("setLang")}"><button data-lang="cs" class="${lang() === "cs" ? "on" : ""}">CS</button><button data-lang="en" class="${lang() === "en" ? "on" : ""}">EN</button></div>`;
-}
-function bindLang() { $$("[data-lang]").forEach(b => b.onclick = () => { setLang(b.dataset.lang); const d = draft(); if (d?.orderToken) api("update_order", { orderToken: d.orderToken, lang: lang() }).catch(() => { }); render(); }); }
 
-/* ---------- landing ---------- */
-function viewLanding() {
-  hideNav();
+/* ---------- welcome ---------- */
+function viewWelcome() {
+  hideNav(); plain();
   const s = session(), d = draft();
   if (s) return nav("#/wait");
-  const main = d ? `<a class="btn block big" href="#/new/${d.step || "files"}">${t("landingResume")}</a>`
-      : `<a class="btn block big" href="#/start" id="goStart">${t("landingStart")}</a>`;
-  view().innerHTML = `<div class="pc-land">
-    <div class="pc-land-top">${testBadge()}${langToggle()}</div>
-    <div class="pc-hero">${ham("happy", "bob")}</div>
-    <h1>${t("landingTitle")}</h1><p class="pc-sub">${t("landingSub")}</p>
-    <div class="pc-how">${[1, 2, 3, 4].map(n => `<div><b>${n}</b><span>${t("how" + n)}</span></div>`).join("")}</div>
-    <div class="pc-land-cta">${main}<a class="btn ghost block" href="#/login">${t("landingSignIn")}</a></div>${legalLinks()}</div>`;
+  view().innerHTML = `<div class="ob ob-welcome"><div class="ob-top">${testBadge()}${langBtn()}</div>
+    <div class="ob-wbody"><div class="ob-hero">${ham("happy", "bob")}</div>
+    <h1 class="ob-display">${t("welcomeTitle1")} <em>${t("welcomeTitle2")}</em></h1>
+    <p class="ob-sub">${t("welcomeSub")}</p>
+    <div class="ob-chips"><span>${t("chipFiles")}</span><i>→</i><span>${t("chipLevels")}</span><i>→</i><span>${t("chipExam")}</span></div></div>
+    <div class="ob-foot">${d ? `<a class="btn-p" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : `<button class="btn-p" id="goStart">${t("welcomeStart")}</button>`}
+      <a class="btn-t" href="#/login">${t("welcomeHave")}</a>${legalLinks()}</div></div>`;
   bindLang(); showBadge();
-}
-
-/* ---------- invite and login ---------- */
-function codeForm({ title, sub, ph, go, onSubmit }) {
-  hideNav();
-  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
-    <div class="pc-center">${ham("open", "pc-small")}<h1>${esc(title)}</h1><p class="pc-sub">${esc(sub)}</p>
-    <form id="f"><input class="pc-input code" id="code" placeholder="${esc(ph)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" aria-label="${esc(ph)}">
-    <p class="pc-err" id="err" hidden role="alert"></p><button class="btn block big" id="go">${esc(go)}</button></form></div>`;
-  $("#stepBack").onclick = () => nav("#/");
-  $("#code").focus();
-  $("#f").onsubmit = async e => {
-    e.preventDefault();
-    const v = $("#code").value.trim(); if (!v) return;
-    $("#go").classList.add("off"); $("#err").hidden = true;
-    try { await onSubmit(v); } catch (er) { fail($("#err"), er); $("#go").classList.remove("off"); }
+  const go = $("#goStart");
+  if (go) go.onclick = async () => {
+    go.disabled = true;
+    try {
+      const { orderToken } = await api("start", { lang: courseLang() });
+      saveDraft({ orderToken, step: "files", files: [], days: 7 });
+      nav("#/new/files");
+    } catch (e) { go.disabled = false; toast(errText(e.code)); }
   };
 }
-function viewInvite() {
-  if (draft()) return nav("#/new/" + (draft().step || "files"));
-  codeForm({ title: t("inviteTitle"), sub: t("inviteSub"), ph: t("invitePh"), go: t("next"), onSubmit: async v => {
-    const { orderToken } = await api("start", { invite: v, lang: lang() });
-    saveDraft({ orderToken, step: "files", files: [], minutes: 30, days: 5 });
-    nav("#/new/files");
-  } });
-}
-function signedIn(r, code) {
+
+/* ---------- login ---------- */
+function signedIn(r, code, email) {
   store.set("session", { token: r.session, slug: r.student.slug });
   if (code) store.set("code", code.toUpperCase());
+  if (email) store.set("email", email);
   resetCourse();
   nav(r.course ? "#/s/" + r.student.slug : "#/wait");
 }
-function viewLogin() {
-  hideNav();
-  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
-    <div class="pc-center">${ham("open", "pc-small")}<h1>${t("signinTitle")}</h1>
-    <form id="f" class="pc-form"><input class="pc-input" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
-    <input class="pc-input" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
-    <p class="pc-err" id="err" hidden role="alert"></p><button class="btn block big" id="go">${t("loginGo")}</button></form>
-    <p class="pc-note">${t("signinForgot")}</p><a class="btn ghost block" href="#/login/code">${t("signinCode")}</a></div>`;
+function loginFrame(title, form) {
+  hideNav(); plain();
+  view().innerHTML = `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
+    <div class="ob-login">${ham("open", "ob-mini")}<h1 class="ob-h">${title}</h1>${form}</div></div>`;
   $("#stepBack").onclick = () => nav("#/");
+}
+function viewLogin() {
+  loginFrame(t("signinTitle"), `<form id="f" class="ob-form"><input class="ob-in" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
+    <input class="ob-in" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
+    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>
+    <p class="ob-note">${t("signinForgot")}</p><a class="btn-t" href="#/login/code">${t("signinCode")}</a>`);
   $("#email").focus();
   $("#f").onsubmit = async e => {
     e.preventDefault();
     const email = $("#email").value.trim(), password = $("#pass").value;
     if (!email || !password) return;
-    $("#go").classList.add("off"); $("#err").hidden = true;
-    try { signedIn(await api("login", { email, password })); } catch (er) { fail($("#err"), er); $("#go").classList.remove("off"); }
+    $("#go").disabled = true; $("#err").hidden = true;
+    try { signedIn(await api("login", { email, password }), null, email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
   };
 }
 function viewCodeLogin() {
-  codeForm({ title: t("loginTitle"), sub: t("loginSub"), ph: t("loginPh"), go: t("loginGo"), onSubmit: async v => signedIn(await api("login", { code: v }), v) });
+  loginFrame(t("loginTitle"), `<p class="ob-sub">${t("loginSub")}</p><form id="f" class="ob-form"><input class="ob-in code" id="code" placeholder="${t("loginPh")}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" aria-label="${t("loginPh")}">
+    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>`);
+  $("#code").focus();
+  $("#f").onsubmit = async e => {
+    e.preventDefault();
+    const v = $("#code").value.trim(); if (!v) return;
+    $("#go").disabled = true; $("#err").hidden = true;
+    try { signedIn(await api("login", { code: v }), v); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
+  };
 }
 
-/* ---------- step 1: files ---------- */
+/* ---------- step 1: slides ---------- */
 const uploading = new Map();
+const fileKind = name => /\.pptx$/i.test(name) ? "pptx" : "pdf";
 function fileRows(d) {
-  const rows = d.files.map(f => `<div class="pc-file">${ic.file}<div class="t"><b>${esc(f.name)}</b><span>${pagesTxt(f.pages)}${f.estimated ? ` (${t("filesEst")})` : ""}</span></div><button class="x" data-rm="${esc(f.path)}" aria-label="${t("filesRemove")}">${ic.x}</button></div>`).join("");
-  const up = [...uploading.values()].map(u => `<div class="pc-file busy">${ic.file}<div class="t"><b>${esc(u.name)}</b><div class="bar blue"><i style="width:${u.pct}%"></i></div></div></div>`).join("");
+  const rows = d.files.map(f => `<div class="ob-file"><span class="ob-fk ${fileKind(f.name)}">${fileKind(f.name).toUpperCase()}</span><div class="t"><b>${esc(f.name)}</b><span>${pagesTxt(f.pages)}${f.estimated ? ` (${t("filesEst")})` : ""}</span></div><button class="ob-x" data-rm="${esc(f.path)}" aria-label="${t("filesRemove")}">${ic.x}</button></div>`).join("");
+  const up = [...uploading.values()].map(u => `<div class="ob-file busy"><span class="ob-fk ${fileKind(u.name)}">${fileKind(u.name).toUpperCase()}</span><div class="t"><b>${esc(u.name)}</b><div class="ob-bar"><i style="width:${u.pct}%"></i></div></div></div>`).join("");
   return rows + up;
 }
 function viewFiles() {
-  const d = draft();
-  view().innerHTML = `${stepTop("files")}<div class="pc-step"><h1>${t("filesTitle")}</h1><p class="pc-sub">${t("filesSub")}</p>
-    <label class="pc-drop" id="drop">${ic.upload}<b>${t("filesDrop")}</b><input type="file" id="pick" accept=".pdf,.pptx" multiple hidden></label>
-    <p class="pc-err" id="err" hidden role="alert"></p><div id="list"></div><p class="pc-total" id="total"></p><p class="pc-note">${t("filesNote")}</p></div>
-    <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn">${t("next")}</button></div></div>`;
+  view().innerHTML = frame("files", { title: t("filesTitle"), sub: t("filesSub"), btn: t("next"),
+    body: `<div id="list"></div>
+      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx" multiple hidden></label>
+      <p class="ob-err" id="err" hidden role="alert"></p><div class="ob-sum" id="total" hidden></div><p class="ob-note">${t("filesNote")}</p>` });
   bindStepBack("files");
   const refresh = () => {
     const cur = draft();
     $("#list").innerHTML = fileRows(cur);
+    $("#dropTxt").textContent = cur.files.length || uploading.size ? t("filesAdd") : t("filesDrop");
+    $("#drop").classList.toggle("more", !!(cur.files.length || uploading.size));
     const n = cur.files.reduce((a, f) => a + f.pages, 0);
-    $("#total").textContent = cur.files.length ? `${t("filesTotal")}: ~${pagesTxt(n)}` : "";
-    $("#nextBtn").classList.toggle("off", !cur.files.length || uploading.size > 0);
+    $("#total").hidden = !cur.files.length;
+    $("#total").innerHTML = `${ic.book}<span>${t("filesSummary", { pages: `<b>${pagesTxt(n)}</b>` })}</span>`;
+    $("#nextBtn").disabled = !cur.files.length || uploading.size > 0;
     $$("[data-rm]").forEach(b => b.onclick = async () => {
       const x = draft(); x.files = x.files.filter(f => f.path !== b.dataset.rm); saveDraft(x); refresh();
       api("remove_file", { orderToken: x.orderToken, path: b.dataset.rm }).catch(() => { });
@@ -152,126 +162,127 @@ function viewFiles() {
   $("#nextBtn").onclick = () => {
     const cur = draft();
     if (!cur.files.length || uploading.size) return;
-    cur.pages = cur.files.reduce((a, f) => a + f.pages, 0); cur.step = "tutor"; saveDraft(cur);
+    cur.pages = cur.files.reduce((a, f) => a + f.pages, 0); cur.step = "date"; saveDraft(cur);
     api("update_order", { orderToken: cur.orderToken, pages: cur.pages }).catch(() => { });
-    nav("#/new/tutor");
+    nav("#/new/date");
   };
   refresh();
 }
 
-/* ---------- step 2: teacher ---------- */
-function viewTutor() {
+/* ---------- step 2: exam date, a timeline under a fixed needle ---------- */
+export const RULER = { MIN: 3, MAX: 150, STEP: 12 };
+const paceOf = n => n < 14 ? "sprint" : n < 35 ? "tempo" : "chill";
+// Minutes a day: one pass plus three repeats of every page (3 min a page), spread over the days before the last two.
+export const minutesFor = (pages, n) => Math.max(10, Math.min(90, Math.round((pages || 20) * 3 / Math.max(1, n - 2) / 5) * 5));
+export function rulerHtml() {
+  let html = "";
+  for (let n = RULER.MIN; n <= RULER.MAX; n++) {
+    const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n);
+    const mo = d.getDate() === 1, wk = d.getDay() === 1;
+    html += `<div class="rd ${mo ? "mo" : wk ? "wk" : ""}">${mo ? `<small>${esc(fmtShortMonth(d))}</small>` : wk ? `<small>${d.getDate()}.</small>` : ""}</div>`;
+  }
+  return `<div class="ruler" dir="ltr"><div class="rscroll" id="rs" tabindex="0" role="slider" aria-valuemin="${RULER.MIN}" aria-valuemax="${RULER.MAX}">${html}</div><div class="needle" aria-hidden="true"></div></div>`;
+}
+// Binds a ruler; onChange(n, iso) on every snap. Arrow keys move a day.
+export function bindRuler(startDays, onChange) {
+  const rs = $("#rs");
+  const at = () => Math.min(RULER.MAX, Math.max(RULER.MIN, RULER.MIN + Math.round(rs.scrollLeft / RULER.STEP)));
+  let last = -1;
+  const upd = () => { const n = at(); if (n === last) return; last = n; rs.setAttribute("aria-valuenow", n); onChange(n, addDays(today(), n)); };
+  rs.addEventListener("scroll", upd, { passive: true });
+  rs.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1, PageUp: 7, PageDown: -7 }[e.key]; if (k) { e.preventDefault(); rs.scrollLeft = (at() + k - RULER.MIN) * RULER.STEP; } };
+  requestAnimationFrame(() => { rs.scrollLeft = (Math.min(RULER.MAX, Math.max(RULER.MIN, startDays)) - RULER.MIN) * RULER.STEP; upd(); });
+  return { get: () => addDays(today(), at()) };
+}
+export function datePanel(n, iso, pages) {
+  const kind = paceOf(n), when = n < 14 ? inDays(n) : inWeeks(Math.round(n / 7));
+  return { date: fmtDay(iso), rel: t("dateRel", { when, min: minutesFor(pages, n) }), badge: `<span class="badge ${kind}">${PACE_ICONS[kind]}${t({ sprint: "paceSprint", tempo: "paceTempo", chill: "paceChill" }[kind])}</span>` };
+}
+function viewDate() {
   const d = draft();
-  view().innerHTML = `${stepTop("tutor")}<div class="pc-step"><h1>${t("tutorTitle")}</h1><p class="pc-sub">${t("tutorSub")}</p>
-    <div class="pc-tutors">${TUTORS.map(x => `<button class="pc-tutor ${d.tutor === x.id ? "sel" : ""}" data-t="${x.id}" aria-pressed="${d.tutor === x.id}">${tutorArt(x.id)}<b>${esc(x.name)}</b><span>${esc(x.hi[lang()])}</span></button>`).join("")}</div></div>
-    <div class="dock"><div class="dock-in"><button class="btn block big ${d.tutor ? "" : "off"}" id="nextBtn">${t("next")}</button></div></div>`;
-  bindStepBack("tutor");
-  $$("[data-t]").forEach(b => b.onclick = () => {
-    const cur = draft(); cur.tutor = b.dataset.t; saveDraft(cur); sfx.flip();
-    $$("[data-t]").forEach(o => { o.classList.toggle("sel", o === b); o.setAttribute("aria-pressed", o === b); });
-    $("#nextBtn").classList.remove("off");
+  const start = d.examDate ? daysBetween(today(), d.examDate) : 42;
+  view().innerHTML = frame("date", { title: t("dateTitle"), btn: t("next"),
+    body: `<div class="ob-mid"><div class="dbig"><b id="dDate"></b><span id="dRel"></span></div><div class="dbadge" id="dBadge"></div>${rulerHtml()}</div>` });
+  bindStepBack("date");
+  let pick = null;
+  const r = bindRuler(start, (n, iso) => {
+    pick = iso;
+    const p = datePanel(n, iso, d.pages);
+    $("#dDate").textContent = p.date; $("#dRel").textContent = p.rel; $("#dBadge").innerHTML = p.badge;
   });
   $("#nextBtn").onclick = () => {
-    const cur = draft(); if (!cur.tutor) return;
-    cur.step = "date"; saveDraft(cur);
-    api("update_order", { orderToken: cur.orderToken, tutor: cur.tutor }).catch(() => { });
-    nav("#/new/date");
+    const iso = pick || r.get(), n = daysBetween(today(), iso), cur = draft();
+    cur.examDate = iso; cur.minutes = minutesFor(cur.pages, n); cur.days = 7; cur.step = "tutor"; saveDraft(cur);
+    api("update_order", { orderToken: cur.orderToken, examDate: cur.examDate, minutes: cur.minutes, days: 7 }).catch(() => { });
+    nav("#/new/tutor");
   };
 }
 
-/* ---------- step 3: test date ---------- */
-function viewDate() {
-  const d = draft(), min = addDays(today(), 1);
-  view().innerHTML = `${stepTop("date")}<div class="pc-step"><h1>${t("dateTitle")}</h1><p class="pc-sub">${t("dateSub")}</p>
-    <div class="pc-center-art">${tutorArt(d.tutor, "pc-small")}</div>
-    <input class="pc-input" id="date" type="date" min="${min}" value="${d.examDate || ""}" aria-label="${t("dateTitle")}">
-    <p class="pc-inline" id="in"></p><p class="pc-err" id="err" hidden role="alert"></p></div>
-    <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn">${t("next")}</button></div></div>`;
-  bindStepBack("date");
-  const upd = () => {
-    const v = $("#date").value, ok = v && v >= min;
-    $("#in").textContent = ok ? `${t("dateIn")} ${daysTxt(daysBetween(today(), v))}` : "";
-    $("#nextBtn").classList.toggle("off", !ok);
-    return ok;
-  };
-  $("#date").oninput = upd; upd();
-  $("#nextBtn").onclick = () => {
-    if (!upd()) { $("#err").textContent = t("dateErr"); $("#err").hidden = false; return; }
-    const cur = draft(); cur.examDate = $("#date").value; cur.step = "time"; saveDraft(cur);
-    api("update_order", { orderToken: cur.orderToken, examDate: cur.examDate }).catch(() => { });
-    nav("#/new/time");
-  };
+/* ---------- step 3: tutor, a swipe carousel ---------- */
+const pickable = () => TUTORS.filter(x => x.idx >= 0);
+export function carouselHtml() {
+  return `<div class="car" id="car" dir="ltr">${pickable().map(x => `<div class="slot"><div class="fig">${tutorArt(x.id)}</div></div>`).join("")}</div><div class="car-floor" aria-hidden="true"></div>
+    <div class="tinfo"><b id="tName"></b></div><div class="dots" id="dots" aria-hidden="true">${pickable().map(() => "<i></i>").join("")}</div>`;
 }
-
-/* ---------- step 4: time and forecast ---------- */
-const LEVEL_C = ["red", "orange", "blue", "green"];
-const prep = (r, pages) => Math.max(3, Math.min(100, r.totalMinutes / (pages * 3) * 100)); // full bar = one pass and three repeats
-const rep = n => n > 20 ? "20+" : n; // a very short PDF would otherwise promise 197 repeats
-function forecastHtml(d) {
-  const f = forecast({ pages: d.pages || 1, today: today(), examDate: d.examDate, minutes: d.minutes, days: d.days });
-  const rowLbl = { you: t("fcYou"), more: t("fcMore"), daily: t("fcDaily") };
-  const rows = scenarios({ pages: d.pages || 1, today: today(), examDate: d.examDate, minutes: d.minutes, days: d.days });
-  return `<h2 class="pc-fchead">${t("fcHead")}</h2>
-    <div class="pc-fc ${LEVEL_C[f.level]}"><div class="meter" aria-hidden="true">${[0, 1, 2, 3].map(i => `<i class="${i <= f.level ? "on" : ""}"></i>`).join("")}</div>
-      <b>${t("fcL" + f.level)}</b><span>${t("fcL" + f.level + "s")}</span></div>
-    <div class="statboxes pc-fcnums">
-      <div class="sbox b"><div class="h">${t("fcHours")}</div><div class="v">${String(f.hours).replace(".", lang() === "cs" ? "," : ".")}</div></div>
-      <div class="sbox g"><div class="h">${t("fcCover")}</div><div class="v">${Math.round(f.coverage * 100)} %</div></div>
-      <div class="sbox y"><div class="h">${t("fcRepeat")}</div><div class="v">${rep(f.repeats)}×</div></div></div>
-    <div class="pc-compare">${rows.map(r => `<button class="pc-row ${r.key === "you" ? "you" : ""}" data-apply="${r.minutes},${r.days}" ${r.key === "you" ? "disabled" : ""}>
-      <div class="l"><b>${rowLbl[r.key]}</b><span>${r.minutes} ${t("fcMinDay")} · ${r.days} ${t("fcDaysWk")}</span></div>
-      <div class="r"><span>${Math.round(r.coverage * 100)} % ${t("fcNoPass")}</span><span>${rep(r.repeats)}× ${t("fcRep")}</span></div>
-      <div class="bar pc-prep ${LEVEL_C[r.level]}" aria-hidden="true"><i style="width:${prep(r, d.pages || 1)}%"></i></div></button>`).join("")}</div>
-    <p class="pc-note">${t("fcEst")}</p>`;
-}
-function viewTime() {
-  const d = draft();
-  view().innerHTML = `${stepTop("time")}<div class="pc-step"><h1>${t("timeTitle")}</h1>
-    <label class="pc-lbl" for="minS">${t("timeMin")} <b id="minV"></b></label><input class="pc-slider" id="minS" type="range" min="5" max="180" step="5" value="${d.minutes}">
-    <div class="pc-lbl">${t("timeDays")}</div><div class="pc-days" role="group" aria-label="${t("timeDays")}">${[1, 2, 3, 4, 5, 6, 7].map(n => `<button data-d="${n}">${n}</button>`).join("")}</div>
-    <div id="fc"></div><p class="pc-err" id="err" hidden role="alert"></p></div>
-    <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn">${t("next")}</button></div></div>`;
-  bindStepBack("time");
+export function bindCarousel(startId, onChange) {
+  const c = $("#car");
+  let cur = -1;
   const paint = () => {
-    const cur = draft();
-    $("#minS").value = cur.minutes; $("#minV").textContent = cur.minutes;
-    $$("[data-d]").forEach(b => { b.classList.toggle("on", +b.dataset.d === cur.days); b.setAttribute("aria-pressed", +b.dataset.d === cur.days); });
-    $("#fc").innerHTML = forecastHtml(cur);
-    $$("[data-apply]").forEach(b => b.onclick = () => { const [m, n] = b.dataset.apply.split(",").map(Number); const x = draft(); x.minutes = m; x.days = n; saveDraft(x); sfx.flip(); paint(); });
+    const mid = c.scrollLeft + c.clientWidth / 2;
+    let best = 0, bd = 1e9;
+    [...c.children].forEach((s, i) => {
+      const dist = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid) / s.offsetWidth, k = Math.min(dist, 1.4);
+      s.firstChild.style.transform = `scale(${1 - k * 0.42}) translateY(${k * 10}px)`;
+      s.firstChild.style.opacity = 1 - k * 0.45;
+      s.firstChild.style.filter = k > .5 ? "saturate(.6)" : "";
+      if (dist < bd) { bd = dist; best = i; }
+    });
+    if (best !== cur) { cur = best; $("#tName").textContent = pickable()[best].name; [...$("#dots").children].forEach((d, i) => d.classList.toggle("on", i === best)); onChange(pickable()[best]); }
   };
-  $("#minS").oninput = e => { const cur = draft(); cur.minutes = +e.target.value; saveDraft(cur); paint(); };
-  $$("[data-d]").forEach(b => b.onclick = () => { const cur = draft(); cur.days = +b.dataset.d; saveDraft(cur); sfx.flip(); paint(); });
+  const go = (i, smooth = true) => { const s = c.children[Math.max(0, Math.min(pickable().length - 1, i))]; c.scrollTo({ left: s.offsetLeft + s.offsetWidth / 2 - c.clientWidth / 2, behavior: smooth ? "smooth" : "auto" }); };
+  c.addEventListener("scroll", paint, { passive: true });
+  [...c.children].forEach((s, i) => s.onclick = () => go(i));
+  c.tabIndex = 0; c.onkeydown = e => { if (e.key === "ArrowRight") go(cur + 1); if (e.key === "ArrowLeft") go(cur - 1); };
+  const startI = Math.max(0, pickable().findIndex(x => x.id === startId));
+  requestAnimationFrame(() => { go(startI, false); paint(); });
+  return { get: () => pickable()[Math.max(0, cur)] };
+}
+function viewTutor() {
+  const d = draft();
+  view().innerHTML = frame("tutor", { title: t("tutorPick"), btn: "", body: `<div class="ob-mid">${carouselHtml()}</div>` });
+  bindStepBack("tutor");
+  const car = bindCarousel(d.tutor || "fox", x => { $("#nextBtn").textContent = t("tutorGo", { name: tutorWith(x.id) }); sfx.flip(); });
   $("#nextBtn").onclick = async () => {
-    const cur = draft(), btn = $("#nextBtn");
-    btn.classList.add("off"); $("#err").hidden = true;
+    const x = car.get(), cur = draft(), btn = $("#nextBtn");
+    cur.tutor = x.id; saveDraft(cur);
+    btn.disabled = true;
     try { // the free lessons start building now, while the student makes an account
-      await api("update_order", { orderToken: cur.orderToken, pages: cur.pages, tutor: cur.tutor, examDate: cur.examDate, minutes: cur.minutes, days: cur.days, lang: lang() });
+      await api("update_order", { orderToken: cur.orderToken, pages: cur.pages, tutor: cur.tutor, examDate: cur.examDate, minutes: cur.minutes || 20, days: 7, lang: courseLang() });
       const { slug } = await api("queue_free", { orderToken: cur.orderToken });
-      const x = draft(); x.slug = slug; x.step = "account"; saveDraft(x);
+      const y = draft(); y.slug = slug; y.step = "account"; saveDraft(y);
       nav("#/new/account");
-    } catch (e) { fail($("#err"), e); btn.classList.remove("off"); }
+    } catch (e) { toast(errText(e.code)); btn.disabled = false; }
   };
-  paint();
 }
 
-/* ---------- step 5: account, while the free lessons build ---------- */
+/* ---------- account, while the free lessons build (not counted in the progress bar) ---------- */
 function viewAccount() {
   const d = draft(), y = new Date().getFullYear(), a = d.acc || {};
-  view().innerHTML = `${stepTop("account")}<div class="pc-step"><h1>${t("accTitle")}</h1>
-    <div class="pc-say">${tutorArt(d.tutor, "pc-mini")}<div class="bubble">${t("accBuilding")}</div></div>
-    <form id="f" class="pc-form" novalidate>
-      <label class="pc-lbl" for="aName">${t("accName")}</label><input class="pc-input" id="aName" autocomplete="given-name" maxlength="80" value="${esc(a.name || "")}">
-      <label class="pc-lbl" for="aEmail">${t("accEmail")}</label><input class="pc-input" id="aEmail" type="email" autocomplete="email" maxlength="200" value="${esc(a.email || "")}">
-      <label class="pc-lbl" for="aPass">${t("accPass")}<span>${t("accPassHint")}</span></label><input class="pc-input" id="aPass" type="password" autocomplete="new-password" maxlength="200">
-      <label class="pc-lbl" for="aYear">${t("accYear")}<span>${t("accYearHint")}</span></label><input class="pc-input" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" value="${esc(a.year || "")}">
-      <label class="pc-lbl" for="aPhone">${t("accPhone")}<span>${t("accOptional")}</span></label><input class="pc-input" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
-      <label class="pc-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
-      <label class="pc-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
-      <p class="pc-err" id="err" hidden role="alert"></p>
-    </form><p class="pc-note">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p></div>
-    <div class="dock"><div class="dock-in"><button class="btn block big" id="nextBtn" type="submit" form="f">${t("accGo")}</button></div></div>`;
+  const card = `<div class="ob-course"><span class="sq">${esc((d.files[0]?.name || "P")[0].toUpperCase())}</span><div><b>${t("accCourse")}</b><span>${t("accCourseSub", { pages: pagesTxt(d.pages || 0), date: d.examDate ? esc(fmtDay(d.examDate)) : "", tutor: esc(tutorWith(d.tutor)) })}</span></div></div>`;
+  view().innerHTML = frame("account", { title: t("accTitle"), sub: t("accSub"), btn: t("accGo"),
+    body: `${card}<form id="f" class="ob-form" novalidate>
+      <label class="ob-lbl" for="aName">${t("accName")}</label><input class="ob-in" id="aName" autocomplete="given-name" maxlength="80" placeholder="${t("accNamePh")}" value="${esc(a.name || "")}">
+      <label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}">
+      <div class="ob-two"><div><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
+      <div><label class="ob-lbl" for="aYear">${t("accYear")}</label><input class="ob-in" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" placeholder="2004" value="${esc(a.year || "")}"></div></div>
+      <label class="ob-lbl" for="aPhone">${t("accPhone")} <span>${t("accOptional")}</span></label><input class="ob-in" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
+      <label class="ob-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
+      <label class="ob-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
+      <p class="ob-err" id="err" hidden role="alert"></p>
+    </form><p class="ob-note">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p>` });
+  $("#nextBtn").setAttribute("form", "f"); $("#nextBtn").type = "submit";
   $("#stepBack").onclick = () => nav("#/");
-  const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); };
+  const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); err.scrollIntoView({ block: "center" }); };
   if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail(err, e));
   // Remembers what's typed on this device, except the password and phone, so a reload doesn't lose it.
   const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value }; saveDraft(x); } };
@@ -286,58 +297,57 @@ function viewAccount() {
     if (y - v.birthYear < MIN_AGE) return show("too_young");
     if (v.phone && !/^\+?\d{9,15}$/.test(v.phone.replace(/[\s()-]/g, ""))) return show("bad_phone");
     if (!v.privacy) return show("no_privacy");
-    const btn = $("#nextBtn"); btn.classList.add("off"); btn.textContent = t("storeBuying");
+    const btn = $("#nextBtn"); btn.disabled = true; btn.textContent = t("storeBuying");
     try {
       const r = await api("signup", { orderToken: draft().orderToken, ...v });
       store.set("session", { token: r.session, slug: r.slug });
-      store.set("code", r.code);
+      store.set("code", r.code); store.set("email", v.email); store.set("name", v.name);
       store.del("draft");
       confetti(); sfx.done();
       nav("#/wait");
-    } catch (er) { fail(err, er); btn.classList.remove("off"); btn.textContent = t("accGo"); }
+    } catch (er) { fail(err, er); btn.disabled = false; btn.textContent = t("accGo"); }
   };
 }
 
 /* ---------- unlock: the store, after the free lessons ---------- */
 async function viewUnlock() {
-  hideNav();
+  hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
   const [cfg, st] = await Promise.all([storeConfig(), api("status", { session: s.token }).catch(e => e)]);
   if (st.status === 401) { store.del("session"); return nav("#/login"); }
   if (st.paid) return nav("#/s/" + s.slug);
-  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
-    <div class="pc-step"><h1>${t("unlockTitle")}</h1><p class="pc-sub">${t("unlockSub")}</p>
-    ${cfg.testMode ? `<div class="pc-testmode" role="note">${t("storeTest")}</div>` : ""}
-    <div class="pc-plans">${cfg.plans.map(p => `<div class="pc-plan ${p.highlight ? "best" : ""}">${p.highlight && cfg.plans.length > 1 ? `<span class="pc-best">${t("storeBest")}</span>` : ""}
-      <h2>${esc(p.name[lang()])}</h2><div class="price">${p.price} ${esc(cfg.currency)}</div>
-      <ul>${p.features[lang()].map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>
-      <button class="btn block big ${p.highlight ? "" : "blue"}" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")}</button></div>`).join("")}</div>
-    <label class="pc-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
-    <p class="pc-err" id="err" hidden role="alert"></p><p class="pc-note">${t("storeSecure")}</p></div>`;
-  $(".app").classList.add("no-dock");
+  const L = o => o?.[lang()] || o?.en || o?.cs;
+  view().innerHTML = `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
+    <h1 class="ob-h">${t("unlockTitle")}</h1><p class="ob-sub">${t("unlockSub")}</p>
+    ${cfg.testMode ? `<div class="ob-test" role="note">${t("storeTest")}</div>` : ""}
+    <div class="ob-body">${cfg.plans.map(p => `<div class="ob-plan"><h2>${esc(L(p.name))}</h2><div class="price">${p.price} ${esc(cfg.currency)}</div>
+      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul></div>`).join("")}
+    <label class="ob-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
+    <p class="ob-err" id="err" hidden role="alert"></p></div>
+    <div class="ob-foot">${cfg.plans.map(p => `<button class="btn-p" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${esc(cfg.currency)}</button>`).join("")}<p class="ob-note c">${t("storeSecure")}</p></div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
   $$("[data-plan]").forEach(b => b.onclick = async () => {
     const label = b.textContent;
     $("#err").hidden = true;
     if (!$("#terms").checked) return fail($("#err"), { code: "no_terms" });
-    $$("[data-plan]").forEach(x => x.classList.add("off")); b.textContent = t("storeBuying");
+    $$("[data-plan]").forEach(x => x.disabled = true); b.textContent = t("storeBuying");
     try {
       const r = await api("checkout", { session: s.token, plan: b.dataset.plan, terms: true });
       if (r.url) { location.href = r.url; return; } // Stripe Checkout; it comes back to #/paid
       resetCourse();
       confetti(); sfx.done(); toast(t("unlockDone"));
       nav("#/s/" + s.slug);
-    } catch (e) { fail($("#err"), e); $$("[data-plan]").forEach(x => x.classList.remove("off")); b.textContent = label; }
+    } catch (e) { fail($("#err"), e); $$("[data-plan]").forEach(x => x.disabled = false); b.textContent = label; }
   });
 }
 
 /* ---------- back from Stripe: wait for the webhook to mark the order paid ---------- */
 let paidTimer = null;
 function viewPaid() {
-  hideNav();
+  hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
-  view().innerHTML = `<div class="pc-center">${ham("happy", "bob")}<h1>${t("paidTitle")}</h1><p class="pc-sub" id="paidSub">${t("paidSub")}</p>
-    <a class="btn ghost block" href="#/s/${esc(s.slug)}" id="paidSkip" hidden>${t("paidGo")}</a></div>`;
+  view().innerHTML = `<div class="ob ob-center">${ham("happy", "bob")}<h1 class="ob-h">${t("paidTitle")}</h1><p class="ob-sub" id="paidSub">${t("paidSub")}</p>
+    <a class="btn-t" href="#/s/${esc(s.slug)}" id="paidSkip" hidden>${t("paidGo")}</a></div>`;
   const started = Date.now();
   const poll = async () => {
     clearTimeout(paidTimer);
@@ -352,33 +362,28 @@ function viewPaid() {
   poll();
 }
 
-/* ---------- terms of sale ---------- */
+/* ---------- terms and privacy ---------- */
 function operatorHtml(op) {
   if (!op.name) return t("privOperatorTbd");
   return [esc(op.name), op.id ? `${t("opId")} ${esc(op.id)}` : "", op.address ? esc(op.address) : "", op.email ? `<a href="mailto:${esc(op.email)}">${esc(op.email)}</a>` : ""].filter(Boolean).join("<br>");
 }
-async function viewTerms() {
-  hideNav();
-  const cfg = await storeConfig().catch(() => ({})), plan = (cfg.plans || [])[0];
-  const price = plan ? `${plan.price} ${cfg.currency}` : "";
-  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
-    <div class="pc-step pc-privacy pc-terms"><h1>${t("termsTitle")}</h1><p class="pc-note">${t("termsVersion")}</p>
-    <h2>${t("termsSeller")}</h2><p>${operatorHtml(cfg.operator || {})}</p>
-    ${[1, 2, 3, 4, 5, 6, 7].map(n => `<h2>${t("termsH" + n)}</h2><p>${t("termsP" + n).replace("%", price)}</p>`).join("")}</div>`;
-  $(".app").classList.add("no-dock");
+function legalFrame(html) {
+  hideNav(); plain();
+  view().innerHTML = `<div class="ob ob-legalpage"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${BACK}</button></div>${html}</div>`;
   $("#stepBack").onclick = () => history.length > 1 ? history.back() : nav("#/");
 }
-
-/* ---------- privacy ---------- */
+async function viewTerms() {
+  const cfg = await storeConfig().catch(() => ({})), plan = (cfg.plans || [])[0];
+  const price = plan ? `${plan.price} ${cfg.currency}` : "";
+  legalFrame(`<h1 class="ob-h">${t("termsTitle")}</h1><p class="ob-note">${t("termsVersion")}</p>
+    <h2>${t("termsSeller")}</h2><p>${operatorHtml(cfg.operator || {})}</p>
+    ${[1, 2, 3, 4, 5, 6, 7].map(n => `<h2>${t("termsH" + n)}</h2><p>${t("termsP" + n).replace("%", price)}</p>`).join("")}`);
+}
 async function viewPrivacy() {
-  hideNav();
   const who = operatorHtml((await storeConfig().catch(() => ({}))).operator || {});
-  view().innerHTML = `<div class="session-top"><button class="x" id="stepBack" aria-label="${t("back")}">${ic.x}</button></div>
-    <div class="pc-step pc-privacy"><h1>${t("privTitle")}</h1><p class="pc-note">${t("privVersion")}</p>
+  legalFrame(`<h1 class="ob-h">${t("privTitle")}</h1><p class="ob-note">${t("privVersion")}</p>
     ${[1, 2, 3, 4, 5, 6].map(n => `<h2>${t("privH" + n)}</h2><p>${t("privP" + n)}</p>`).join("")}
-    <h2>${t("privOperator")}</h2><p>${who}</p></div>`;
-  $(".app").classList.add("no-dock");
-  $("#stepBack").onclick = () => history.length > 1 ? history.back() : nav("#/");
+    <h2>${t("privOperator")}</h2><p>${who}</p>`);
 }
 
 /* ---------- wait page ---------- */
@@ -391,7 +396,6 @@ function stepsHtml(status, build) {
   const queued = status === "paid_test" || status === "free_queued";
   return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 && !queued ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
 }
-// What's being built, how long it should take, and which lesson it's on.
 function buildHtml(status, build, free, offline) {
   if (!build || ["ready", "free_ready", "failed"].includes(status)) return "";
   const buildMinutes = free ? () => "1–2" : buildMinutesOf;
@@ -406,30 +410,30 @@ function buildHtml(status, build, free, offline) {
     <p>${[build.files.length ? fileCount(build.files.length) : "", pages ? pagesTxt(pages) : "", lessons.length ? lessonCount(lessons.length) : ""].filter(Boolean).join(" · ")}</p>
     ${lessons.length ? "" : files}
     <p class="pc-build-time">${time}</p>
-    ${p ? `<div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><p class="pc-build-stage">${t("buildStage_" + p.stage)}</p>` : ""}
+    ${p ? `<div class="ob-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><p class="pc-build-stage">${t("buildStage_" + p.stage)}</p>` : ""}
     ${lessons.length ? `<ul class="pc-build-lessons">${lessons.map(l => `<li class="${l.done ? "done" : ""}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
   </div>`;
 }
 async function viewWait() {
-  hideNav();
+  hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
   let painted = null;
   const paint = r => {
     const { status, student, build } = r, free = !r.paid, ready = !!r.course, failed = !ready && status === "failed";
     const offline = r.workerOnline === false && ["free_queued", "paid_test"].includes(status); // building runs on one computer that can be off
-    const tutor = student ? student.tutor || "penny" : null, key = [status, tutor, ready, free].join();
+    const tutor = student ? student.tutor || "penny" : null, key = [status, tutor, ready, free, lang()].join();
     const shown = ready ? (free ? "free_ready" : "ready") : status;
     if (painted === key + offline && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(shown, build) + buildHtml(shown, build, free, offline); return; } // keeps the mascot animation running
     painted = key + offline;
     const code = store.get("code");
     const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (status === "free_queued" ? "waitFreeQueued" : "waitFreeTitle") : status === "paid_test" ? "waitQueued" : "waitTitle";
     const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
-    view().innerHTML = `<div class="pc-wait"><div class="pc-land-top">${testBadge()}${langToggle()}</div>
+    view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${testBadge()}${langBtn()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
-      <h1>${t(title)}</h1><p class="pc-sub">${t(sub)}</p>
+      <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
       ${failed ? "" : `<div id="pcLive">${stepsHtml(shown, build) + buildHtml(shown, build, free, offline)}</div>`}
-      ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn ghost sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
-      </div>${ready ? `<div class="dock"><div class="dock-in"><a class="btn block big" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div></div>` : ""}`;
+      ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn-t sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
+      ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
     bindLang(); showBadge();
     const c = $("#copy");
     if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(code); toast(t("codeCopied")); } catch (e) { } };
@@ -452,16 +456,16 @@ async function viewWait() {
 }
 
 /* ---------- router ---------- */
-function render() {
+export function render() {
   clearTimeout(waitTimer); clearTimeout(paidTimer);
-  document.querySelectorAll(".feedback,.confetti").forEach(e => e.remove());
-  window.onkeydown = null;
-  const app = $(".app"); app.classList.remove("no-dock");
+  document.querySelectorAll(".feedback,.confetti,#sh,#shDim").forEach(e => e.remove());
+  document.body.classList.remove("plain", "map-page");
+  window.onkeydown = null; window.onscroll = null;
   const h = location.hash.replace(/^#/, "") || "/";
   const parts = h.split("/").filter(Boolean);
   window.scrollTo(0, 0);
-  if (!parts.length) return viewLanding();
-  if (parts[0] === "start") return viewInvite();
+  if (!parts.length) return viewWelcome();
+  if (parts[0] === "start") return nav("#/"); // the old invite page
   if (parts[0] === "login") return parts[1] === "code" ? viewCodeLogin() : viewLogin();
   if (parts[0] === "wait") return viewWait();
   if (parts[0] === "unlock") return viewUnlock();
@@ -469,19 +473,19 @@ function render() {
   if (parts[0] === "terms") return viewTerms();
   if (parts[0] === "paid") return viewPaid();
   if (parts[0] === "new") {
-    hideNav();
+    hideNav(); plain();
     const d = draft();
-    if (!d) return nav("#/start");
+    if (!d) return nav("#/");
     const step = d.slug ? "account" : parts[1] || d.step; // once the free lessons are queued, the setup can't change
     if (step !== (parts[1] || d.step)) return nav("#/new/" + step);
     if (STEPS.indexOf(step) > STEPS.indexOf(d.step || "files")) return nav("#/new/" + (d.step || "files"));
-    const stepView = { files: viewFiles, tutor: viewTutor, date: viewDate, time: viewTime, account: viewAccount }[step];
+    const stepView = { files: viewFiles, date: viewDate, tutor: viewTutor, account: viewAccount }[step];
     return stepView ? stepView() : nav("#/");
   }
   if (parts[0] === "s") return courseRoute(parts.slice(1), nav, render);
   nav("#/");
 }
 addEventListener("hashchange", render);
-setLang(lang());
-render();
+applyTheme();
+setLang(lang()).then(render);
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { });
