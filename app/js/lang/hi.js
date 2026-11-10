@@ -1,4 +1,8 @@
 export default {
+ "inARow": "लगातार",
+ "todayDone": "आज का हो गया!",
+ "todayNot": "आज थोड़ा पढ़ लो।",
+ "doneOf": "{y} में से {x} पूरे",
  "brand": "Penny",
  "testBadge": "टेस्ट वर्ज़न",
  "next": "आगे बढ़ो",

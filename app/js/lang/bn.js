@@ -1,4 +1,8 @@
 export default {
+ "inARow": "টানা",
+ "todayDone": "আজকের কাজ শেষ!",
+ "todayNot": "আজ একটু পড়ো।",
+ "doneOf": "{y}টির মধ্যে {x}টি শেষ",
  "brand": "Penny",
  "testBadge": "টেস্ট ভার্সন",
  "next": "এগিয়ে যাও",

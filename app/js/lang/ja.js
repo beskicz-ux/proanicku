@@ -1,4 +1,8 @@
 export default {
+ "inARow": "連続",
+ "todayDone": "今日は完了!",
+ "todayNot": "今日も少し学ぼう。",
+ "doneOf": "{y}個中{x}個完了",
  "brand": "Penny",
  "testBadge": "テスト版",
  "next": "続ける",

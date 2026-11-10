@@ -1,4 +1,8 @@
 export default {
+ "inARow": "v rade",
+ "todayDone": "Dnešok máš!",
+ "todayNot": "Dnes sa ešte uč.",
+ "doneOf": "{x} z {y} hotovo",
  "brand": "Penny",
  "testBadge": "Testovacia verzia",
  "next": "Pokračovať",

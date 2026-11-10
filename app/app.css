@@ -482,3 +482,22 @@ html[dir=rtl] :is(b, h1, p, small, .tb-name, .md, .q, .opt){unicode-bidi:plainte
   :is(.bar, .prog, .goal) i{transition:width .5s cubic-bezier(.2,.8,.2,1)}
 }
 @keyframes viewIn{from{opacity:0}}
+
+/* ---------- readiness ring round each open level (replaces the START bubble and the pulsing halo) ---------- */
+.n.cur .c:before{display:none}
+.n .rg{position:absolute; left:50%; top:50%; width:94px; height:94px; margin:-47px 0 0 -47px; transform:rotate(-90deg); pointer-events:none; overflow:visible}
+.n.cur .rg{width:114px; height:114px; margin:-57px 0 0 -57px}
+.n.test .rg{width:102px; height:102px; margin:-51px 0 0 -51px}
+.n .rg circle{fill:none; stroke-width:6.5; stroke-linecap:round}
+.n .rg-t{stroke:color-mix(in srgb, var(--chc) 22%, transparent)}
+.n .rg-p{stroke:var(--chc)}
+.n.gold .rg-p{stroke:#F2B630}
+@media (prefers-reduced-motion:no-preference){ .n .rg-p{transition:stroke-dasharray .6s cubic-bezier(.2,.8,.2,1)} }
+
+/* ---------- the top bar stays solid; the chapter card floats over the map, so the path shows round it ---------- */
+.mtop{background:none; box-shadow:none; padding:0}
+.mtop .tb{background:var(--bg); padding-inline:var(--gutter); box-shadow:0 6px 10px -8px #0003}
+.unitwrap{padding:8px var(--gutter) 0}
+.mtop .unit{box-shadow:0 4px 0 color-mix(in srgb, var(--uc, #3B82F6) 70%, #000), 0 10px 22px -6px #0005}
+.mtop + .mapv{margin-top:-80px}
+@media (min-width:768px){ .mtop .tb, .unitwrap{padding-inline:0} .mtop .tb{box-shadow:none} }

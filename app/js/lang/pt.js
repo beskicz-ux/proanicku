@@ -1,4 +1,8 @@
 export default {
+ "inARow": "seguidos",
+ "todayDone": "Hoje já foi!",
+ "todayNot": "Estude um pouco hoje.",
+ "doneOf": "{x} de {y} feitos",
  "brand": "Penny",
  "testBadge": "Versão de teste",
  "next": "Continuar",

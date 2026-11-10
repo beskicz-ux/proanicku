@@ -1,4 +1,8 @@
 export default {
+ "inARow": "üst üste",
+ "todayDone": "Bugün tamam!",
+ "todayNot": "Bugün biraz çalış.",
+ "doneOf": "{y} içinden {x} tamam",
  "brand": "Penny",
  "testBadge": "Test sürümü",
  "next": "Devam",

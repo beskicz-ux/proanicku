@@ -180,3 +180,9 @@ export function langSheet(onPick) {
   $("#lq").oninput = draw; draw();
   $("#lDone").onclick = async () => { s.close(); if (pick !== lang()) { await setLang(pick); onPick?.(pick); } };
 }
+
+/* Practice tiles: same chunky two-tone style as the tab icons (lip underneath, white symbol on top). */
+export const PRAC_ICONS = {
+  mistakes: `<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="8" width="30" height="28" rx="7" fill="#C2352B"/><rect x="5" y="6" width="30" height="28" rx="7" fill="#FF5A4E"/><path d="M14.5 15.5a7.5 7.5 0 1 1-1.2 9" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><path d="M10.5 12.5l1.8 6.4 6.3-2" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  mix: `<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="8" width="30" height="28" rx="7" fill="#1E5BD6"/><rect x="5" y="6" width="30" height="28" rx="7" fill="#3B8BFF"/><path d="M11 14h4.5c5 0 5 12 10 12H29M11 26h4.5c1.800 0 3-1.500 3.800-3.400M29 14h-3.500c-1.800 0-3 1.500-3.800 3.400" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M26.5 10.5 30 14l-3.500 3.500M26.5 22.5 30 26l-3.500 3.500" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};

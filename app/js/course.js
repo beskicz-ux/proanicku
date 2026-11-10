@@ -5,7 +5,7 @@ import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
-import { mix, chapterColour, TAB_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
+import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
 import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel } from "./app.js";
 
 const DAY = 86400000;
@@ -84,6 +84,11 @@ const openLessons = () => allLessons().filter(l => !l.locked);
 const lockedCount = () => allLessons().length - openLessons().length;
 const lastReview = l => Math.max(0, ...l.items.map(it => Math.max(S.cards[it.id]?.last || 0, S.q[it.id]?.last || 0)), S.lessons[l.id]?.ts || 0);
 // Readiness: the average over every topic of how much is mastered; a topic's score halves for each 7 days since it was last reviewed.
+// One level's readiness, 0-100: how much of it is mastered, halving for each 7 days since it was last practised.
+const lessonReady = l => { const last = lastReview(l); return Math.round(lessonPct(l) * (last ? Math.pow(.5, Math.max(0, Date.now() - last) / (7 * DAY)) : 0) * 100); };
+const chapterReady = ui => { const ls = C.units[ui].lessons; return ls.length ? Math.round(ls.reduce((a, l) => a + lessonReady(l), 0) / ls.length) : 0; };
+// The ring drawn round a level on the map: full = ready for the test on this level.
+const levelRing = p => `<svg class="rg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45" pathLength="100" class="rg-t"/>${p > 0 ? `<circle cx="50" cy="50" r="45" pathLength="100" class="rg-p" stroke-dasharray="${Math.max(4, p)} 100"/>` : ""}</svg>`;
 function readiness() {
   const ls = allLessons(); if (!ls.length) return 0;
   const now = Date.now();
@@ -200,18 +205,33 @@ const MAPMAX = 620; // widest the map gets; wider screens get the side panel ins
 const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 200, BOTPAD = 120;
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
-// Scenery only at the edges (hills, trees, clouds); the path stays clean. Right-side pieces are shifted with the width.
-function scenery(col, h, W, dark) {
-  const base = dark ? "#141821" : "#ffffff", h1 = mix(col, base, dark ? .74 : .7), h2 = mix(col, base, dark ? .68 : .6);
-  const tree = dark ? "#00000030" : "#00000014", cloud = dark ? "#ffffff12" : "#ffffffe6", R = W - 375;
-  let s = "", i = 0;
-  for (let y = 60; y < h; y += 170, i++) {
-    const L = i % 2 === 0;
-    s += `<path d="M-20 ${y + 120} C20 ${y + 40} 60 ${y + 50} 92 ${y + 120}Z" fill="${h1}"/><path d="M-20 ${y + 130} C10 ${y + 80} 40 ${y + 90} 70 ${y + 130}Z" fill="${h2}"/>`;
-    s += `<path d="M${395 + R} ${y + 40} C${350 + R} ${y - 30} ${310 + R} ${y - 20} ${290 + R} ${y + 40}Z" fill="${h1}"/><path d="M${395 + R} ${y + 50} C${365 + R} ${y + 5} ${335 + R} ${y + 10} ${315 + R} ${y + 50}Z" fill="${h2}"/>`;
-    const tx = L ? 30 : 345 + R, ty = y + (L ? 92 : 22);
-    s += `<path d="M${tx} ${ty - 26} l11 22 h-22z" fill="${tree}"/><rect x="${tx - 1.5}" y="${ty - 4}" width="3" height="6" fill="${tree}"/>`;
-    if (L) { const cx = 336 + R, cy = y + 112; s += `<g fill="${cloud}"><circle cx="${cx - 12}" cy="${cy}" r="9"/><circle cx="${cx + 1}" cy="${cy - 5}" r="13"/><circle cx="${cx + 14}" cy="${cy + 1}" r="8"/><rect x="${cx - 22}" y="${cy}" width="45" height="9" rx="4.5"/></g>`; }
+// Scenery only at the edges, so the path stays clean. Seeded per chapter: every chapter gets its own mix of
+// hills, pines, round trees, bushes and clouds at uneven spacing, instead of one tile repeated down the page.
+function scenery(col, h, W, dark, seed = 1) {
+  let r = (seed * 7919) % 233280; const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+  const base = dark ? "#141821" : "#ffffff", h1 = mix(col, base, dark ? .76 : .72), h2 = mix(col, base, dark ? .68 : .6);
+  const leaf = mix(col, dark ? "#0b0e14" : "#1d2b1f", dark ? .55 : .45), trunk = dark ? "#00000055" : "#0000002a";
+  const cloud = dark ? "#ffffff10" : "#ffffffe0", rock = dark ? "#ffffff0d" : "#00000012";
+  const zone = Math.max(70, W / 2 - (74 * Math.min(1.7, W / 375) + 46));
+  const X = (L, f) => L ? f * zone : W - f * zone;
+  const hill = (L, y) => { const w = zone * (.9 + rnd() * .7), hh = 46 + rnd() * 54, e = L ? -20 : W + 20, d = L ? 1 : -1;
+    return `<path d="M${e} ${y + hh} C${e + d * w * .3} ${y} ${e + d * w * .7} ${y + hh * .15} ${e + d * w} ${y + hh}Z" fill="${h1}"/><path d="M${e} ${y + hh + 10} C${e + d * w * .2} ${y + hh * .45} ${e + d * w * .45} ${y + hh * .5} ${e + d * w * .7} ${y + hh + 10}Z" fill="${h2}"/>`; };
+  const pine = (x, y, z) => `<rect x="${x - 1.5 * z}" y="${y - 4 * z}" width="${3 * z}" height="${6 * z}" fill="${trunk}"/><path d="M${x} ${y - 28 * z} l${12 * z} ${24 * z} h${-24 * z}z" fill="${leaf}"/>`;
+  const round = (x, y, z) => `<rect x="${x - 1.5 * z}" y="${y - 8 * z}" width="${3 * z}" height="${10 * z}" fill="${trunk}"/><circle cx="${x}" cy="${y - 16 * z}" r="${10 * z}" fill="${leaf}"/>`;
+  const bush = (x, y, z) => `<g fill="${h2}"><circle cx="${x - 7 * z}" cy="${y}" r="${6 * z}"/><circle cx="${x + 1 * z}" cy="${y - 4 * z}" r="${8 * z}"/><circle cx="${x + 9 * z}" cy="${y}" r="${6 * z}"/></g>`;
+  const rocks = (x, y, z) => `<g fill="${rock}"><ellipse cx="${x}" cy="${y}" rx="${9 * z}" ry="${5 * z}"/><ellipse cx="${x + 12 * z}" cy="${y + 2 * z}" rx="${5 * z}" ry="${3 * z}"/></g>`;
+  const cloudAt = (x, y, z) => `<g fill="${cloud}"><circle cx="${x - 12 * z}" cy="${y}" r="${9 * z}"/><circle cx="${x + 1 * z}" cy="${y - 5 * z}" r="${13 * z}"/><circle cx="${x + 14 * z}" cy="${y + 1 * z}" r="${8 * z}"/><rect x="${x - 22 * z}" y="${y}" width="${45 * z}" height="${9 * z}" rx="${4.5 * z}"/></g>`;
+  let s = "";
+  for (let y = 30 + rnd() * 50; y < h - 30; y += 80 + rnd() * 110) {
+    for (const L of [true, false]) {
+      if (rnd() < .3) continue; // leave some gaps, so it breathes
+      const k = rnd(), z = .75 + rnd() * .55, yy = y + rnd() * 40;
+      if (k < .28) s += hill(L, yy);
+      else if (k < .5) { const n = 1 + Math.floor(rnd() * 3); for (let i = 0; i < n; i++) s += (rnd() < .5 ? pine : round)(X(L, .2 + rnd() * .65), yy + i * 7, z * (.8 + rnd() * .4)); }
+      else if (k < .64) s += bush(X(L, .25 + rnd() * .55), yy, z);
+      else if (k < .76) s += rocks(X(L, .2 + rnd() * .6), yy, z);
+      else s += cloudAt(X(L, .35 + rnd() * .45), yy, z);
+    }
   }
   return s;
 }
@@ -243,7 +263,7 @@ function viewMap() {
     const col = chapterColour(ui), top = y - chH[ui], hh = chH[ui] + (ui === 0 ? BOTPAD : 0);
     const g1 = dark ? mix(col, "#141821", .86) : mix(col, "#ffffff", .9), g2 = dark ? mix(col, "#141821", .82) : mix(col, "#ffffff", .85);
     chTop.push([top, y]);
-    out += `<div class="band" style="top:${top}px;height:${hh}px;background:linear-gradient(${g1},${g2})"><svg viewBox="0 0 ${W} ${hh}" width="${W}" height="${hh}">${scenery(col, hh, W, dark)}</svg></div>`;
+    out += `<div class="band" style="top:${top}px;height:${hh}px;background:linear-gradient(${g1},${g2})"><svg viewBox="0 0 ${W} ${hh}" width="${W}" height="${hh}">${scenery(col, hh, W, dark, ui + 3)}</svg></div>`;
     out += `<div class="div" style="top:${y - DIVH / 2 + 8}px"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`;
     y -= DIVH;
     byCh[ui].forEach(n => {
@@ -251,11 +271,11 @@ function viewMap() {
       pts.push([nx, ny]); ptCol.push(col);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
       const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
-      const label = n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title;
+      const rp = n.locked || n.next ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l);
+      const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
-        <button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button>
-        ${n.cur ? `<div class="start">${t("startBubble")}</div>` : ""}</div>`;
+        ${rp == null ? "" : levelRing(rp)}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 120 * sc : nx + 120 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
       y -= STEPY + big; k++;
     });
@@ -276,7 +296,7 @@ function viewMap() {
     h.dataset.ui = ui;
     h.style.background = `linear-gradient(118deg, transparent 0 60%, #ffffff14 60% 74%, transparent 74%), ${col}`;
     h.style.setProperty("--uc", col);
-    h.innerHTML = `<div class="ut">${tutorArt(curTutor())}</div><div><small>${t("chapter", { n: ui + 1 })} · ${t("levelOf", { x: Math.min(list.length, curIdx + 1), y: list.length })}</small><b>${esc(C.units[ui].title)}</b></div><a class="unotes" href="#/s/${SLUG}/notes/${ui}" aria-label="${t("navNotes")}">${NOTES_ICON}</a>`;
+    h.innerHTML = `<div class="ut">${tutorArt(curTutor())}</div><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: list.filter(n => n.ui === ui && n.done).length, y: list.filter(n => n.ui === ui).length })}</small><b>${esc(C.units[ui].title)}</b></div><a class="unotes" href="#/s/${SLUG}/notes/${ui}" aria-label="${t("navNotes")}">${NOTES_ICON}</a>`;
   };
   const mwTop = () => mw.getBoundingClientRect().top + scrollY;
   const onScroll = () => {
@@ -358,7 +378,15 @@ function startLesson(id) {
   const unread = (l.reading || []).filter(s => !S.read[s.id]);
   const todo = l.items.filter(it => !mastered(it));
   const pool = todo.length ? todo : l.items;
-  runSession({ title: l.title, reading: unread, items: pool.slice(0, ROUND), lesson: l, back: "#/s/" + SLUG });
+  const own = pool.slice(0, ROUND - 2), back = reviewPicks(l, 2);
+  const items = [...own]; back.forEach((it, i) => items.splice(Math.min(items.length, 2 + i * 3), 0, it));
+  runSession({ title: l.title, reading: unread, items, lesson: l, back: "#/s/" + SLUG });
+}
+// Up to n questions from earlier, already-seen levels: due cards and past mistakes first, then the oldest.
+function reviewPicks(l, n) {
+  const seen = Object.values(ITEM).filter(it => it._l !== l.id && !LESSON[it._l]?.locked && (S.cards[it.id] || S.q[it.id]));
+  const score = it => (S.q[it.id] && !S.q[it.id].ok ? 0 : S.cards[it.id]?.due <= Date.now() ? 1 : 2) * 1e13 + Math.max(S.cards[it.id]?.last || 0, S.q[it.id]?.last || 0);
+  return seen.sort((a, b) => score(a) - score(b)).slice(0, n);
 }
 // The chapter test: a mixed round of everything in the chapter.
 function startTest(ui) {
@@ -379,7 +407,7 @@ function sessionTop(st) {
   return `<div class="session-top"><button class="x" id="quit" aria-label="${t("close")}">${ic.x}</button><div class="bar"><i style="width:${Math.max(3, done / Math.max(1, st.total) * 100)}%"></i></div></div>`;
 }
 function runSession(cfg) {
-  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Set(), wrongFirst: new Set(), started: Date.now(), tick: Date.now() };
+  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, started: Date.now(), tick: Date.now() };
   step(st);
 }
 function step(st) {
@@ -402,18 +430,19 @@ function playReading(st) {
 function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } = {}) {
   if (rec) record(it, ok);
   st.answered++;
+  if (!st.firstSeen.has(it.id)) { st.firstSeen.add(it.id); st.firstN++; if (ok) st.firstRight++; } // the score counts first tries; retries are for learning
   if (ok) { st.right++; addXP(10); st.xp += 10; sfx.right(); } else { addXP(1); st.xp += 1; sfx.wrong(); }
   $("#qdock")?.remove();
   const fb = document.createElement("div");
   fb.className = "feedback " + (ok ? "good" : "badf");
   fb.innerHTML = `<div class="in"><h3><span class="ok-ico">${ok ? ic.check : ic.x}</span>${esc(verdict || (ok ? pick([t("say1"), t("say2"), t("say3"), t("say4")]) : t("correctIs")))}</h3>
-    ${answerHtml}<div class="md">${md(it.explanation || "")}</div>${srcLine(it)}
+    ${ok ? "" : `${answerHtml}<div class="md">${md(it.explanation || "")}</div>${srcLine(it)}`}
     <div class="row"><button class="btn ${ok ? "ok" : "bad"} big" style="flex:1" id="fbNext">${t("cont")}</button></div></div>`;
   document.body.appendChild(fb);
   const go = () => {
     fb.remove(); window.onkeydown = null;
     st.queue.shift();
-    if (!ok && !st.retried.has(it.id)) { st.retried.add(it.id); st.queue.push(it); st.total++; } // one more try at the end, as in Duolingo
+    if (!ok && (st.retried.get(it.id) || 0) < 3) { st.retried.set(it.id, (st.retried.get(it.id) || 0) + 1); st.queue.push(it); st.total++; } // back at the end until it's right, as in Duolingo
     step(st);
   };
   $("#fbNext", fb).onclick = go;
@@ -539,7 +568,7 @@ function playMatch(st, it) {
 /* end of a round */
 function finish(st) {
   const l = st.lesson;
-  const pct = st.answered ? Math.round(st.right / st.answered * 100) : 100;
+  const pct = st.firstN ? Math.round(st.firstRight / st.firstN * 100) : st.answered ? Math.round(st.right / st.answered * 100) : 100;
   if (l) S.lessons[l.id] = { ts: Date.now(), best: Math.max(S.lessons[l.id]?.best || 0, lessonPct(l)) };
   if (st.test != null) { const k = "test:" + st.test; S.lessons[k] = { ts: Date.now(), best: Math.max(S.lessons[k]?.best || 0, pct / 100) }; }
   save(); SYNC.push();
@@ -556,7 +585,7 @@ function viewPractice() {
   const due = dueIds().length, mis = mistakeIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length;
   const tile = (kind, title, n, color, icon) => `<a class="rv ${color} ${n ? "" : "off"}" ${n ? `href="#/s/${SLUG}/review/${kind}"` : `aria-disabled="true"`}><span class="rv-ic">${icon}</span><div><b>${title}</b><span>${n ? itemCount(n) : t("pracNone")}</span></div>${n ? CHEV : ""}</a>`;
   view().innerHTML = `${topbar()}<div class="pg"><h1 class="pg-h">${t("pracTitle")}</h1><p class="pg-sub">${seen ? t("pracSub") : t("pracEmpty")}</p>
-    <div class="rvs">${tile("due", t("pracDue"), due, "purple", TAB_ICONS.review)}${tile("mistakes", t("pracMistakes"), mis, "red", LEVEL_ICONS.test)}${tile("mix", t("pracMix"), Math.min(seen, ROUND), "blue", TAB_ICONS.notes)}</div></div>`;
+    <div class="rvs">${tile("due", t("pracDue"), due, "purple", TAB_ICONS.review)}${tile("mistakes", t("pracMistakes"), mis, "red", PRAC_ICONS.mistakes)}${tile("mix", t("pracMix"), Math.min(seen, ROUND), "blue", PRAC_ICONS.mix)}</div></div>`;
   bindTopbar();
 }
 

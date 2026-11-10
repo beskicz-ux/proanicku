@@ -1,4 +1,8 @@
 export default {
+ "inARow": "liên tiếp",
+ "todayDone": "Hôm nay xong rồi!",
+ "todayNot": "Hôm nay học một chút nhé.",
+ "doneOf": "Xong {x}/{y}",
  "brand": "Penny",
  "testBadge": "Bản thử nghiệm",
  "next": "Tiếp tục",

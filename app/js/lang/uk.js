@@ -1,4 +1,8 @@
 export default {
+ "inARow": "поспіль",
+ "todayDone": "Сьогодні виконано!",
+ "todayNot": "Повчися сьогодні трохи.",
+ "doneOf": "{x} з {y} готово",
  "brand": "Penny",
  "testBadge": "Тестова версія",
  "next": "Далі",

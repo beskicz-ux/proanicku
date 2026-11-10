@@ -1,4 +1,8 @@
 export default {
+ "inARow": "متتالية",
+ "todayDone": "أنجزت اليوم!",
+ "todayNot": "تعلّم قليلاً اليوم.",
+ "doneOf": "{x} من {y} مكتملة",
  "brand": "Penny",
  "testBadge": "نسخة تجريبية",
  "next": "تابع",

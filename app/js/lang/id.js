@@ -1,4 +1,8 @@
 export default {
+ "inARow": "berturut-turut",
+ "todayDone": "Hari ini beres!",
+ "todayNot": "Belajar sedikit hari ini.",
+ "doneOf": "{x} dari {y} selesai",
  "brand": "Penny",
  "testBadge": "Versi uji coba",
  "next": "Lanjut",
