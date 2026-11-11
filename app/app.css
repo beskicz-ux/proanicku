@@ -739,17 +739,59 @@ a.sc{color:var(--text); text-decoration:none}
 /* Mobile map: the unlock card must not touch the chapter banner. */
 body.map-page .mmain > .pc-unlock{margin-top:14px}
 
-/* ---------- PHASE 3: store page (outcome first, one boxed payment card) ---------- */
-.st .st-grid{display:flex; flex-direction:column; gap:22px; padding-bottom:calc(24px + env(safe-area-inset-bottom))}
-.st-hero{position:relative; display:flex; align-items:flex-end; gap:14px; margin-top:6px; padding:18px 18px 0; border-radius:20px; background:var(--accent-soft); overflow:hidden; min-height:150px}
-.st-art{width:130px; flex:none; margin-bottom:-8px}
+/* ---------- store page (rebuilt 2026-11-11): reasons + one buy panel. Pick a plan (radio cards), tick the consent, one button.
+   Phone: hero, title, exam, then the buy panel, then what you get. Desktop: two columns, the panel top right, NOT sticky
+   (a sticky panel taller than the window cut Pro off). The panel is short enough that the button shows on the first screen. ---------- */
+.st .st-grid{display:flex; flex-direction:column; gap:20px; padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+.st-hero{position:relative; display:flex; align-items:flex-end; gap:12px; margin-top:4px; padding:12px 14px 0; border-radius:20px; background:var(--accent-soft); overflow:hidden; min-height:104px}
+.st-art{width:92px; flex:none; margin-bottom:-6px}
 .st-art svg{width:100%; height:auto; display:block}
-.st-say{position:relative; align-self:center; margin:0 0 10px; padding:12px 14px; border-radius:16px; background:var(--surface); border:2px solid var(--edge); font:700 15px/1.4 var(--font); color:var(--text)}
-.st-say::before{content:""; position:absolute; left:-9px; bottom:18px; width:14px; height:14px; background:var(--surface); border-left:2px solid var(--edge); border-bottom:2px solid var(--edge); rotate:45deg}
-.st .ob-h{margin-top:20px}
-.st-tap{display:flex; gap:10px; align-items:center; margin:12px 0 0; padding:12px 14px; border-radius:14px; background:var(--fill); font-weight:700; color:var(--text)}
+.st-say{position:relative; align-self:center; margin:0 0 8px; padding:10px 12px; border-radius:16px; background:var(--surface); border:2px solid var(--edge); font:700 15px/1.35 var(--font); color:var(--text)}
+.st-say::before{content:""; position:absolute; left:-9px; bottom:16px; width:14px; height:14px; background:var(--surface); border-left:2px solid var(--edge); border-bottom:2px solid var(--edge); rotate:45deg}
+.st .ob-h{margin-top:16px; font-size:26px; line-height:1.2}
+.st-urg{display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:10px 0 0; font-weight:700; color:var(--text)}
+.st-urg span{padding:2px 10px; border-radius:99px; background:color-mix(in srgb, var(--gold) 22%, transparent); color:var(--text); font-size:14px; font-weight:800}
+.st-tap{display:flex; gap:10px; align-items:center; margin:10px 0 0; padding:10px 14px; border-radius:14px; background:var(--fill); font-weight:700; color:var(--text)}
 .st-tap svg{width:20px; height:20px; flex:none; color:var(--muted)}
-.st-h{font:800 20px var(--head); margin:24px 0 10px; color:var(--text)}
+.st-top .ob-sub{margin:8px 0 0}
+.st-h{font:800 20px var(--head); margin:0 0 10px; color:var(--text)}
+.st .st-more > * + *{margin-top:28px}
+.st-more #feats:empty{display:none}
+
+/* the buy panel */
+.st-pay{display:flex; flex-direction:column; gap:12px; padding:16px; border:2px solid var(--edge); border-radius:20px; background:var(--surface); min-width:0}
+.st-pay .ob-check, .st-pay .ob-note, .st-pay .ob-err{margin:0}
+.st-opts{border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; min-width:0}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+.st-opt{position:relative; display:flex; align-items:center; gap:12px; padding:12px 14px; border:2px solid var(--edge); border-radius:16px; background:var(--surface); cursor:pointer; transition:border-color .15s, background .15s}
+.st-opt:hover{border-color:color-mix(in srgb, var(--accent) 45%, var(--edge))}
+.st-opt.on{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, var(--surface)); box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 35%, transparent)}
+.st-opt input{position:absolute; opacity:0; width:1px; height:1px; margin:0}
+.st-opt:has(input:focus-visible){outline:3px solid var(--accent); outline-offset:2px}
+.st-dot{width:22px; height:22px; flex:none; border-radius:50%; border:2px solid var(--edge); box-sizing:border-box; background:var(--surface)}
+.st-opt.on .st-dot{border-color:var(--accent); box-shadow:inset 0 0 0 4px var(--surface); background:var(--accent)}
+.st-o-t{flex:1; min-width:0; display:flex; flex-direction:column}
+.st-o-t em{align-self:flex-start; font-style:normal; font-size:12px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:1px}
+.st-o-t b{font:800 18px var(--head); color:var(--text)}
+.st-o-t small{color:var(--muted); font-weight:600; font-size:14px; line-height:1.35}
+.st-o-p{flex:none; display:flex; flex-direction:column; align-items:flex-end; text-align:end; max-width:40%}
+.st-o-p b{font:800 22px var(--head); color:var(--text); white-space:nowrap}
+.st-o-p small{color:var(--muted); font-weight:700; font-size:13px; line-height:1.25}
+.st-consent{font-size:14px; padding:10px 12px; border-radius:14px; background:var(--fill)}
+.st-consent.miss{outline:2px solid var(--wrong)}
+.st-buy{width:100%}
+.st-test{margin:0; text-align:center; font-size:13px; font-weight:700; color:var(--accent-ink)}
+.st-proon{display:flex; flex-direction:column; gap:6px}
+.st-proon p{margin:0}
+.st-pname{margin:0; font:800 18px var(--head)}
+.st-perday{color:var(--muted); font-weight:700; font-size:14px}
+.st-free{align-self:center; color:var(--muted); font-weight:800; text-decoration:none; padding:2px 8px; font-size:15px}
+.st-free:hover{color:var(--text)}
+
+/* what you get, what unlocks, the timeline */
+.st-feats{list-style:none; margin:0; padding:0}
+.st-feats li{display:flex; gap:8px; align-items:flex-start; margin:6px 0}
+.st-feats li svg{width:20px; height:20px; color:var(--good); flex:none; margin-top:2px}
 .st-units{list-style:none; margin:0; padding:0; border:2px solid var(--edge); border-radius:16px; overflow:hidden; background:var(--surface)}
 .st-units li{display:flex; align-items:center; gap:12px; padding:12px 16px}
 .st-units li + li{border-top:1px solid var(--line)}
@@ -757,7 +799,7 @@ body.map-page .mmain > .pc-unlock{margin-top:14px}
 .st-units i svg{width:18px; height:18px}
 .st-units b{flex:1; min-width:0; font-weight:800}
 .st-units small{color:var(--muted); font-weight:700; white-space:nowrap}
-.st-tl{list-style:none; margin:24px 0 0; padding:0}
+.st-tl{list-style:none; margin:0; padding:0}
 .st-tl li{position:relative; display:flex; gap:14px; align-items:flex-start; padding-bottom:18px}
 .st-tl li:last-child{padding-bottom:0}
 .st-tl li:not(:last-child)::after{content:""; position:absolute; left:13px; top:30px; bottom:2px; width:2px; background:var(--edge)}
@@ -768,38 +810,18 @@ body.map-page .mmain > .pc-unlock{margin-top:14px}
 .st-tl .ex i{border-color:var(--gold)}
 .st-tl small{display:block; color:var(--muted); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.04em}
 .st-tl b{display:block; font-weight:800; margin-top:2px}
-.st-pay{display:flex; flex-direction:column; gap:12px; padding:18px; border:2px solid var(--edge); border-radius:20px; background:var(--surface)}
-.st-pay .ob-test{margin:0}
-.st-pay .ob-check{margin:0}
-.st-pay .ob-note{margin:0}
-.st-plan{display:flex; flex-direction:column; gap:10px}
-.st-price{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
-.st-price b{font:800 34px var(--head); color:var(--text)}
-.st-price span{font-weight:700; color:var(--good)}
-.st-perday{margin:-4px 0 0; color:var(--muted); font-weight:700; font-size:14px}
-.st-plan ul{list-style:none; margin:4px 0 0; padding:12px 0 0; border-top:1px solid var(--line)}
-.st-plan li{display:flex; gap:8px; align-items:flex-start; margin:6px 0}
-.st-plan li svg{width:20px; height:20px; color:var(--good); flex:none; margin-top:1px}
-.st-pay .btn-p{width:100%}
-/* two plans (Kurz and Pro): each a card with its own button; Pro is outlined in the accent */
-.st-pay .st-plan + .st-plan{margin-top:2px}
-.st-pay .st-plan{padding:14px; border:2px solid var(--line); border-radius:16px}
-.st-pay .st-plan.hi{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 6%, var(--surface))}
-.st-pname{margin:-4px 0 0; font:800 18px var(--head)}
-.st-plan p{margin:0}
 .btn-s{display:flex; align-items:center; justify-content:center; width:100%; min-height:52px; border:2px solid var(--edge); border-radius:999px; background:var(--surface); color:var(--text);
   font:800 16px var(--head); cursor:pointer; padding:0 20px; box-sizing:border-box; transition:transform .12s}
 .btn-s:active{transform:scale(.98)}
 .btn-s[disabled]{opacity:.45; pointer-events:none}
 .sh-p{margin:0 0 12px; text-align:center; color:var(--muted); font-weight:700}
 .sh .btn-p, .sh .btn-s{margin-top:8px}
-.st-free{align-self:center; color:var(--muted); font-weight:800; text-decoration:none; padding:4px 8px}
-.st-free:hover{color:var(--text)}
 @media (min-width:1000px){
-  body.store .app{max-width:1000px}
-  .st .st-grid{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:48px; align-items:start; padding-top:8px}
-  .st-pay{position:sticky; top:20px}
-  .st-hero{min-height:180px} .st-art{width:150px}
+  body.store .app{max-width:1040px}
+  .st .st-grid{display:grid; grid-template-columns:minmax(0,1fr) 420px; grid-template-areas:"top pay" "more pay"; column-gap:48px; row-gap:28px; align-items:start; padding-top:4px}
+  .st-top{grid-area:top} .st-pay{grid-area:pay; padding:18px} .st-more{grid-area:more}
+  .st-hero{min-height:132px} .st-art{width:116px}
+  .st .ob-h{font-size:30px}
 }
 
 /* Map unlock card: matches the store's payment card. */

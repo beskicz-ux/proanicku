@@ -13,8 +13,8 @@
       "price": 299,
       "interval": "once",
       "name": {
-        "cs": "Kurz",
-        "en": "Course"
+        "cs": "PRO",
+        "en": "PRO"
       },
       "features": {
         "cs": [
@@ -31,30 +31,46 @@
           "Progress on all your devices",
           "Access for 12 months"
         ]
+      },
+      "default": true,
+      "badge": {
+        "cs": "Na tuhle zkoušku",
+        "en": "For this exam"
+      },
+      "pitch": {
+        "cs": "Celý tenhle předmět na 12 měsíců. Levnější než hodina doučování.",
+        "en": "This whole subject for 12 months. Less than one hour of tutoring."
       }
     },
     {
       "id": "pro",
       "price": 399,
       "interval": "month",
-      "highlight": true,
       "name": {
-        "cs": "Pro",
-        "en": "Pro"
+        "cs": "MAX",
+        "en": "MAX"
       },
       "features": {
         "cs": [
           "Až 5 nových předmětů každý měsíc",
           "Hlasový tutor: 40 minut měsíčně",
-          "Všechno z Kurzu u každého předmětu",
+          "Všechno z PRO u každého předmětu",
           "Zrušíš kdykoli, platí do konce měsíce"
         ],
         "en": [
           "Up to 5 new subjects every month",
           "Voice tutor: 40 minutes a month",
-          "Everything in Course, for every subject",
+          "Everything in PRO, for every subject",
           "Cancel anytime, it runs to the end of the month"
         ]
+      },
+      "badge": {
+        "cs": "Víc předmětů",
+        "en": "Several subjects"
+      },
+      "pitch": {
+        "cs": "Až 5 předmětů měsíčně, od 80 Kč za předmět. Plus hlasový tutor.",
+        "en": "Up to 5 subjects a month, from 80 Kč each. Plus a voice tutor."
       }
     }
   ]

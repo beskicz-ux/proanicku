@@ -278,7 +278,7 @@ function viewMap() {
     const nDone = byCh[ui].filter(n => n.done).length;
     out += `<div class="ubn" style="top:${y}px"><div class="unit" style="background:${col};--uc:${col}"><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: nDone, y: byCh[ui].length })}</small><b>${esc(u.title)}</b></div><a class="guide" href="#/s/${SLUG}/notes/${ui}">${HUB.book}<span>${t("guide")}</span></a></div></div>`;
     y += BANH;
-    const mid = Math.floor((byCh[ui].length - 1) / 2), me = curTutor();
+    const me = curTutor();
     byCh[ui].forEach((n, j) => {
       const big = n.cur ? CURX : 0, ny = y + STEPY / 2 + big * .75, nx = CX + SWAY[k % SWAY.length] * sw;
       pts.push([nx, ny]);
@@ -291,7 +291,8 @@ function viewMap() {
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
         ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button><span class="nl" aria-hidden="true">${esc(name)}${chip}</span></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; }
-      if (j === mid) out += `<div class="tut" style="left:${nx > CX ? nx - 140 * sc : nx + 140 * sc}px;top:${ny + STEPY / 2}px">${tutorArt(me, "", "happy")}</div>`;
+      // One tutor on the whole map, beside the level in progress (one per chapter looked spammy, Marek 2026-11-11)
+      if (n.cur) out += `<div class="tut" style="left:${nx > CX ? nx - 140 * sc : nx + 140 * sc}px;top:${ny + 14}px">${tutorArt(me, "", "happy")}</div>`;
       y += STEPY + big; k++;
     });
     y += 28; // room between the last level's name and the next banner
@@ -300,7 +301,7 @@ function viewMap() {
   const EXAMY = y + 110, total = y + EXAMH;
   // Bright gold once every level is done or the exam is a week away; muted gold before that.
   const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7);
-  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb"><div class="c">${EXAM_CUP}</div><div class="etut">${tutorArt(curTutor(), "", "happy")}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
+  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb"><div class="c">${EXAM_CUP}</div>${curPt < 0 ? `<div class="etut">${tutorArt(curTutor(), "", "happy")}</div>` : ""}</div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
   mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
   // The header shows the chapter in view.
   const curIdx = cur < 0 ? list.length : cur;

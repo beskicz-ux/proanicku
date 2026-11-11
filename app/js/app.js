@@ -337,36 +337,43 @@ async function viewUnlock() {
   if (st.paid) return nav("#/s/" + s.slug);
   document.body.classList.add("store");
   const L = o => o?.[lang()] || o?.en || o?.cs, cur = esc(cfg.currency), left = info?.left;
-  // Outcome first: the exam, the lesson they tapped, what unlocks, then one boxed payment card (sticky on the right on desktop).
-  const title = t("stTitle");
+  // Reasons on the left (above on a phone) and one buy panel: pick a plan, tick the consent, one button.
+  // Kurz is pre-picked: most buyers are days before one exam (research 2026-11-11). The only urgency is the student's own exam date.
+  const pro = st.pro, proOpen = pro?.active && pro.newLeft > 0;
+  const plans = cfg.plans.filter(p => !(pro?.active && p.id === "pro"));
+  let pick = (plans.find(p => p.default) || plans[0])?.id;
+  const planOf = id => plans.find(p => p.id === id);
+  const amount = p => `${p.price} ${cur}${p.interval === "month" ? " / " + t("stMonthShort") : ""}`;
+  const urg = info?.exam ? `<p class="st-urg"><b>${esc(t("stTlExam"))}: ${esc(fmtDay(info.exam))}</b>${left > 0 ? `<span>${esc(inDays(left))}</span>` : ""}</p>` : "";
+  const tap = info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`;
   const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2><ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><b>${esc(u.title)}</b><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
   const tl = info ? `<ol class="st-tl">
       <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
       <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
       ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
-  const pro = st.pro, proOpen = pro?.active && pro.newLeft > 0;
-  const buy = p => `<button class="${p.highlight ? "btn-p" : "btn-s"}" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${cur}${p.interval === "month" ? " / " + t("stMonthShort") : ""}</button>`;
-  const plan = p => `<div class="st-plan${p.highlight ? " hi" : ""}"><div class="st-price"><b>${p.price} ${cur}</b><span>${t(p.interval === "month" ? "stMonth" : "stOnce")}</span></div>
-      <h3 class="st-pname">${esc(L(p.name) || "")}</h3>
-      ${left > 0 && p.interval !== "month" ? `<p class="st-perday">${esc(t("stPerDay").replace("%", `${Math.max(1, Math.round(p.price / left))} ${cfg.currency}`))}</p>` : ""}
-      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>${buy(p)}</div>`;
+  const opt = p => `<label class="st-opt" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot"></i>
+      <span class="st-o-t">${L(p.badge) ? `<em>${esc(L(p.badge))}</em>` : ""}<b>${esc(L(p.name) || "")}</b><small>${esc(L(p.pitch) || "")}</small></span>
+      <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? t("stMonth") : t("stOnceShort"))}</small></span></label>`;
+  const feats = () => { const p = planOf(pick); return p ? `<h2 class="st-h">${esc(t("stGet").replace("%", L(p.name) || ""))}</h2><ul class="st-feats">${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>` : ""; };
   // Already Pro: this subject opens from the month's allowance. Allowance used up: only the one-off course is sold.
-  const plans = proOpen ? `<div class="st-plan hi"><h3 class="st-pname">Pro</h3><p>${esc(t("stProOn"))}</p><p class="st-perday">${esc(t("stProLeft", { n: pro.newLeft, x: pro.newPerWindow }))}</p><button class="btn-p" data-pro>${t("stProOpen")}</button></div>`
-    : (pro?.active ? `<p class="ob-note">${esc(errText("pro_cap"))}</p>` : "") + cfg.plans.filter(p => !(pro?.active && p.id === "pro")).map(plan).join("");
-  view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
-    <div class="st-grid"><div class="st-main">
-      <div class="st-hero"><div class="st-art">${tutorArt(info?.tutor || "penny")}</div><p class="st-say">${t("stSay")}</p></div>
-      <h1 class="ob-h">${title}</h1>
-      ${info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`}
-      ${what}${tl}
-    </div><aside class="st-pay">
-      ${cfg.testMode ? `<div class="ob-test" role="note">${t("storeTest")}</div>` : ""}
-      <label class="ob-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
+  const pay = proOpen ? `<div class="st-proon"><h3 class="st-pname">MAX</h3><p>${esc(t("stProOn"))}</p><p class="st-perday">${esc(t("stProLeft", { n: pro.newLeft, x: pro.newPerWindow }))}</p></div>
+      <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p st-buy" data-pro>${t("stProOpen")}</button>`
+    : `${pro?.active ? `<p class="ob-note">${esc(errText("pro_cap"))}</p>` : ""}
+      <fieldset class="st-opts"><legend class="sr">${esc(t("stTitle"))}</legend>${plans.map(opt).join("")}</fieldset>
+      <label class="ob-check st-consent"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
-      ${plans}
-      <p class="ob-note c">${t("storeSecure")}</p>
-      <a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a>
-    </aside></div></div>`;
+      <button class="btn-p st-buy" id="buy"></button>
+      ${cfg.testMode ? `<p class="st-test" role="note">${t("storeTest")}</p>` : ""}
+      <p class="ob-note c">${t("storeSecure")}</p>`;
+  view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
+    <div class="st-grid">
+      <div class="st-top">
+        <div class="st-hero"><div class="st-art">${tutorArt(info?.tutor || "penny")}</div><p class="st-say">${t("stSay")}</p></div>
+        <h1 class="ob-h">${t("stTitle")}</h1>${urg}${tap}
+      </div>
+      <section class="st-pay" aria-label="${esc(t("storeBuy"))}">${pay}<a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a></section>
+      <div class="st-more"><div id="feats">${proOpen ? "" : feats()}</div>${what}${tl}</div>
+    </div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
   const proBtn = $("[data-pro]");
   if (proBtn) proBtn.onclick = async () => {
@@ -374,19 +381,25 @@ async function viewUnlock() {
     try { await api("pro_unlock", { session: s.token }); resetCourse(); confetti(); sfx.done(); toast(t("unlockDone")); nav("#/s/" + s.slug); }
     catch (e) { fail($("#err"), e); proBtn.disabled = false; }
   };
-  $$("[data-plan]").forEach(b => b.onclick = async () => {
-    const label = b.textContent;
+  const buy = $("#buy");
+  if (!buy) return;
+  const label = () => `${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${amount(planOf(pick))}`;
+  const sync = () => { buy.textContent = label(); $$(".st-opt").forEach(o => o.classList.toggle("on", o.dataset.plan === pick)); $("#feats").innerHTML = feats(); };
+  $$(".st-opt input").forEach(r => r.onchange = () => { pick = r.value; $("#err").hidden = true; sync(); });
+  $("#terms").onchange = () => { $("#err").hidden = true; $(".st-consent").classList.remove("miss"); };
+  sync();
+  buy.onclick = async () => {
     $("#err").hidden = true;
-    if (!$("#terms").checked) return fail($("#err"), { code: "no_terms" });
-    $$("[data-plan]").forEach(x => x.disabled = true); b.textContent = t("storeBuying");
+    if (!$("#terms").checked) { $(".st-consent").classList.add("miss"); return fail($("#err"), { code: "no_terms" }); }
+    buy.disabled = true; buy.textContent = t("storeBuying");
     try {
-      const r = await api("checkout", { session: s.token, plan: b.dataset.plan, terms: true });
+      const r = await api("checkout", { session: s.token, plan: pick, terms: true });
       if (r.url) { location.href = r.url; return; } // Stripe Checkout; it comes back to #/paid
       resetCourse();
       confetti(); sfx.done(); toast(t("unlockDone"));
       nav("#/s/" + s.slug);
-    } catch (e) { fail($("#err"), e); $$("[data-plan]").forEach(x => x.disabled = false); b.textContent = label; }
-  });
+    } catch (e) { fail($("#err"), e); buy.disabled = false; buy.textContent = label(); }
+  };
 }
 
 /* ---------- back from Stripe: wait for the webhook to mark the order paid ---------- */

@@ -23,10 +23,10 @@ function teacher(i, cls = "", scene = false) {
   if (K === "frog") ears = `<circle cx="42" cy="42" r="15" fill="${c}"/><circle cx="78" cy="42" r="15" fill="${c}"/>`;
   const ey = K === "frog" ? 40 : 70;
   const eyes = K === "frog"
-    ? `<circle cx="42" cy="40" r="9" fill="#fff"/><circle cx="78" cy="40" r="9" fill="#fff"/><circle class="pup" cx="43" cy="42" r="5" fill="${ink}"/><circle class="pup" cx="79" cy="42" r="5" fill="${ink}"/><circle cx="45" cy="39" r="1.8" fill="#fff"/><circle cx="81" cy="39" r="1.8" fill="#fff"/><circle cx="41.5" cy="44" r=".9" fill="#fff"/><circle cx="77.5" cy="44" r=".9" fill="#fff"/>`
+    ? `<circle cx="42" cy="40" r="9" fill="#fff"/><circle cx="78" cy="40" r="9" fill="#fff"/><circle class="pup" cx="43" cy="42" r="5" fill="${ink}"/><circle class="pup" cx="79" cy="42" r="5" fill="${ink}"/><circle cx="45" cy="39" r="1.8" fill="#fff"/><circle cx="81" cy="39" r="1.8" fill="#fff"/>`
     : `${K === "panda" ? `<ellipse cx="45" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(-18 45 71)"/><ellipse cx="75" cy="71" rx="13" ry="11" fill="${ink}" transform="rotate(18 75 71)"/>` : ""}
        <g><ellipse cx="46" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/><ellipse cx="74" cy="${ey}" rx="8.5" ry="9.5" fill="#fff"/>
-       <circle cx="47" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="75" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="49" cy="${ey - .5}" r="1.8" fill="#fff"/><circle cx="77" cy="${ey - .5}" r="1.8" fill="#fff"/><circle cx="45.2" cy="${ey + 4}" r=".9" fill="#fff"/><circle cx="73.2" cy="${ey + 4}" r=".9" fill="#fff"/></g>`;
+       <circle cx="47" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="75" cy="${ey + 2}" r="5" fill="${ink}"/><circle cx="49" cy="${ey - .5}" r="1.8" fill="#fff"/><circle cx="77" cy="${ey - .5}" r="1.8" fill="#fff"/></g>`;
   if (K === "bear" || K === "panda") face = `<ellipse cx="60" cy="88" rx="13" ry="9" fill="${K === "panda" ? "#fff" : c2}"/><ellipse cx="60" cy="84" rx="5" ry="3.5" fill="${ink}"/><path d="M54 90q6 5 12 0" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
   if (K === "fox") face = `<path d="M44 82q16 16 32 0q-4 14-16 14t-16-14z" fill="${c2}"/><ellipse cx="60" cy="85" rx="4.5" ry="3.2" fill="${ink}"/><path d="M55 91q5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
   if (K === "cat") face = `<path d="M57 83h6l-3 3.5z" fill="#ff7a9c"/><path d="M55 89q5 4 10 0" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/><g stroke="${ink}" stroke-width="1.6" opacity=".5" stroke-linecap="round"><path d="M40 84l-12-2M40 88l-12 2M80 84l12-2M80 88l12 2"/></g>`;
@@ -62,12 +62,9 @@ function teacher(i, cls = "", scene = false) {
   const bob = scene ? `<animateTransform attributeName="transform" type="translate" dur="3.2s" repeatCount="indefinite" keyTimes="0;.5;1" values="0 0;0 -4;0 0"/>` : "";
   return `<svg class="teacher ${cls} ${scene ? "scene sc" + i : ""}" viewBox="${scene ? "0 0 196 134" : "0 0 124 134"}" aria-label="${esc(t.n)}" role="img">
 <ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
-<defs><radialGradient id="${uid}b" cx="38%" cy="30%" r="78%"><stop offset="0" stop-color="${K === "panda" ? "#ffffff" : shade(c, 10)}"/><stop offset=".62" stop-color="${K === "panda" ? "#fbfbfb" : c}"/><stop offset="1" stop-color="${K === "panda" ? "#dedede" : shade(c, -14)}"/></radialGradient>
-<radialGradient id="${uid}c" cx="45%" cy="30%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs>
 <g class="tj">${scene ? BODYMOVE[i % BODYMOVE.length] : ""}<g class="${scene ? "tbs" : "tbody"}">${bob}${ears}
-<ellipse cx="60" cy="80" rx="42" ry="44" fill="url(#${uid}b)" ${K === "panda" ? `stroke="#d9d9d9" stroke-width="2"` : ""}/>
-<ellipse cx="60" cy="100" rx="26" ry="20" fill="url(#${uid}c)"/>
-<ellipse cx="42" cy="50" rx="13" ry="7" fill="#fff" opacity="${K === "panda" ? 0 : .22}" transform="rotate(-24 42 50)"/>
+<ellipse cx="60" cy="80" rx="42" ry="44" fill="${c}" ${K === "panda" ? `stroke="#d9d9d9" stroke-width="2"` : ""}/>
+<ellipse cx="60" cy="100" rx="26" ry="20" fill="${c2}"/>
 <ellipse cx="22" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : shade(c, -8)}" transform="rotate(20 22 98)"/>
 <ellipse cx="98" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : shade(c, -8)}" transform="rotate(-20 98 98)"/>
 <ellipse cx="44" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/><ellipse cx="76" cy="122" rx="11" ry="6" fill="${K === "panda" ? ink : dark}"/>
@@ -83,17 +80,16 @@ let HAM_ID = 0;
 function ham(mood = "open", cls = "") {
   const f = "fur" + (++HAM_ID);
   return `<svg class="ham m-${mood} ${cls}" viewBox="0 0 200 200" aria-hidden="true">
-<defs><radialGradient id="${f}" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#f6bf7a"/><stop offset="1" stop-color="#d98a43"/></radialGradient></defs>
+<defs><radialGradient id="${f}" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#e9a45c"/><stop offset="1" stop-color="#da8c46"/></radialGradient></defs>
 <ellipse cx="100" cy="187" rx="58" ry="8" fill="#000" opacity=".25"/>
 <g class="body">
 <ellipse cx="58" cy="56" rx="20" ry="19" fill="#d98a43"/><ellipse cx="58" cy="57" rx="11" ry="10" fill="#ff8fa8"/>
 <ellipse cx="142" cy="56" rx="20" ry="19" fill="#d98a43"/><ellipse cx="142" cy="57" rx="11" ry="10" fill="#ff8fa8"/>
 <path d="M100 44c46 0 74 34 74 76 0 42-30 64-74 64s-74-22-74-64c0-42 28-76 74-76z" fill="url(#${f})"/>
-<ellipse cx="70" cy="62" rx="20" ry="9" fill="#fff" opacity=".22" transform="rotate(-22 70 62)"/>
 <path d="M100 100c30 0 46 20 46 43 0 25-18 39-46 39s-46-14-46-39c0-23 16-43 46-43z" fill="#fff1df"/>
 <ellipse cx="54" cy="114" rx="24" ry="20" fill="#fff1df"/><ellipse cx="146" cy="114" rx="24" ry="20" fill="#fff1df"/>
 <ellipse cx="56" cy="110" rx="10" ry="6" fill="#ff8fa8" opacity=".55"/><ellipse cx="144" cy="110" rx="10" ry="6" fill="#ff8fa8" opacity=".55"/>
-<g class="e-open"><circle cx="76" cy="88" r="9" fill="#2b0c15"/><circle cx="124" cy="88" r="9" fill="#2b0c15"/><circle cx="79" cy="85" r="3" fill="#fff"/><circle cx="127" cy="85" r="3" fill="#fff"/><circle cx="72.5" cy="92" r="1.4" fill="#fff"/><circle cx="120.5" cy="92" r="1.4" fill="#fff"/></g>
+<g class="e-open"><circle cx="76" cy="88" r="9" fill="#2b0c15"/><circle cx="124" cy="88" r="9" fill="#2b0c15"/><circle cx="79" cy="85" r="3" fill="#fff"/><circle cx="127" cy="85" r="3" fill="#fff"/></g>
 <g class="e-happy" fill="none" stroke="#2b0c15" stroke-width="5" stroke-linecap="round"><path d="M67 91q9-11 18 0"/><path d="M115 91q9-11 18 0"/></g>
 <g class="e-sad"><circle cx="76" cy="92" r="8" fill="#2b0c15"/><circle cx="124" cy="92" r="8" fill="#2b0c15"/><path d="M66 78l18 6M134 78l-18 6" stroke="#2b0c15" stroke-width="4" stroke-linecap="round"/></g>
 <path d="M94 102h12l-6 7z" fill="#d9475f"/>
