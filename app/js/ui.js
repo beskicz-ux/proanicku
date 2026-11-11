@@ -6,8 +6,8 @@ import { t, lang, setLang } from "./i18n.js";
 /* ---------- colours ---------- */
 const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 export const mix = (a, b, t) => "#" + hx(a).map((v, i) => Math.round(v + (hx(b)[i] - v) * t).toString(16).padStart(2, "0")).join("");
-// One colour per chapter, repeating. The first three are the mockup's.
-export const CHAPTER_COLOURS = ["#FF7A45", "#3B82F6", "#A855F7", "#14A37F", "#E5446D", "#E39A12"];
+// One colour per chapter, from the palette tokens --ch1..--ch6 in app.css.
+export const CHAPTER_COLOURS = [1, 2, 3, 4, 5, 6].map(n => `var(--ch${n})`);
 export const chapterColour = i => CHAPTER_COLOURS[i % CHAPTER_COLOURS.length];
 
 /* ---------- tab bar (4 chunky icons, no labels) ---------- */

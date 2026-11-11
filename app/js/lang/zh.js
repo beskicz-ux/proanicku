@@ -371,5 +371,16 @@ export default {
  },
  "pl_quizQs": {
   "other": "全部内容中的 # 道题"
- }
+ },
+ "stTitle": "考试前学完全部内容",
+ "stSay": "课程的其余部分已经准备好了，解锁即可。",
+ "stTapped": "“%”在完整课程中。",
+ "stWhat": "你将解锁",
+ "stTlDone": "免费",
+ "stTlNow": "今天",
+ "stTlExam": "考试",
+ "stUnlockN": "解锁 %",
+ "stOnce": "一次付费，无需订阅。",
+ "stPerDay": "到考试前每天约 %",
+ "stFree": "暂时继续免费学习"
 };

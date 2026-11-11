@@ -380,5 +380,16 @@ export default {
  "pl_quizQs": {
   "one": "# Frage aus allem",
   "other": "# Fragen aus allem"
- }
+ },
+ "stTitle": "Lern den ganzen Stoff vor deiner Prüfung",
+ "stSay": "Der Rest deines Kurses ist fertig. Schalte ihn einfach frei.",
+ "stTapped": "„%“ ist im vollen Kurs.",
+ "stWhat": "Das schaltest du frei",
+ "stTlDone": "Gratis",
+ "stTlNow": "Heute",
+ "stTlExam": "Prüfung",
+ "stUnlockN": "% freischalten",
+ "stOnce": "Einmal zahlen. Kein Abo.",
+ "stPerDay": "≈ % pro Tag bis zur Prüfung",
+ "stFree": "Erst mal gratis weiterlernen"
 };

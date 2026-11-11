@@ -598,3 +598,211 @@ a.sc{color:var(--text); text-decoration:none}
   html::-webkit-scrollbar-button{display:none; width:0; height:0}
   @supports (-moz-appearance:none){ html{scrollbar-width:thin; scrollbar-color:var(--line) transparent} }
 }
+
+/* =====================================================================
+   v3 PALETTE "Midnight & Violet" (Marek's pick, 2026-11-11): one token set for every screen. Change colours here only.
+   Base: bg, surface, fill (sunken), line (1px dividers), edge (2px card borders), text, muted,
+   accent (+ink, soft), good, info, wrong, gold (the exam goal), and --ch1..--ch6: each chapter of a course
+   gets its own colour (banner, nodes, bars), like sections in Duolingo. Same weight, so none shouts.
+   ===================================================================== */
+:root{
+  --bg:#F5F5FA; --surface:#FFFFFF; --fill:#ECECF5; --line:#E2E3EE; --edge:#D8DAE8; --text:#161A2D; --muted:#61667D;
+  --accent:#6C5CE7; --accent-ink:#4B3CC4; --accent-soft:#E8E5FF; --on-accent:#FFFFFF;
+  --good:#12A37F; --good-soft:#DAF3EB; --info:#2F8FE8; --info-soft:#DFEEFC; --wrong:#E0445A; --wrong-soft:#FCE1E5; --gold:#F5A524;
+  --ch1:#6C5CE7; --ch2:#F08A3A; --ch3:#12A37F; --ch4:#2F8FE8; --ch5:#E5446D; --ch6:#D9A01A;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    --bg:#0F1222; --surface:#171B30; --fill:#1E233D; --line:#232945; --edge:#2D3455; --text:#EEF0FA; --muted:#959BB8;
+    --accent:#8F83FF; --accent-ink:#C3BCFF; --accent-soft:#272450; --on-accent:#FFFFFF;
+    --good:#3FC98F; --good-soft:#15342B; --info:#5AA9FF; --info-soft:#18294A; --wrong:#FF6B7E; --wrong-soft:#3D1C25; --gold:#FFBE4D;
+    --ch1:#8F83FF; --ch2:#FF9A55; --ch3:#3FC98F; --ch4:#5AA9FF; --ch5:#F2668B; --ch6:#F0BE45;
+  }
+}
+:root[data-theme=dark]{
+  --bg:#0F1222; --surface:#171B30; --fill:#1E233D; --line:#232945; --edge:#2D3455; --text:#EEF0FA; --muted:#959BB8;
+  --accent:#8F83FF; --accent-ink:#C3BCFF; --accent-soft:#272450; --on-accent:#FFFFFF;
+  --good:#3FC98F; --good-soft:#15342B; --info:#5AA9FF; --info-soft:#18294A; --wrong:#FF6B7E; --wrong-soft:#3D1C25; --gold:#FFBE4D;
+  --ch1:#8F83FF; --ch2:#FF9A55; --ch3:#3FC98F; --ch4:#5AA9FF; --ch5:#F2668B; --ch6:#F0BE45;
+}
+/* Everything else derives from the base tokens. :root:root:root outranks the older per-theme blocks above and in base.css. */
+:root:root:root{
+  --done:var(--good); --star:var(--gold);
+  --hare:color-mix(in srgb, var(--muted) 60%, var(--surface));
+  --lockbg:color-mix(in srgb, var(--edge) 75%, var(--surface)); --lockedge:color-mix(in srgb, var(--edge) 80%, #000); --lockink:color-mix(in srgb, var(--muted) 75%, var(--surface));
+  --ringbg:color-mix(in srgb, var(--text) 9%, transparent); --dline:var(--line); --dtext:var(--muted);
+  --ink:var(--text); --ink-strong:var(--text); --wolf:var(--muted); --card:var(--surface); --paper:var(--surface); --paper-ink:var(--text);
+  --green:var(--good); --green-lip:color-mix(in srgb, var(--good) 78%, #000); --green-ink:var(--good); --green-soft:var(--good-soft);
+  --blue:var(--info); --blue-lip:color-mix(in srgb, var(--info) 78%, #000); --blue-ink:var(--info); --blue-soft:var(--info-soft);
+  --red:var(--wrong); --red-lip:color-mix(in srgb, var(--wrong) 78%, #000); --red-ink:var(--wrong); --red-soft:var(--wrong-soft);
+  --yellow:var(--gold); --yellow-lip:color-mix(in srgb, var(--gold) 80%, #000); --yellow-soft:color-mix(in srgb, var(--gold) 16%, var(--surface));
+  --purple:var(--ch3); --purple-lip:color-mix(in srgb, var(--ch3) 78%, #000); --purple-soft:color-mix(in srgb, var(--ch3) 14%, var(--surface));
+}
+/* hard-coded colours from earlier passes, now on tokens */
+.lrow.on,.subrow.on{border-color:var(--info); background:color-mix(in srgb, var(--info) 9%, var(--surface))}
+.lok{background:var(--info)}
+.met.ready{color:var(--good)}
+.sw:checked{background:var(--good)}
+.bar.goal i{background:var(--good)}
+.rv.purple .rv-ic{background:color-mix(in srgb, var(--ch3) 14%, var(--surface))}
+.rv.red .rv-ic{background:color-mix(in srgb, var(--wrong) 14%, var(--surface)); color:var(--wrong)}
+.rv.blue .rv-ic{background:color-mix(in srgb, var(--info) 14%, var(--surface))}
+.wk .on i, :root[data-theme=dark] .wk .on i{background:color-mix(in srgb, var(--accent) 22%, var(--surface))}
+@media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .wk .on i{background:color-mix(in srgb, var(--accent) 22%, var(--surface))} }
+.n.gold .c{--nc:var(--gold)} .n.gold .rg-p{stroke:var(--gold)}
+.c-green{--pc:var(--good)} .c-blue{--pc:var(--info)} .c-red{--pc:var(--wrong)} .c-orange{--pc:var(--accent)} .c-yellow{--pc:var(--gold)} .c-purple{--pc:var(--accent)}
+.c-green,.c-blue,.c-red,.c-orange,.c-yellow,.c-purple{--pl:color-mix(in srgb, var(--pc) 75%, #000)}
+.tile .badge{background:var(--wrong)}
+.btn-p{background:var(--accent); color:var(--on-accent)}
+
+/* ---------- cards: one style everywhere (2px edge, 16px radius, no drop shadow) ---------- */
+.sc,.pt,.pchs,.ob-plan{border:2px solid var(--edge); border-radius:16px; box-shadow:none}
+.tile{border-color:var(--edge); box-shadow:0 3px 0 var(--edge)}
+/* section headings are real headings, not small grey caps */
+.grp{font:800 22px var(--head); letter-spacing:-.01em; text-transform:none; color:var(--text); margin:28px 0 12px}
+.sc-h b{font-size:19px}
+
+/* ---------- one desktop frame (map, practice, progress): 592 content · 48 gap · 368 side, stats row on top of the side ---------- */
+.side-tb{display:none}
+@media (min-width:1200px){
+  body.framed .app{max-width:calc(592px + 48px + 368px + 56px); padding-inline:28px; padding-bottom:48px}
+  .mlay{display:grid; grid-template-columns:minmax(0,592px) 368px; gap:48px; justify-content:center; align-items:start}
+  .mlay > .mmain{position:relative; min-width:0}
+  .mmain .tb, .mtop .tb{display:none}
+  .mmain > .pc-unlock{display:none}
+  .side{display:flex; position:sticky; top:0; padding-top:20px; gap:20px}
+  .side-tb{display:block}
+  .side-tb .tb{position:static; padding:0; background:none; box-shadow:none; min-height:48px}
+  .side-tb .subj b{max-width:150px}
+  body .side .pc-unlock{margin:0; width:100%; box-sizing:border-box; padding:18px 20px; gap:16px; border-radius:16px}
+  .side .pc-unlock svg{width:36px; height:36px}
+  .side .pc-unlock b{font:800 19px var(--head)}
+  .side .pc-unlock span{font-size:15px; margin-top:2px}
+  .pg-practice .mmain, .pg-progress .mmain{padding-top:28px}
+  .prof-hero{margin:0; border-radius:20px; min-height:260px; padding-top:22px}
+}
+
+/* =====================================================================
+   PHASE 2 · PAGES
+   ===================================================================== */
+/* ---------- map: top-down, START bubble over the current level, dividers name the chapter below them ---------- */
+.n .start{bottom:calc(100% + 30px); color:var(--chc); border-color:var(--edge); border-width:2px; box-shadow:0 3px 0 var(--edge); font:800 14px var(--head); letter-spacing:.06em; text-transform:uppercase; animation:startBob 1.6s ease-in-out infinite}
+.n .start:after{border-top-color:var(--edge)}
+@keyframes startBob{50%{transform:translate(-50%,-4px)}}
+@media (prefers-reduced-motion:reduce){ .n .start{animation:none} }
+.div span{color:var(--text)}
+.div span small{color:var(--chc, var(--muted)); opacity:1}
+.exam b{color:var(--text)}
+@media (min-width:1200px){
+  .n{transform:translate(-50%,-50%) scale(1.16)}
+  .exam{transform:translate(-50%,-50%) scale(1.1)}
+  .tut{width:124px} .tut svg{width:124px}
+  .div:before,.div:after{height:2px; background:var(--line)}
+  .div span{color:var(--text); font:800 19px var(--head); padding:0 10px}
+  .div span small{font:800 12px var(--font); letter-spacing:.08em; margin-bottom:2px}
+  .mtop{padding-top:20px}
+}
+
+/* ---------- PHASE 2: Practice (one hero, calm outlined rows) ---------- */
+.prac .banner{box-shadow:none; min-height:176px}
+.prac .banner .t{max-width:60%}
+.hero-go{display:inline-flex; align-items:center; margin-top:14px; padding:10px 18px; border-radius:14px; background:#fff; color:#4B3CC4; font:800 16px var(--head); text-decoration:none; box-shadow:0 3px 0 #0002}
+.hero-go:active{transform:translateY(3px); box-shadow:none}
+.prows{display:flex; flex-direction:column; gap:12px}
+.prow{position:relative; display:flex; align-items:center; gap:12px; min-height:100px; padding:16px 140px 16px 20px; border:2px solid var(--edge); border-radius:16px; background:var(--surface); color:var(--text); text-decoration:none; overflow:hidden; isolation:isolate}
+.prow:hover{background:var(--fill)}
+.prow:active{transform:translateY(2px)}
+.prow.off{cursor:default} .prow.off:active{transform:none} .prow.off:hover{background:var(--surface)}
+.prow .t{flex:1; min-width:0}
+.prow b{display:block; font:800 19px var(--head); line-height:1.2}
+.prow .t span{display:block; margin-top:3px; font-size:15px; color:var(--muted)}
+.prow .badge{position:relative; z-index:2; min-width:30px; height:30px; padding:0 8px; border-radius:15px; display:grid; place-items:center; background:var(--wrong); color:#fff; font:800 15px var(--head)}
+.prow .ill{position:absolute; inset-block:0; right:0; width:130px; z-index:-1; color:var(--pc)}
+.prow .ill i{position:absolute; border-radius:50%; background:color-mix(in srgb, var(--pc) 16%, transparent)}
+.prow .ill i:first-child{width:120px; height:120px; right:-22px; top:50%; translate:0 -50%}
+.prow .ill i:nth-child(2){width:26px; height:26px; right:96px; top:12px; background:color-mix(in srgb, var(--pc) 22%, transparent)}
+.prow .ill svg{position:absolute; width:48px; height:48px; right:30px; top:50%; translate:0 -50%}
+.prow.off .ill{filter:saturate(.3); opacity:.6}
+
+/* ---------- PHASE 2: Progress (rounded banner, then identity, then sections) ---------- */
+.prof .prof-hero{margin:14px var(--gutter) 0; border-radius:20px; min-height:200px; padding:0; display:block; background:var(--accent-soft)}
+.prof-hero i{position:absolute; border-radius:50%; background:color-mix(in srgb, var(--accent) 14%, transparent)}
+.prof-hero .pb1{width:220px; height:220px; left:-60px; bottom:-120px}
+.prof-hero .pb2{width:90px; height:90px; right:12%; top:-30px}
+.prof-hero .pb3{width:28px; height:28px; left:22%; top:26px; background:color-mix(in srgb, var(--accent) 24%, transparent)}
+.prof .prof-art{position:absolute; left:50%; bottom:-6px; translate:-50% 0; margin:0; width:170px}
+.prof .prof-art svg{width:170px}
+.prof .prof-gear{top:12px; inset-inline-end:12px; background:var(--surface); border:2px solid var(--edge)}
+.prof .prof-gear svg{width:26px; height:26px}
+.prof > .prof-t{padding:18px var(--gutter) 4px}
+.prof-meta{display:flex; align-items:center; gap:8px; font-weight:700}
+.prof-meta svg{width:22px; height:22px}
+@media (min-width:1200px){
+  .prof .prof-hero{margin:0; min-height:240px}
+  .prof .prof-art, .prof .prof-art svg{width:200px}
+  .prof > .prof-t{padding:20px 0 4px}
+  .pg-progress .pg, .pg-practice .pg{padding-inline:0}
+}
+/* Mobile map: the unlock card must not touch the chapter banner. */
+body.map-page .mmain > .pc-unlock{margin-top:14px}
+
+/* ---------- PHASE 3: store page (outcome first, one boxed payment card) ---------- */
+.st .st-grid{display:flex; flex-direction:column; gap:22px; padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.st-hero{position:relative; display:flex; align-items:flex-end; gap:14px; margin-top:6px; padding:18px 18px 0; border-radius:20px; background:var(--accent-soft); overflow:hidden; min-height:150px}
+.st-art{width:130px; flex:none; margin-bottom:-8px}
+.st-art svg{width:100%; height:auto; display:block}
+.st-say{position:relative; align-self:center; margin:0 0 10px; padding:12px 14px; border-radius:16px; background:var(--surface); border:2px solid var(--edge); font:700 15px/1.4 var(--font); color:var(--text)}
+.st-say::before{content:""; position:absolute; left:-9px; bottom:18px; width:14px; height:14px; background:var(--surface); border-left:2px solid var(--edge); border-bottom:2px solid var(--edge); rotate:45deg}
+.st .ob-h{margin-top:20px}
+.st-tap{display:flex; gap:10px; align-items:center; margin:12px 0 0; padding:12px 14px; border-radius:14px; background:var(--fill); font-weight:700; color:var(--text)}
+.st-tap svg{width:20px; height:20px; flex:none; color:var(--muted)}
+.st-h{font:800 20px var(--head); margin:24px 0 10px; color:var(--text)}
+.st-units{list-style:none; margin:0; padding:0; border:2px solid var(--edge); border-radius:16px; overflow:hidden; background:var(--surface)}
+.st-units li{display:flex; align-items:center; gap:12px; padding:12px 16px}
+.st-units li + li{border-top:1px solid var(--line)}
+.st-units i{width:34px; height:34px; flex:none; display:grid; place-items:center; border-radius:10px; background:color-mix(in srgb, var(--chc) 16%, transparent); color:var(--chc)}
+.st-units i svg{width:18px; height:18px}
+.st-units b{flex:1; min-width:0; font-weight:800}
+.st-units small{color:var(--muted); font-weight:700; white-space:nowrap}
+.st-tl{list-style:none; margin:24px 0 0; padding:0}
+.st-tl li{position:relative; display:flex; gap:14px; align-items:flex-start; padding-bottom:18px}
+.st-tl li:last-child{padding-bottom:0}
+.st-tl li:not(:last-child)::after{content:""; position:absolute; left:13px; top:30px; bottom:2px; width:2px; background:var(--edge)}
+.st-tl i{width:28px; height:28px; flex:none; border-radius:50%; display:grid; place-items:center; border:2px solid var(--edge); background:var(--surface); box-sizing:border-box}
+.st-tl i svg{width:16px; height:16px}
+.st-tl .done i{background:var(--good); border-color:var(--good); color:#fff}
+.st-tl .now i{border-color:var(--accent); box-shadow:inset 0 0 0 5px var(--surface); background:var(--accent)}
+.st-tl .ex i{border-color:var(--gold)}
+.st-tl small{display:block; color:var(--muted); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.04em}
+.st-tl b{display:block; font-weight:800; margin-top:2px}
+.st-pay{display:flex; flex-direction:column; gap:12px; padding:18px; border:2px solid var(--edge); border-radius:20px; background:var(--surface)}
+.st-pay .ob-test{margin:0}
+.st-pay .ob-check{margin:0}
+.st-pay .ob-note{margin:0}
+.st-plan{display:flex; flex-direction:column; gap:10px}
+.st-price{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.st-price b{font:800 34px var(--head); color:var(--text)}
+.st-price span{font-weight:700; color:var(--good)}
+.st-perday{margin:-4px 0 0; color:var(--muted); font-weight:700; font-size:14px}
+.st-plan ul{list-style:none; margin:4px 0 0; padding:12px 0 0; border-top:1px solid var(--line)}
+.st-plan li{display:flex; gap:8px; align-items:flex-start; margin:6px 0}
+.st-plan li svg{width:20px; height:20px; color:var(--good); flex:none; margin-top:1px}
+.st-pay .btn-p{width:100%}
+.st-free{align-self:center; color:var(--muted); font-weight:800; text-decoration:none; padding:4px 8px}
+.st-free:hover{color:var(--text)}
+@media (min-width:1000px){
+  body.store .app{max-width:1000px}
+  .st .st-grid{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:48px; align-items:start; padding-top:8px}
+  .st-pay{position:sticky; top:20px}
+  .st-hero{min-height:180px} .st-art{width:150px}
+}
+
+/* Map unlock card: matches the store's payment card. */
+body .pc-unlock{background:var(--surface); border:2px solid var(--accent); color:var(--text); gap:14px; align-items:center}
+.pc-unlock .ul-ic{width:44px; height:44px; flex:none; display:grid; place-items:center; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink)}
+.pc-unlock .ul-ic svg, body .side .pc-unlock .ul-ic svg{width:22px; height:22px}
+.pc-unlock div{flex:1; min-width:0}
+.pc-unlock span{color:var(--muted)}
+.pc-unlock .ul-go{flex:none; display:grid; color:var(--accent-ink)}
+.pc-unlock .ul-go svg, body .side .pc-unlock .ul-go svg{width:20px; height:20px}
+.pc-unlock:hover{background:var(--accent-soft)}

@@ -3,7 +3,7 @@ import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx 
 import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
 import { countPages, validFile, daysBetween } from "./forecast.js";
-import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse } from "./course.js";
+import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
@@ -317,18 +317,36 @@ async function viewUnlock() {
   const s = session(); if (!s) return nav("#/login");
   // render() has already dropped the map's layout class, so the old map would show squeezed while this loads
   view().innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`;
-  const [cfg, st] = await Promise.all([storeConfig(), api("status", { session: s.token }).catch(e => e)]);
+  const [cfg, st, info] = await Promise.all([storeConfig(), api("status", { session: s.token }).catch(e => e), storeInfo(s.slug)]);
   if (st.status === 401) { store.del("session"); return nav("#/login"); }
   if (st.paid) return nav("#/s/" + s.slug);
-  const L = o => o?.[lang()] || o?.en || o?.cs;
-  view().innerHTML = `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
-    <h1 class="ob-h">${t("unlockTitle")}</h1><p class="ob-sub">${t("unlockSub")}</p>
-    ${cfg.testMode ? `<div class="ob-test" role="note">${t("storeTest")}</div>` : ""}
-    <div class="ob-body">${cfg.plans.map(p => `<div class="ob-plan"><h2>${esc(L(p.name))}</h2><div class="price">${p.price} ${esc(cfg.currency)}</div>
-      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul></div>`).join("")}
-    <label class="ob-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
-    <p class="ob-err" id="err" hidden role="alert"></p></div>
-    <div class="ob-foot">${cfg.plans.map(p => `<button class="btn-p" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${esc(cfg.currency)}</button>`).join("")}<p class="ob-note c">${t("storeSecure")}</p></div></div>`;
+  document.body.classList.add("store");
+  const L = o => o?.[lang()] || o?.en || o?.cs, cur = esc(cfg.currency), left = info?.left;
+  // Outcome first: the exam, the lesson they tapped, what unlocks, then one boxed payment card (sticky on the right on desktop).
+  const title = t("stTitle");
+  const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2><ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><b>${esc(u.title)}</b><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
+  const tl = info ? `<ol class="st-tl">
+      <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
+      <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
+      ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
+  const plan = p => `<div class="st-plan"><div class="st-price"><b>${p.price} ${cur}</b><span>${t("stOnce")}</span></div>
+      ${left > 0 ? `<p class="st-perday">${esc(t("stPerDay").replace("%", `${Math.max(1, Math.round(p.price / left))} ${cfg.currency}`))}</p>` : ""}
+      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul></div>`;
+  view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
+    <div class="st-grid"><div class="st-main">
+      <div class="st-hero"><div class="st-art">${tutorArt(info?.tutor || "penny")}</div><p class="st-say">${t("stSay")}</p></div>
+      <h1 class="ob-h">${title}</h1>
+      ${info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`}
+      ${what}${tl}
+    </div><aside class="st-pay">
+      ${cfg.testMode ? `<div class="ob-test" role="note">${t("storeTest")}</div>` : ""}
+      ${cfg.plans.map(plan).join("")}
+      <label class="ob-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
+      <p class="ob-err" id="err" hidden role="alert"></p>
+      ${cfg.plans.map(p => `<button class="btn-p" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${cur}</button>`).join("")}
+      <p class="ob-note c">${t("storeSecure")}</p>
+      <a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a>
+    </aside></div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
   $$("[data-plan]").forEach(b => b.onclick = async () => {
     const label = b.textContent;
@@ -463,7 +481,7 @@ async function viewWait() {
 export function render() {
   clearTimeout(waitTimer); clearTimeout(paidTimer);
   document.querySelectorAll(".feedback,.confetti,#sh,#shDim").forEach(e => e.remove());
-  document.body.classList.remove("plain", "map-page");
+  document.body.classList.remove("plain", "map-page", "framed", "store");
   window.onkeydown = null; window.onscroll = null;
   try { Promise.resolve(route()).catch(viewError); } catch (e) { viewError(e); }
 }
@@ -499,6 +517,9 @@ function route() {
   nav("#/");
 }
 addEventListener("hashchange", render);
+// Safari (and Chrome) restore a page from the back-forward cache as it was left: after Back from Stripe the buy
+// button would still say "One moment…" and be disabled. Draw the view afresh instead.
+addEventListener("pageshow", e => { if (e.persisted) render(); });
 applyTheme();
 setLang(lang()).then(render);
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { });

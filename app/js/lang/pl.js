@@ -398,5 +398,16 @@ export default {
   "few": "# pytania ze wszystkiego",
   "many": "# pytań ze wszystkiego",
   "other": "# pytania ze wszystkiego"
- }
+ },
+ "stTitle": "Przerób cały materiał przed egzaminem",
+ "stSay": "Reszta kursu jest gotowa. Wystarczy ją odblokować.",
+ "stTapped": "„%” jest w pełnym kursie.",
+ "stWhat": "Co odblokujesz",
+ "stTlDone": "Za darmo",
+ "stTlNow": "Dziś",
+ "stTlExam": "Egzamin",
+ "stUnlockN": "Odblokuj %",
+ "stOnce": "Płacisz raz. Bez subskrypcji.",
+ "stPerDay": "≈ % dziennie do egzaminu",
+ "stFree": "Na razie ucz się za darmo"
 };

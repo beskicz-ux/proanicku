@@ -77,8 +77,7 @@ const aT = (type, dur, fr) => `<animateTransform attributeName="transform" type=
 const aA = (attr, dur, fr) => `<animate attributeName="${attr}" ${kf(dur, fr)}/>`;
 function ham(mood = "open", cls = "") {
   return `<svg class="ham m-${mood} ${cls}" viewBox="0 0 200 200" aria-hidden="true">
-<defs><radialGradient id="fur" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#f6bf7a"/><stop offset="1" stop-color="#d98a43"/></radialGradient>
-<radialGradient id="coin" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffe7a8"/><stop offset="1" stop-color="#d9a441"/></radialGradient></defs>
+<defs><radialGradient id="fur" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#f6bf7a"/><stop offset="1" stop-color="#d98a43"/></radialGradient></defs>
 <ellipse cx="100" cy="187" rx="58" ry="8" fill="#000" opacity=".25"/>
 <g class="body">
 <ellipse cx="58" cy="56" rx="20" ry="19" fill="#d98a43"/><ellipse cx="58" cy="57" rx="11" ry="10" fill="#ff8fa8"/>
@@ -91,12 +90,14 @@ function ham(mood = "open", cls = "") {
 <g class="e-happy" fill="none" stroke="#2b0c15" stroke-width="5" stroke-linecap="round"><path d="M67 91q9-11 18 0"/><path d="M115 91q9-11 18 0"/></g>
 <g class="e-sad"><circle cx="76" cy="92" r="8" fill="#2b0c15"/><circle cx="124" cy="92" r="8" fill="#2b0c15"/><path d="M66 78l18 6M134 78l-18 6" stroke="#2b0c15" stroke-width="4" stroke-linecap="round"/></g>
 <path d="M94 102h12l-6 7z" fill="#d9475f"/>
-<g class="mouth-s"><path d="M100 109q-6 8-13 3M100 109q6 8 13 3" fill="none" stroke="#4a1a26" stroke-width="3" stroke-linecap="round"/><rect x="96" y="113" width="8" height="7" rx="1.5" fill="#fff"/></g>
+<g class="mouth-s"><path d="M96.2 111h7.6v5.6q0 2.6-2.4 2.6h-2.8q-2.4 0-2.4-2.6z" fill="#fff" stroke="#e2c9b4" stroke-width="1"/><path d="M100 112.5v6.4" stroke="#e2c9b4" stroke-width="1"/><path d="M100 109q-6 8-13 3M100 109q6 8 13 3" fill="none" stroke="#4a1a26" stroke-width="3" stroke-linecap="round"/></g>
 <ellipse class="mouth-o" cx="100" cy="117" rx="6" ry="7" fill="#4a1a26"/>
 <g stroke="#4a1a26" stroke-width="2" stroke-linecap="round" opacity=".45"><path d="M34 106l-18-4M34 114l-18 2M166 106l18-4M166 114l18 2"/></g>
-<circle cx="100" cy="148" r="22" fill="url(#coin)" stroke="#b9822c" stroke-width="3"/>
-<text x="100" y="155" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-weight="700" fill="#8a5a17">P</text>
-<ellipse cx="80" cy="148" rx="10" ry="8" fill="#f6c99a"/><ellipse cx="120" cy="148" rx="10" ry="8" fill="#f6c99a"/>
+<g class="book"><path d="M66 137q17-5 34 3q17-8 34-3v32q-17-5-34 3q-17-8-34-3z" fill="#5a3cc4"/>
+<path d="M70 133q15-4 30 3v31q-15-7-30-3z" fill="#fff"/><path d="M130 133q-15-4-30 3v31q15-7 30-3z" fill="#f1edff"/>
+<g stroke="#c9c0f2" stroke-width="2" stroke-linecap="round" fill="none"><path d="M76 142q9-1 18 2M76 149q9-1 18 2M76 156q9-1 13 1"/><path d="M106 144q9-3 18-2M106 151q9-3 18-2M106 158q6-2 13-2"/></g>
+<path d="M100 136v31" stroke="#4a32b0" stroke-width="1.6"/></g>
+<ellipse cx="68" cy="152" rx="9" ry="8" fill="#f6c99a"/><ellipse cx="132" cy="152" rx="9" ry="8" fill="#f6c99a"/>
 <ellipse cx="74" cy="183" rx="14" ry="7" fill="#f6c99a"/><ellipse cx="126" cy="183" rx="14" ry="7" fill="#f6c99a"/>
 <g transform="rotate(-8 100 34)"><path d="M58 30l42-18 42 18-42 17z" fill="#7a5ae6"/><path d="M75 37v12q25 11 50 0V37l-25 10z" fill="#5a3cc4"/><path d="M142 30v22" stroke="#f4cf96" stroke-width="3"/><circle cx="142" cy="54" r="4.5" fill="#f4cf96"/></g>
 </g></svg>`;

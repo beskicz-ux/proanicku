@@ -371,5 +371,16 @@ export default {
  },
  "pl_quizQs": {
   "other": "전체에서 # 문제"
- }
+ },
+ "stTitle": "시험 전에 전 범위를 끝내세요",
+ "stSay": "코스의 나머지가 준비됐어요. 잠금만 해제하면 돼요.",
+ "stTapped": "“%”은(는) 전체 코스에 있어요.",
+ "stWhat": "잠금 해제되는 내용",
+ "stTlDone": "무료",
+ "stTlNow": "오늘",
+ "stTlExam": "시험",
+ "stUnlockN": "% 잠금 해제",
+ "stOnce": "한 번만 결제. 구독 없음.",
+ "stPerDay": "시험까지 하루 ≈ %",
+ "stFree": "지금은 무료로 계속하기"
 };

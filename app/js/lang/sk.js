@@ -398,5 +398,16 @@ export default {
   "few": "# otázky zo všetkého",
   "many": "# otázky zo všetkého",
   "other": "# otázok zo všetkého"
- }
+ },
+ "stTitle": "Prejdi celú látku do skúšky",
+ "stSay": "Zvyšok kurzu je hotový. Stačí ho odomknúť.",
+ "stTapped": "„%“ je v celom kurze.",
+ "stWhat": "Čo odomkneš",
+ "stTlDone": "Zadarmo",
+ "stTlNow": "Dnes",
+ "stTlExam": "Skúška",
+ "stUnlockN": "Odomkneš %",
+ "stOnce": "Platíš raz. Žiadne predplatné.",
+ "stPerDay": "≈ % denne do skúšky",
+ "stFree": "Zatiaľ sa učiť zadarmo"
 };

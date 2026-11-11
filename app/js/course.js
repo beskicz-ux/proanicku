@@ -28,6 +28,7 @@ export function tutorArt(id, cls = "", mood = "open") {
 
 /* ---------- state ---------- */
 let ACCESS = { paid: true, building: false, status: "ready" }, restTimer = null;
+let TAPPED = null; // the locked lesson the student tapped, so the store can name it
 let C = null, SLUG = null, STUDENT = null, S = defaults(), ITEM = {}, LESSON = {}, TOKEN = null;
 const lsKey = () => "progress." + SLUG;
 export function resetCourse() { C = null; SLUG = null; clearTimeout(restTimer); }
@@ -113,6 +114,15 @@ function srcText(s) {
 }
 const srcLine = it => { const x = srcText(it.source); return x ? `<p class="pc-source">${t("source")}: ${esc(x)}</p>` : ""; };
 
+/* ---------- the store's view of this course: progress so far, what is locked, the exam. Null if the course can't load. ---------- */
+export async function storeInfo(slug) {
+  try { await loadCourse(slug); } catch { return null; }
+  const ls = allLessons(), free = ls.filter(l => !l.locked), tap = TAPPED && LESSON[TAPPED]?.locked ? LESSON[TAPPED].title : "";
+  return { tutor: curTutor(), exam: examDate(), left: daysToExam(), done: free.filter(l => lessonPct(l) >= 1).length, free: free.length,
+    locked: ls.length - free.length, tapped: tap,
+    units: C.units.map((u, ci) => ({ ci, title: u.title, n: u.lessons.filter(l => l.locked).length })).filter(u => u.n) };
+}
+
 /* ---------- load ---------- */
 async function loadCourse(slug) {
   const sess = store.get("session");
@@ -157,7 +167,7 @@ export async function courseRoute(parts, nav, render) {
   nav("#/s/" + slug);
 }
 let ctx = null;
-const TAB_COL = { home: "#E9773A", notes: "#3B82F6", review: "#22A06B", progress: "#A855F7" };
+const TAB_COL = { home: "var(--accent)", notes: "var(--accent)", review: "var(--accent)", progress: "var(--accent)" }; // one selected colour for every tab
 function setTabs(slug, sub) {
   const n = $("#nav");
   const show = !sub || ["notes", "practice", "progress"].includes(sub);
@@ -179,20 +189,25 @@ function setTabs(slug, sub) {
 /* ---------- top bar: subject, readiness, days to the exam ---------- */
 function topbar() {
   const left = daysToExam(), r = readiness(), title = C.meta.subject || C.meta.title || "";
-  return `<header class="tb"><button class="subj" id="subjBtn"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(title)}</b>${CHEV_DOWN}</button>
+  return `<header class="tb"><button class="subj"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(title)}</b>${CHEV_DOWN}</button>
     <div class="mets"><a class="met ready" href="#/s/${SLUG}/progress" aria-label="${t("readinessTitle")}: ${r} %">${ringIcon(r)}<span>${r} %</span></a>
     ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
 }
 function bindTopbar() {
-  const b = $("#subjBtn"); if (!b) return;
   const title = C.meta.subject || C.meta.title || "";
-  b.onclick = () => {
+  $$(".subj").forEach(b => b.onclick = () => {
     const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list">
       <button class="subrow on" id="subCur"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${examDate() ? esc(fmtDay(examDate())) : ""}</small></div><i class="lok">${TICK}</i></button>
       <button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("soon")}</small></div></button></div>`);
     $("#subCur").onclick = s.close;
     $("#subNew").onclick = () => { s.close(); toast(t("subjSoon")); };
-  };
+  });
+}
+// One desktop frame for the map, practice and progress: a content column and a side column whose top is the stats row.
+// Below 1200px the side column is hidden and the page is the content column alone (its own top bar shows instead).
+function framed(page, main) {
+  document.body.classList.add("framed");
+  return `<div class="mlay pg-${page}"><div class="mmain">${main}</div>${sidePanel(lockedCount(), page)}</div>`;
 }
 
 /* ---------- the map: one column, bottom-up, chapters in colour ---------- */
@@ -209,9 +224,10 @@ function nodes() {
   return { list: out, cur };
 }
 const MAPMAX = 590; // widest the map gets; wider screens get the side panel instead of empty map
-const TOPPAD = 310, BOTPAD = 120, EXAMY = 200;
+// Top-down like a book: chapter divider, its levels, the next chapter, and the exam goal at the end.
+const TOPPAD = 120, EXAMH = 300;
 // Desktop (side panel showing) packs the nodes tighter with a gentler zig-zag; phones keep the roomier map.
-const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 94, CURX: 26, DIVH: 140, SWX: .78 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
+const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 106, CURX: 34, DIVH: 150, SWX: .8 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 // The goal at the top of the map: a solid flag on a gold button.
 const EXAM_FLAG = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2.5" width="2.8" height="19" rx="1.4" fill="currentColor"/><path d="M6.4 3.6h11.9c.8 0 1.2.9.7 1.5l-2.6 3.4 2.6 3.4c.5.6.1 1.5-.7 1.5H6.4z" fill="currentColor"/></svg>`;
@@ -225,23 +241,21 @@ function examLine() {
 function viewMap() {
   const { list, cur } = nodes(), locked = lockedCount();
   document.body.classList.add("map-page");
-  view().innerHTML = `<div class="mlay"><div class="mmain"><div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div></div>${sidePanel(locked)}</div>`;
+  TAPPED = null; // the store names the lesson tapped since the map was last shown
+  view().innerHTML = framed("map", `<div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`);
   bindTopbar();
   const { STEPY, CURX, DIVH, SWX } = mapSpacing();
   const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = SWX || Math.min(1.7, W / 375);
   mw.dataset.w = W;
   const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
-  const chH = byCh.map(ns => DIVH + ns.length * STEPY + (ns.some(n => n.cur) ? CURX : 0));
-  const total = TOPPAD + chH.reduce((a, b) => a + b, 0) + BOTPAD;
-  let out = "", y = total - BOTPAD, k = 0, curPt = -1, curY = 0;
+  let out = "", y = TOPPAD, k = 0, curPt = -1, curY = 0;
   const pts = [], chTop = [];
   C.units.forEach((u, ui) => {
-    const col = chapterColour(ui), top = y - chH[ui], hh = chH[ui] + (ui === 0 ? BOTPAD : 0);
-    chTop.push([top, y]);
-    out += `<div class="div" style="top:${y - DIVH / 2 + 8}px"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`;
-    y -= DIVH;
+    const col = chapterColour(ui), top = y;
+    // The first chapter is named by the sticky banner above the map; later ones get a divider above their levels.
+    if (ui > 0) { out += `<div class="div" style="top:${y + DIVH / 2}px;--chc:${col}"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`; y += DIVH; }
     byCh[ui].forEach(n => {
-      const big = n.cur ? CURX : 0, ny = y - STEPY / 2 - big * .25, nx = CX + SWAY[k % SWAY.length] * sw;
+      const big = n.cur ? CURX : 0, ny = y + STEPY / 2 + big * .75, nx = CX + SWAY[k % SWAY.length] * sw;
       pts.push([nx, ny]);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
       const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
@@ -249,11 +263,13 @@ function viewMap() {
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
-        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : state === "cur" ? "cur" : "n"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
-      if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 120 * sc : nx + 120 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
-      y -= STEPY + big; k++;
+        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : state === "cur" ? "cur" : "n"])}${state === "cur" && n.cur ? `<span class="start">${t("startBubble")}</span>` : ""}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
+      if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 130 * sc : nx + 130 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
+      y += STEPY + big; k++;
     });
+    chTop.push([top, y]);
   });
+  const EXAMY = y + 110, total = y + EXAMH;
   // Bright gold once every level is done or the exam is a week away; muted gold before that.
   const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7), er = readiness();
   out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb">${levelRing(er, NODE.exam)}<div class="c">${EXAM_FLAG}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
@@ -271,38 +287,39 @@ function viewMap() {
   const onScroll = () => {
     const mid = scrollY + innerHeight * .55 - mwTop();
     let ui = chTop.findIndex(([top, bot]) => mid >= top && mid <= bot);
-    if (ui < 0) ui = mid < (chTop.at(-1)?.[0] ?? 0) ? C.units.length - 1 : 0;
+    if (ui < 0) ui = mid < (chTop[0]?.[0] ?? 0) ? 0 : C.units.length - 1;
     head(ui);
   };
   head(cur >= 0 ? list[cur].ui : C.units.length - 1);
   window.onscroll = onScroll;
   $$("[data-lesson],[data-test]", mw).forEach(b => b.onclick = () => {
     const st = b.dataset.state;
-    if (st === "paywall") return ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock");
+    if (st === "paywall") { TAPPED = b.dataset.lesson ?? null; return ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock"); }
     if (st === "next") return toast(t(b.dataset.test != null ? "testLocked" : "levelLocked"));
     ctx.nav(b.dataset.test != null ? `#/s/${SLUG}/test/${b.dataset.test}` : `#/s/${SLUG}/lesson/${b.dataset.lesson}`);
   });
-  requestAnimationFrame(() => { scrollTo({ top: Math.max(0, mwTop() + (curPt >= 0 ? curY : total - BOTPAD) - innerHeight * .55), behavior: "instant" }); onScroll(); });
+  requestAnimationFrame(() => { scrollTo({ top: Math.max(0, mwTop() + (curPt >= 0 ? curY : EXAMY) - innerHeight * .55), behavior: "instant" }); onScroll(); });
   if (locked && ACCESS.building) watchRest();
 }
 // Free start: the card that sells the rest, or says the rest is being written.
 // Wide screens only (CSS hides it below 1200px): today's tasks, readiness, the tutor. No streak: readiness and the countdown replace it.
-function sidePanel(locked) {
+function sidePanel(locked, page = "map") {
   const r = readiness(), left = daysToExam(), due = dueIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length;
   const ls = openLessons(), done = ls.filter(l => lessonPct(l) >= 1).length;
   const tasks = [];
   if (due) tasks.push([`#/s/${SLUG}/review/due`, HUB.cards, t("taskCards")]);
   ls.filter(l => lessonPct(l) < 1).slice(0, 3).forEach(l => tasks.push([`#/s/${SLUG}/lesson/${encodeURIComponent(l.id)}`, HUB.book, t("taskLearn", { name: l.title })]));
   if (seen) tasks.push([`#/s/${SLUG}/review/mix`, HUB.bolt, t("taskMix")]);
-  return `<aside class="side">
-    ${tasks.length ? `<div class="sc"><div class="sc-h"><b>${t("todayTasks")}</b></div>${tasks.map(([href, icon, label]) => `<a class="task" href="${href}"><span class="ico">${icon}</span><b>${esc(label)}</b></a>`).join("")}</div>` : ""}
-    <a class="sc sc-ready" href="#/s/${SLUG}/progress">${ringIcon(r, 64)}<div><b>${r} %</b><span>${t("readinessTitle")} · ${esc(t("doneOf", { x: done, y: ls.length }))}</span></div>${left == null ? "" : `<div class="sc-exam">${calIcon(new Date(examDate() + "T12:00").getDate())}<div><b>${esc(daysTxt(Math.max(0, left)))}</b><span>${t("toExam")}</span></div></div>`}</a>
-    ${locked ? unlockCard(locked) : ""}
+  const taskCard = tasks.length ? `<div class="sc"><div class="sc-h"><b>${t("todayTasks")}</b></div>${tasks.map(([href, icon, label]) => `<a class="task" href="${href}"><span class="ico">${icon}</span><b>${esc(label)}</b></a>`).join("")}</div>` : "";
+  const readyCard = `<a class="sc sc-ready" href="#/s/${SLUG}/progress">${ringIcon(r, 64)}<div><b>${r} %</b><span>${t("readinessTitle")} · ${esc(t("doneOf", { x: done, y: ls.length }))}</span></div>${left == null ? "" : `<div class="sc-exam">${calIcon(new Date(examDate() + "T12:00").getDate())}<div><b>${esc(daysTxt(Math.max(0, left)))}</b><span>${t("toExam")}</span></div></div>`}</a>`;
+  const cards = { map: [taskCard, readyCard], practice: [readyCard, taskCard], progress: [taskCard] }[page] || [taskCard, readyCard];
+  return `<aside class="side"><div class="side-tb">${topbar()}</div>
+    ${locked ? unlockCard(locked) : ""}${cards.join("")}
     ${C.meta.voice ? `<a class="sc sc-ask" href="#/s/${SLUG}/voice">${tutorArt(curTutor())}<div><b>${t("voiceTitle")}</b><span>${t("voiceSub")}</span></div></a>` : ""}</aside>`;
 }
 function unlockCard(locked) {
   if (!locked) return "";
-  if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock">${ic.lock}<div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div></a>`;
+  if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock"><i class="ul-ic">${ic.lock}</i><div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div><i class="ul-go">${CHEV}</i></a>`;
   if (ACCESS.status === "failed") return `<div class="pc-unlock off" role="status"><div><b>${t("restFailed")}</b></div></div>`;
   return `<div class="pc-unlock off" role="status"><div><b>${t("restBuilding")}</b><span>${t("restBuildingSub")}</span></div></div>`;
 }
@@ -340,6 +357,7 @@ function viewNotes(arg) {
 const ROUND = 10;
 function startLesson(id) {
   const l = LESSON[id];
+  if (l?.locked) TAPPED = id;
   if (!l || l.locked) return ctx.nav(l && !ACCESS.paid ? "#/unlock" : "#/s/" + SLUG);
   const unread = (l.reading || []).filter(s => !S.read[s.id]);
   const todo = l.items.filter(it => !mastered(it));
@@ -550,15 +568,18 @@ function finish(st) {
 function viewPractice() {
   const due = dueIds().length, mis = mistakeIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length, mixN = Math.min(seen, ROUND);
   const go = kind => `#/s/${SLUG}/review/${kind}`;
-  const tile = (href, c, icon, title, sub, badge) => `<a class="tile ${c} ${href ? "" : "off"}" ${href ? `href="${href}"` : `aria-disabled="true"`}><div class="t"><b>${title}</b><span>${sub}</span></div>${badge ? `<span class="badge">${badge}</span>` : ""}<div class="pic">${icon}</div></a>`;
-  view().innerHTML = `${topbar()}<div class="pg prac">
-    <div class="banner c-purple"><div class="t"><h2>${t("pracTitle")}</h2><p>${t("pracBanner")}</p></div><div class="art">${tutorArt(curTutor())}</div><i class="arc"></i><i class="cloud"></i></div>
-    ${tile(due ? go("due") : "", "hero c-purple", HUB.cards, t("pracCards"), due ? pl("due", due) : t("pracCardsNone"))}
+  // Outlined rows (2px edge, title, subtitle, an illustration bleeding off the right edge), like a calm list rather than coloured blocks.
+  const row = (href, c, icon, title, sub, badge) => `<a class="prow ${c} ${href ? "" : "off"}" ${href ? `href="${href}"` : `aria-disabled="true"`}><div class="t"><b>${title}</b><span>${sub}</span></div>${badge ? `<span class="badge">${badge}</span>` : ""}<div class="ill" aria-hidden="true"><i></i><i></i>${icon}</div></a>`;
+  // The hero offers the one best next step: due flashcards, else a quick quiz.
+  const [heroHref, heroLabel] = due ? [go("due"), `${t("pracCards")} · ${due}`] : mixN ? [go("mix"), t("pracQuiz")] : ["", ""];
+  view().innerHTML = framed("practice", `${topbar()}<div class="pg prac">
+    <div class="banner c-purple"><div class="t"><h2>${t("pracTitle")}</h2><p>${t("pracBanner")}</p>${heroHref ? `<a class="hero-go" href="${heroHref}">${esc(heroLabel)}</a>` : ""}</div><div class="art">${tutorArt(curTutor())}</div><i class="arc"></i><i class="cloud"></i></div>
     <h2 class="sec">${t("pracAll")}</h2>
-    <div class="tiles">
-      ${tile(mixN ? go("mix") : "", "c-blue", HUB.bolt, t("pracQuiz"), mixN ? pl("quizQs", mixN) : t("pracEmpty"))}
-      ${tile(mis ? go("mistakes") : "", "c-red", HUB.target, t("pracMistakes"), mis ? t("pracMistakesSub") : t("pracNoMistakes"), mis || "")}
-    </div></div>`;
+    <div class="prows">
+      ${row(due ? go("due") : "", "c-purple", HUB.cards, t("pracCards"), due ? pl("due", due) : t("pracCardsNone"))}
+      ${row(mixN ? go("mix") : "", "c-blue", HUB.bolt, t("pracQuiz"), mixN ? pl("quizQs", mixN) : t("pracEmpty"))}
+      ${row(mis ? go("mistakes") : "", "c-red", HUB.target, t("pracMistakes"), mis ? t("pracMistakesSub") : t("pracNoMistakes"), mis || "")}
+    </div></div>`);
   bindTopbar();
 }
 // Chunky round icons for the practice tiles (white on the tile colour, like Penny's).
@@ -576,12 +597,14 @@ function viewProfile() {
   const name = store.get("name", "") || t("student"), tu = curTutor();
   const tutorLine = lang() === "cs" ? tutorWith(tu) : t("withTutor", { name: tutorOf(tu).name });
   const tile = (icon, v, label) => `<div class="pt">${icon}<div><b>${esc(v)}</b><span>${esc(label)}</span></div></div>`;
-  view().innerHTML = `<div class="prof"><div class="prof-hero"><div class="prof-t"><h1>${esc(name)}</h1><p>${esc(C.meta.subject || C.meta.title || "")} · ${esc(tutorLine)}</p></div>
+  view().innerHTML = framed("progress", `<div class="prof"><div class="prof-hero"><i class="pb1"></i><i class="pb2"></i><i class="pb3"></i>
       <a class="prof-gear" href="#/s/${SLUG}/settings" aria-label="${t("settings")}">${GEAR}</a><div class="prof-art">${tutorArt(tu)}</div></div>
+    <div class="prof-t"><h1>${esc(name)}</h1><p>${esc(C.meta.subject || C.meta.title || "")} · ${esc(tutorLine)}</p>${examDate() ? `<p class="prof-meta">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${t("exam")}: ${esc(fmtDay(examDate()))}</span></p>` : ""}</div>
     <div class="pg"><h2 class="grp">${t("profOverview")}</h2><div class="ptiles">
       ${tile(ringIcon(r, 34), r + " %", t("readiness"))}${tile(calIcon(examDate() ? new Date(examDate() + "T12:00").getDate() : ""), left == null ? "–" : daysTxt(Math.max(0, left)), t("toExam"))}
       ${tile(doneIcon, `${done}/${ls.length}`, t("profLevels"))}${tile(timeIcon, studyTime(totalMs()), t("profTime"))}</div>
-    <h2 class="grp">${t("profChapters")}</h2><div class="pchs">${C.units.map((u, ui) => { const its = u.lessons.flatMap(l => l.items), p = its.length ? Math.round(its.filter(mastered).length / its.length * 100) : 0; return `<div class="pch" style="--chc:${chapterColour(ui)}"><span class="sq">${ui + 1}</span><div><b>${esc(u.title)}</b><div class="bar"><i style="width:${p}%"></i></div></div><em>${p} %</em></div>`; }).join("")}</div></div></div>`;
+    <h2 class="grp">${t("profChapters")}</h2><div class="pchs">${C.units.map((u, ui) => { const its = u.lessons.flatMap(l => l.items), p = its.length ? Math.round(its.filter(mastered).length / its.length * 100) : 0; return `<div class="pch" style="--chc:${chapterColour(ui)}"><span class="sq">${ui + 1}</span><div><b>${esc(u.title)}</b><div class="bar"><i style="width:${p}%"></i></div></div><em>${p} %</em></div>`; }).join("")}</div></div></div>`);
+  bindTopbar();
 }
 
 /* ---------- settings: full screen, closes with X ---------- */

@@ -371,5 +371,16 @@ export default {
  },
  "pl_quizQs": {
   "other": "# soal dari semua materi"
- }
+ },
+ "stTitle": "Pelajari semua materi sebelum ujian",
+ "stSay": "Sisa kursusmu sudah siap. Tinggal buka saja.",
+ "stTapped": "“%” ada di kursus lengkap.",
+ "stWhat": "Yang kamu buka",
+ "stTlDone": "Gratis",
+ "stTlNow": "Hari ini",
+ "stTlExam": "Ujian",
+ "stUnlockN": "Buka %",
+ "stOnce": "Bayar sekali. Tanpa langganan.",
+ "stPerDay": "≈ % per hari sampai ujian",
+ "stFree": "Lanjut gratis dulu"
 };

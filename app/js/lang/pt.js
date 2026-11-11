@@ -389,5 +389,16 @@ export default {
   "one": "# pergunta de tudo",
   "many": "# perguntas de tudo",
   "other": "# perguntas de tudo"
- }
+ },
+ "stTitle": "Estuda tudo antes do teu exame",
+ "stSay": "O resto do teu curso está pronto. É só desbloquear.",
+ "stTapped": "“%” está no curso completo.",
+ "stWhat": "O que desbloqueias",
+ "stTlDone": "Grátis",
+ "stTlNow": "Hoje",
+ "stTlExam": "Exame",
+ "stUnlockN": "Desbloqueia %",
+ "stOnce": "Pagas uma vez. Sem assinatura.",
+ "stPerDay": "≈ % por dia até ao exame",
+ "stFree": "Continuar grátis por agora"
 };

@@ -380,5 +380,16 @@ export default {
  "pl_quizQs": {
   "one": "her şeyden # soru",
   "other": "her şeyden # soru"
- }
+ },
+ "stTitle": "Sınavdan önce tüm konuları bitir",
+ "stSay": "Kursunun geri kalanı hazır. Sadece kilidini aç.",
+ "stTapped": "“%” tam kursta.",
+ "stWhat": "Neyin kilidini açarsın",
+ "stTlDone": "Ücretsiz",
+ "stTlNow": "Bugün",
+ "stTlExam": "Sınav",
+ "stUnlockN": "% kilidini aç",
+ "stOnce": "Bir kez öde. Abonelik yok.",
+ "stPerDay": "Sınava kadar günde ≈ %",
+ "stFree": "Şimdilik ücretsiz devam et"
 };

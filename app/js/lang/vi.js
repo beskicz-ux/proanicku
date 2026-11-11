@@ -371,5 +371,16 @@ export default {
  },
  "pl_quizQs": {
   "other": "# câu hỏi từ tất cả"
- }
+ },
+ "stTitle": "Học hết bài trước kỳ thi",
+ "stSay": "Phần còn lại của khóa học đã sẵn sàng. Chỉ cần mở khóa.",
+ "stTapped": "“%” có trong khóa học đầy đủ.",
+ "stWhat": "Bạn sẽ mở khóa",
+ "stTlDone": "Miễn phí",
+ "stTlNow": "Hôm nay",
+ "stTlExam": "Kỳ thi",
+ "stUnlockN": "Mở khóa %",
+ "stOnce": "Trả một lần. Không đăng ký định kỳ.",
+ "stPerDay": "≈ % mỗi ngày đến kỳ thi",
+ "stFree": "Tạm thời học miễn phí"
 };

@@ -371,5 +371,16 @@ export default {
  },
  "pl_quizQs": {
   "other": "全体から # 問"
- }
+ },
+ "stTitle": "試験までに全範囲を終わらせよう",
+ "stSay": "コースの残りは準備できています。ロックを解除するだけ。",
+ "stTapped": "「%」はフルコースにあります。",
+ "stWhat": "解除される内容",
+ "stTlDone": "無料",
+ "stTlNow": "今日",
+ "stTlExam": "試験",
+ "stUnlockN": "%を解除",
+ "stOnce": "支払いは1回だけ。サブスクなし。",
+ "stPerDay": "試験まで1日あたり≈ %",
+ "stFree": "今は無料で続ける"
 };
