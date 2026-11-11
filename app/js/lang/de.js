@@ -359,5 +359,25 @@ export default {
  },
  "minLeft": "Noch etwa {n} Min",
  "lessMinLeft": "Noch weniger als eine Minute",
- "voiceLeft": "Noch {n} Min"
+ "voiceLeft": "Noch {n} Min",
+ "pracBanner": "Kurz und oft. So merkt sich dein Gehirn es am besten.",
+ "pracCards": "Karteikarten",
+ "pracCardsNone": "Gerade nichts zu wiederholen",
+ "pracAll": "Alles",
+ "pracQuiz": "Schnelles Quiz",
+ "pracMistakesSub": "Nur das, was noch nicht klappt",
+ "pracNoMistakes": "Noch keine Fehler",
+ "guide": "Leitfaden",
+ "todayTasks": "Heutige Aufgaben",
+ "taskCards": "Karteikarten wiederholen",
+ "taskLearn": "Lerne: {name}",
+ "taskMix": "Mini-Mix-Quiz",
+ "pl_due": {
+  "one": "# wartet auf Wiederholung",
+  "other": "# warten auf Wiederholung"
+ },
+ "pl_quizQs": {
+  "one": "# Frage aus allem",
+  "other": "# Fragen aus allem"
+ }
 };

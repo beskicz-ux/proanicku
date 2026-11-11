@@ -352,5 +352,23 @@ export default {
  },
  "minLeft": "Sisa sekitar {n} menit",
  "lessMinLeft": "Kurang dari semenit lagi",
- "voiceLeft": "Sisa {n} menit"
+ "voiceLeft": "Sisa {n} menit",
+ "pracBanner": "Singkat dan sering. Begitulah otak paling baik mengingat.",
+ "pracCards": "Kartu hafalan",
+ "pracCardsNone": "Belum ada yang perlu diulang",
+ "pracAll": "Semua",
+ "pracQuiz": "Kuis cepat",
+ "pracMistakesSub": "Hanya yang belum bisa",
+ "pracNoMistakes": "Belum ada kesalahan",
+ "guide": "Panduan",
+ "todayTasks": "Tugas hari ini",
+ "taskCards": "Ulangi kartu",
+ "taskLearn": "Pelajari: {name}",
+ "taskMix": "Kuis campur mini",
+ "pl_due": {
+  "other": "# menunggu diulang"
+ },
+ "pl_quizQs": {
+  "other": "# soal dari semua materi"
+ }
 };

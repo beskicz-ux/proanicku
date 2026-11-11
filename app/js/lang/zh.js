@@ -352,5 +352,23 @@ export default {
  },
  "minLeft": "还剩约 {n} 分钟",
  "lessMinLeft": "还剩不到一分钟",
- "voiceLeft": "还剩 {n} 分钟"
+ "voiceLeft": "还剩 {n} 分钟",
+ "pracBanner": "少量多次，大脑记得最牢。",
+ "pracCards": "抽认卡",
+ "pracCardsNone": "现在没有要复习的",
+ "pracAll": "全部",
+ "pracQuiz": "快速测验",
+ "pracMistakesSub": "只练还不会的",
+ "pracNoMistakes": "还没有错误",
+ "guide": "指南",
+ "todayTasks": "今日任务",
+ "taskCards": "复习抽认卡",
+ "taskLearn": "学习：{name}",
+ "taskMix": "迷你混合测验",
+ "pl_due": {
+  "other": "# 张待复习"
+ },
+ "pl_quizQs": {
+  "other": "全部内容中的 # 道题"
+ }
 };

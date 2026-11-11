@@ -1,6 +1,6 @@
 // The course itself: the map, notes, review, the profile with settings, the lesson players and sync.
 import { $, $$, view, esc, store, api, today, addDays, shuffle, pick, norm, md, mdi, sfx, confetti, toast, ic } from "./util.js";
-import { t, lang, itemCount, errText, days as daysTxt, inDays, inWeeks, fmtDay, studyTime, courseLang } from "./i18n.js";
+import { t, pl, lang, itemCount, errText, days as daysTxt, inDays, inWeeks, fmtDay, studyTime, courseLang } from "./i18n.js";
 import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
@@ -205,36 +205,6 @@ const MAPMAX = 620; // widest the map gets; wider screens get the side panel ins
 const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 200, BOTPAD = 120;
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
-// Scenery only at the edges, so the path stays clean. Seeded per chapter: every chapter gets its own mix of
-// hills, pines, round trees, bushes and clouds at uneven spacing, instead of one tile repeated down the page.
-function scenery(col, h, W, dark, seed = 1) {
-  let r = (seed * 7919) % 233280; const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
-  const base = dark ? "#141821" : "#ffffff", h1 = mix(col, base, dark ? .76 : .72), h2 = mix(col, base, dark ? .68 : .6);
-  const leaf = mix(col, dark ? "#0b0e14" : "#1d2b1f", dark ? .55 : .45), trunk = dark ? "#00000055" : "#0000002a";
-  const cloud = dark ? "#ffffff10" : "#ffffffe0", rock = dark ? "#ffffff0d" : "#00000012";
-  const zone = Math.max(70, W / 2 - (74 * Math.min(1.7, W / 375) + 46));
-  const X = (L, f) => L ? f * zone : W - f * zone;
-  const hill = (L, y) => { const w = zone * (.9 + rnd() * .7), hh = 46 + rnd() * 54, e = L ? -20 : W + 20, d = L ? 1 : -1;
-    return `<path d="M${e} ${y + hh} C${e + d * w * .3} ${y} ${e + d * w * .7} ${y + hh * .15} ${e + d * w} ${y + hh}Z" fill="${h1}"/><path d="M${e} ${y + hh + 10} C${e + d * w * .2} ${y + hh * .45} ${e + d * w * .45} ${y + hh * .5} ${e + d * w * .7} ${y + hh + 10}Z" fill="${h2}"/>`; };
-  const pine = (x, y, z) => `<rect x="${x - 1.5 * z}" y="${y - 4 * z}" width="${3 * z}" height="${6 * z}" fill="${trunk}"/><path d="M${x} ${y - 28 * z} l${12 * z} ${24 * z} h${-24 * z}z" fill="${leaf}"/>`;
-  const round = (x, y, z) => `<rect x="${x - 1.5 * z}" y="${y - 8 * z}" width="${3 * z}" height="${10 * z}" fill="${trunk}"/><circle cx="${x}" cy="${y - 16 * z}" r="${10 * z}" fill="${leaf}"/>`;
-  const bush = (x, y, z) => `<g fill="${h2}"><circle cx="${x - 7 * z}" cy="${y}" r="${6 * z}"/><circle cx="${x + 1 * z}" cy="${y - 4 * z}" r="${8 * z}"/><circle cx="${x + 9 * z}" cy="${y}" r="${6 * z}"/></g>`;
-  const rocks = (x, y, z) => `<g fill="${rock}"><ellipse cx="${x}" cy="${y}" rx="${9 * z}" ry="${5 * z}"/><ellipse cx="${x + 12 * z}" cy="${y + 2 * z}" rx="${5 * z}" ry="${3 * z}"/></g>`;
-  const cloudAt = (x, y, z) => `<g fill="${cloud}"><circle cx="${x - 12 * z}" cy="${y}" r="${9 * z}"/><circle cx="${x + 1 * z}" cy="${y - 5 * z}" r="${13 * z}"/><circle cx="${x + 14 * z}" cy="${y + 1 * z}" r="${8 * z}"/><rect x="${x - 22 * z}" y="${y}" width="${45 * z}" height="${9 * z}" rx="${4.5 * z}"/></g>`;
-  let s = "";
-  for (let y = 30 + rnd() * 50; y < h - 30; y += 80 + rnd() * 110) {
-    for (const L of [true, false]) {
-      if (rnd() < .3) continue; // leave some gaps, so it breathes
-      const k = rnd(), z = .75 + rnd() * .55, yy = y + rnd() * 40;
-      if (k < .28) s += hill(L, yy);
-      else if (k < .5) { const n = 1 + Math.floor(rnd() * 3); for (let i = 0; i < n; i++) s += (rnd() < .5 ? pine : round)(X(L, .2 + rnd() * .65), yy + i * 7, z * (.8 + rnd() * .4)); }
-      else if (k < .64) s += bush(X(L, .25 + rnd() * .55), yy, z);
-      else if (k < .76) s += rocks(X(L, .2 + rnd() * .6), yy, z);
-      else s += cloudAt(X(L, .35 + rnd() * .45), yy, z);
-    }
-  }
-  return s;
-}
 const smooth = P => P.map((p, i) => {
   if (!i) return `M${p[0]} ${p[1]}`;
   const a = P[i - 2] || P[i - 1], b = P[i - 1], c = p, e = P[i + 1] || p;
@@ -261,9 +231,7 @@ function viewMap() {
   const pts = [], ptCol = [], chTop = [];
   C.units.forEach((u, ui) => {
     const col = chapterColour(ui), top = y - chH[ui], hh = chH[ui] + (ui === 0 ? BOTPAD : 0);
-    const g1 = dark ? mix(col, "#141821", .86) : mix(col, "#ffffff", .9), g2 = dark ? mix(col, "#141821", .82) : mix(col, "#ffffff", .85);
     chTop.push([top, y]);
-    out += `<div class="band" style="top:${top}px;height:${hh}px;background:linear-gradient(${g1},${g2})"><svg viewBox="0 0 ${W} ${hh}" width="${W}" height="${hh}">${scenery(col, hh, W, dark, ui + 3)}</svg></div>`;
     out += `<div class="div" style="top:${y - DIVH / 2 + 8}px"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`;
     y -= DIVH;
     byCh[ui].forEach(n => {
@@ -280,12 +248,11 @@ function viewMap() {
       y -= STEPY + big; k++;
     });
   });
-  out = `<div class="band" style="top:0;height:${TOPPAD}px;background:linear-gradient(${dark ? "#141821,#202036" : "#FFF6EA,#E7E3F4"})"></div>` + out;
   out += `<div class="exam" style="top:${TOPPAD / 2 + 10}px;left:${CX}px"><div class="c">${LEVEL_ICONS.flag}</div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
   const all = [...pts, [CX, TOPPAD / 2 + 10]], walkedTo = curPt < 0 ? (list.length && list.every(n => n.done) ? all.length - 1 : 0) : curPt;
   let walked = "", i = 0;
   while (i < walkedTo) { let j = i; while (j < walkedTo && ptCol[j + 1] === ptCol[i]) j++; if (j === i) j = i + 1; walked += `<path d="${smooth(all.slice(i, j + 1))}" fill="none" stroke="${ptCol[Math.min(j, ptCol.length - 1)]}" stroke-opacity=".75" stroke-width="9" stroke-linecap="round"/>`; i = j; }
-  const road = dark ? "#00000040" : "#ffffffa6", edge = dark ? "#ffffff10" : "#00000010";
+  const road = dark ? "#ffffff0d" : "#0000000b", edge = "transparent";
   out += `<svg class="trail" style="width:${W}px;height:${total}px" viewBox="0 0 ${W} ${total}" aria-hidden="true">
     <path d="${smooth(all)}" fill="none" stroke="${edge}" stroke-width="26" stroke-linecap="round"/><path d="${smooth(all)}" fill="none" stroke="${road}" stroke-width="22" stroke-linecap="round"/>${walked}</svg>`;
   mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
@@ -294,9 +261,9 @@ function viewMap() {
   const head = ui => {
     const col = chapterColour(ui), h = $("#unitHead"); if (!h || h.dataset.ui == ui) return;
     h.dataset.ui = ui;
-    h.style.background = `linear-gradient(118deg, transparent 0 60%, #ffffff14 60% 74%, transparent 74%), ${col}`;
+    h.style.background = col;
     h.style.setProperty("--uc", col);
-    h.innerHTML = `<div class="ut">${tutorArt(curTutor())}</div><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: list.filter(n => n.ui === ui && n.done).length, y: list.filter(n => n.ui === ui).length })}</small><b>${esc(C.units[ui].title)}</b></div><a class="unotes" href="#/s/${SLUG}/notes/${ui}" aria-label="${t("navNotes")}">${NOTES_ICON}</a>`;
+    h.innerHTML = `<div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: list.filter(n => n.ui === ui && n.done).length, y: list.filter(n => n.ui === ui).length })}</small><b>${esc(C.units[ui].title)}</b></div><a class="guide" href="#/s/${SLUG}/notes/${ui}">${HUB.book}<span>${t("guide")}</span></a>`;
   };
   const mwTop = () => mw.getBoundingClientRect().top + scrollY;
   const onScroll = () => {
@@ -317,22 +284,19 @@ function viewMap() {
   if (locked && ACCESS.building) watchRest();
 }
 // Free start: the card that sells the rest, or says the rest is being written.
-// Wide screens only (CSS hides it below 1200px): readiness, exam, today's goal, chapters.
-const FLAME = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2.200 1-3.600 2-4.600 0 1.600.800 2.600 2 2.600 0-3.400-1.200-5.800 1-9z" fill="#FF9600"/><path d="M12 12c.6 2 2.400 2.800 2.400 4.600a2.400 2.400 0 0 1-4.800 0c0-1.400.800-2.200 1.400-2.800.1.900.500 1.300 1 1.300 0-1.300-.300-2.100 0-3.100z" fill="#FFC800"/></svg>`;
+// Wide screens only (CSS hides it below 1200px): today's tasks, readiness, the tutor. No streak: readiness and the countdown replace it.
 function sidePanel(locked) {
-  const r = readiness(), left = daysToExam(), goal = STUDENT?.minutes || 20, todayM = Math.round((doneToday().ms || 0) / 60000);
-  const gp = Math.min(100, Math.round(todayM / goal * 100));
-  const chs = C.units.map((u, ui) => { const its = u.lessons.flatMap(l => l.items), p = its.length ? Math.round(its.filter(mastered).length / its.length * 100) : 0;
-    return `<a class="sch" href="#/s/${SLUG}/notes/${ui}" style="--chc:${chapterColour(ui)}"><span class="sq">${ui + 1}</span><div><b>${esc(u.title)}</b><div class="bar"><i style="width:${p}%"></i></div></div><em>${p} %</em></a>`; }).join("");
-  const studied = d => (S.done[d]?.ms || 0) > 0, td = today();
-  let streak = 0; for (let d = studied(td) ? td : addDays(td, -1); studied(d); d = addDays(d, -1)) streak++;
-  const week = Array.from({ length: 7 }, (_, i) => addDays(td, i - 6)).map(d => `<div class="${studied(d) ? "on" : ""} ${d === td ? "now" : ""}"><span>${esc(new Date(d + "T12:00").toLocaleDateString(lang(), { weekday: "narrow" }))}</span><i>${studied(d) ? FLAME : ""}</i></div>`).join("");
+  const r = readiness(), left = daysToExam(), due = dueIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length;
+  const ls = openLessons(), done = ls.filter(l => lessonPct(l) >= 1).length;
+  const tasks = [];
+  if (due) tasks.push([`#/s/${SLUG}/review/due`, HUB.cards, t("taskCards")]);
+  ls.filter(l => lessonPct(l) < 1).slice(0, 3).forEach(l => tasks.push([`#/s/${SLUG}/lesson/${encodeURIComponent(l.id)}`, HUB.book, t("taskLearn", { name: l.title })]));
+  if (seen) tasks.push([`#/s/${SLUG}/review/mix`, HUB.bolt, t("taskMix")]);
   return `<aside class="side">
-    <div class="sc sc-streak"><div class="sc-st">${FLAME}<div><b>${esc(daysTxt(streak))} ${t("inARow")}</b><span>${t(studied(td) ? "todayDone" : "todayNot")}</span></div></div><div class="wk">${week}</div></div>
-    <div class="sc sc-ready">${ringIcon(r, 64)}<div><b>${r} %</b><span>${t("readiness")}</span></div>${left == null ? "" : `<div class="sc-exam">${calIcon(new Date(examDate() + "T12:00").getDate())}<div><b>${esc(daysTxt(Math.max(0, left)))}</b><span>${t("toExam")}</span></div></div>`}</div>
-    <div class="sc"><div class="sc-h"><b>${t("setGoal")}</b><span>${t("timeM", { m: todayM })} / ${t("timeM", { m: goal })}</span></div><div class="bar goal"><i style="width:${gp}%"></i></div></div>
+    ${tasks.length ? `<div class="sc"><div class="sc-h"><b>${t("todayTasks")}</b></div>${tasks.map(([href, icon, label]) => `<a class="task" href="${href}"><span class="ico">${icon}</span><b>${esc(label)}</b></a>`).join("")}</div>` : ""}
+    <a class="sc sc-ready" href="#/s/${SLUG}/progress">${ringIcon(r, 64)}<div><b>${r} %</b><span>${t("readinessTitle")} · ${esc(t("doneOf", { x: done, y: ls.length }))}</span></div>${left == null ? "" : `<div class="sc-exam">${calIcon(new Date(examDate() + "T12:00").getDate())}<div><b>${esc(daysTxt(Math.max(0, left)))}</b><span>${t("toExam")}</span></div></div>`}</a>
     ${locked ? unlockCard(locked) : ""}
-    <div class="sc"><div class="sc-h"><b>${t("profChapters")}</b></div><div class="schs">${chs}</div></div></aside>`;
+    ${C.meta.voice ? `<a class="sc sc-ask" href="#/s/${SLUG}/voice">${tutorArt(curTutor())}<div><b>${t("voiceTitle")}</b><span>${t("voiceSub")}</span></div></a>` : ""}</aside>`;
 }
 function unlockCard(locked) {
   if (!locked) return "";
@@ -582,12 +546,27 @@ function finish(st) {
 
 /* ---------- review ---------- */
 function viewPractice() {
-  const due = dueIds().length, mis = mistakeIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length;
-  const tile = (kind, title, n, color, icon) => `<a class="rv ${color} ${n ? "" : "off"}" ${n ? `href="#/s/${SLUG}/review/${kind}"` : `aria-disabled="true"`}><span class="rv-ic">${icon}</span><div><b>${title}</b><span>${n ? itemCount(n) : t("pracNone")}</span></div>${n ? CHEV : ""}</a>`;
-  view().innerHTML = `${topbar()}<div class="pg"><h1 class="pg-h">${t("pracTitle")}</h1><p class="pg-sub">${seen ? t("pracSub") : t("pracEmpty")}</p>
-    <div class="rvs">${tile("due", t("pracDue"), due, "purple", TAB_ICONS.review)}${tile("mistakes", t("pracMistakes"), mis, "red", PRAC_ICONS.mistakes)}${tile("mix", t("pracMix"), Math.min(seen, ROUND), "blue", PRAC_ICONS.mix)}</div></div>`;
+  const due = dueIds().length, mis = mistakeIds().length, seen = Object.keys(S.cards).length + Object.keys(S.q).length, mixN = Math.min(seen, ROUND);
+  const go = kind => `#/s/${SLUG}/review/${kind}`;
+  const tile = (href, c, icon, title, sub, badge) => `<a class="tile ${c} ${href ? "" : "off"}" ${href ? `href="${href}"` : `aria-disabled="true"`}><div class="t"><b>${title}</b><span>${sub}</span></div>${badge ? `<span class="badge">${badge}</span>` : ""}<div class="pic">${icon}</div></a>`;
+  view().innerHTML = `${topbar()}<div class="pg prac">
+    <div class="banner c-purple"><div class="t"><h2>${t("pracTitle")}</h2><p>${t("pracBanner")}</p></div><div class="art">${tutorArt(curTutor())}</div><i class="arc"></i><i class="cloud"></i></div>
+    ${tile(due ? go("due") : "", "hero c-purple", HUB.cards, t("pracCards"), due ? pl("due", due) : t("pracCardsNone"))}
+    <h2 class="sec">${t("pracAll")}</h2>
+    <div class="tiles">
+      ${tile(mixN ? go("mix") : "", "c-blue", HUB.bolt, t("pracQuiz"), mixN ? pl("quizQs", mixN) : t("pracEmpty"))}
+      ${tile(mis ? go("mistakes") : "", "c-red", HUB.target, t("pracMistakes"), mis ? t("pracMistakesSub") : t("pracNoMistakes"), mis || "")}
+    </div></div>`;
   bindTopbar();
 }
+// Chunky round icons for the practice tiles (white on the tile colour, like Penny's).
+const HI = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const HUB = {
+  cards: HI('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 4.5H6.5a2 2 0 0 0-2 2V16"/>'),
+  bolt: HI('<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>'),
+  target: HI('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>'),
+  book: HI('<path d="M4 5.5A2 2 0 0 1 6 3.5h5v16H6a2 2 0 0 0-2 2zM20 5.5a2 2 0 0 0-2-2h-5v16h5a2 2 0 0 1 2 2z"/>'),
+};
 
 /* ---------- profile ---------- */
 function viewProfile() {

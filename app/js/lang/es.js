@@ -366,5 +366,27 @@ export default {
  },
  "minLeft": "Quedan unos {n} min",
  "lessMinLeft": "Queda menos de un minuto",
- "voiceLeft": "Quedan {n} min"
+ "voiceLeft": "Quedan {n} min",
+ "pracBanner": "Poco y a menudo. Así tu cerebro lo guarda mejor.",
+ "pracCards": "Tarjetas",
+ "pracCardsNone": "Nada que repasar ahora",
+ "pracAll": "Todo",
+ "pracQuiz": "Quiz rápido",
+ "pracMistakesSub": "Solo lo que aún no te sale",
+ "pracNoMistakes": "Aún no hay errores",
+ "guide": "Guía",
+ "todayTasks": "Tareas de hoy",
+ "taskCards": "Repasar tarjetas",
+ "taskLearn": "Aprende: {name}",
+ "taskMix": "Mini quiz mixto",
+ "pl_due": {
+  "one": "# por repasar",
+  "many": "# por repasar",
+  "other": "# por repasar"
+ },
+ "pl_quizQs": {
+  "one": "# pregunta de todo",
+  "many": "# preguntas de todo",
+  "other": "# preguntas de todo"
+ }
 };

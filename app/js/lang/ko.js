@@ -352,5 +352,23 @@ export default {
  },
  "minLeft": "약 {n}분 남았어요",
  "lessMinLeft": "1분도 안 남았어요",
- "voiceLeft": "{n}분 남음"
+ "voiceLeft": "{n}분 남음",
+ "pracBanner": "짧게, 자주. 그래야 뇌가 가장 잘 기억해요.",
+ "pracCards": "플래시카드",
+ "pracCardsNone": "지금은 복습할 게 없어요",
+ "pracAll": "전체",
+ "pracQuiz": "빠른 퀴즈",
+ "pracMistakesSub": "아직 어려운 것만",
+ "pracNoMistakes": "아직 틀린 게 없어요",
+ "guide": "가이드",
+ "todayTasks": "오늘의 할 일",
+ "taskCards": "카드 복습",
+ "taskLearn": "배우기: {name}",
+ "taskMix": "미니 믹스 퀴즈",
+ "pl_due": {
+  "other": "# 개 복습 대기 중"
+ },
+ "pl_quizQs": {
+  "other": "전체에서 # 문제"
+ }
 };

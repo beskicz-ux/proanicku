@@ -501,3 +501,60 @@ html[dir=rtl] :is(b, h1, p, small, .tb-name, .md, .q, .opt){unicode-bidi:plainte
 .mtop .unit{box-shadow:0 4px 0 color-mix(in srgb, var(--uc, #3B82F6) 70%, #000), 0 10px 22px -6px #0005}
 .mtop + .mapv{margin-top:-80px}
 @media (min-width:768px){ .mtop .tb, .unitwrap{padding-inline:0} .mtop .tb{box-shadow:none} }
+
+/* ---------- map: plain app background like Penny's (no illustrated bands), Penny-style chapter card ---------- */
+.mapv, body.map-page .mapv{background:none; box-shadow:none; border-radius:0}
+.unit{padding:14px 14px 14px 18px; box-shadow:0 4px 0 color-mix(in srgb, var(--uc, #3B82F6) 72%, #000)}
+.mtop .unit{box-shadow:0 4px 0 color-mix(in srgb, var(--uc, #3B82F6) 72%, #000)}
+.unit b{white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical}
+.guide{flex:none; display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; border:2px solid #ffffff73; color:#fff; font:800 14px var(--head); letter-spacing:.05em; text-transform:uppercase; text-decoration:none; box-shadow:0 3px 0 #0000002e}
+.guide svg{width:20px; height:20px}
+.guide:active{transform:translateY(2px); box-shadow:none}
+@media (max-width:420px){ .guide{padding:8px 10px; font-size:12px; gap:6px} .guide svg{width:18px; height:18px} }
+/* level icons: thicker white strokes so they read on every chapter colour */
+.n .c svg{stroke-width:2.8; filter:drop-shadow(0 2px 0 #00000038)}
+.n.cur .c svg{stroke-width:2.8}
+
+/* ---------- practice hub (Penny's "Procvičovat") ---------- */
+.prac{padding-top:14px}
+.banner{position:relative; overflow:hidden; display:flex; align-items:center; min-height:150px; margin-bottom:18px; padding:22px; border-radius:20px; background:var(--pc); box-shadow:0 4px 0 var(--pl); color:#fff; isolation:isolate}
+.banner .t{position:relative; z-index:2; flex:1; min-width:0; max-width:62%}
+.banner h2{color:#fff; font:800 26px var(--head)}
+.banner p{margin:6px 0 0; font-size:16px; font-weight:700; opacity:.95}
+.banner .art{position:absolute; right:12px; bottom:-6px; width:128px; height:138px; z-index:2}
+.banner .art svg{width:100%; height:100%; overflow:visible}
+.banner .arc{position:absolute; right:-40px; bottom:-120px; width:280px; height:280px; border-radius:50%; border:26px solid #ffffff2e; z-index:1}
+.banner .cloud{position:absolute; z-index:1; right:-20px; bottom:-30px; width:220px; height:60px; border-radius:40px; background:#ffffff38}
+.c-green{--pc:#58CC02; --pl:#58A700} .c-blue{--pc:#1CB0F6; --pl:#1899D6} .c-red{--pc:#FF4B4B; --pl:#EA2B2B}
+.c-orange{--pc:#FF9600; --pl:#E58700} .c-yellow{--pc:#FFC800; --pl:#E5B400} .c-purple{--pc:#CE82FF; --pl:#A568CC}
+.sec{font:800 21px var(--head); margin:24px 0 12px}
+.tiles{display:grid; grid-template-columns:1fr; gap:12px}
+@media (min-width:600px){ .tiles{grid-template-columns:1fr 1fr} }
+.tile{display:flex; align-items:center; gap:14px; min-height:96px; padding:12px 16px; border:2px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:0 4px 0 var(--line); color:var(--text); text-decoration:none}
+.tile:active{transform:translateY(4px); box-shadow:none}
+.tile.off{cursor:default} .tile.off:active{transform:none; box-shadow:0 4px 0 var(--line)}
+.tile.off .pic{filter:saturate(.35); opacity:.6}
+.tile .t{flex:1; min-width:0}
+.tile b{display:block; font:800 19px var(--head); line-height:1.2}
+.tile .t span{display:block; font-size:15px; color:var(--muted); margin-top:2px}
+.tile .pic{width:68px; height:68px; border-radius:50%; display:grid; place-items:center; flex:none; color:#fff; background:var(--pc); box-shadow:0 4px 0 var(--pl)}
+.tile .pic svg{width:34px; height:34px}
+.tile .badge{min-width:30px; height:30px; padding:0 8px; border-radius:15px; display:grid; place-items:center; background:#FF4B4B; color:#fff; font:800 15px var(--head)}
+.tile.hero{background:var(--pc); border-color:var(--pl); box-shadow:0 4px 0 var(--pl); min-height:116px}
+.tile.hero b, .tile.hero .t span{color:#fff}
+.tile.hero .pic{background:#ffffff40; box-shadow:none}
+.tile.hero.off{opacity:.75}
+
+/* ---------- side panel: today's tasks, readiness, tutor ---------- */
+.task{display:flex; align-items:center; gap:12px; padding:10px 0; color:var(--text); text-decoration:none; border-top:1px solid var(--line)}
+.task:first-of-type{border-top:0}
+.task .ico{width:36px; height:36px; border-radius:50%; display:grid; place-items:center; flex:none; background:var(--blue-soft); color:var(--blue-ink)}
+.task .ico svg{width:20px; height:20px}
+.task b{font-weight:700; font-size:15px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical}
+.task:hover b{color:var(--blue-ink)}
+a.sc{color:var(--text); text-decoration:none}
+.sc-ready b{font-size:24px}
+.sc-ask{display:flex; align-items:center; gap:14px}
+.sc-ask svg{width:64px; height:64px; flex:none}
+.sc-ask b{display:block; font:800 17px var(--head)}
+.sc-ask span{color:var(--muted); font-size:15px}

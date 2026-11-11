@@ -352,5 +352,23 @@ export default {
  },
  "minLeft": "残り約{n}分",
  "lessMinLeft": "残り1分未満",
- "voiceLeft": "残り{n}分"
+ "voiceLeft": "残り{n}分",
+ "pracBanner": "短く、こまめに。それが脳にいちばん残るやり方。",
+ "pracCards": "フラッシュカード",
+ "pracCardsNone": "今は復習するものはありません",
+ "pracAll": "すべて",
+ "pracQuiz": "クイック クイズ",
+ "pracMistakesSub": "まだできないところだけ",
+ "pracNoMistakes": "まだミスはありません",
+ "guide": "ガイド",
+ "todayTasks": "今日のタスク",
+ "taskCards": "カードを復習",
+ "taskLearn": "学ぶ: {name}",
+ "taskMix": "ミニ ミックス クイズ",
+ "pl_due": {
+  "other": "# 枚が復習待ち"
+ },
+ "pl_quizQs": {
+  "other": "全体から # 問"
+ }
 };

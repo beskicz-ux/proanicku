@@ -359,5 +359,25 @@ export default {
  },
  "minLeft": "Yaklaşık {n} dk kaldı",
  "lessMinLeft": "Bir dakikadan az kaldı",
- "voiceLeft": "{n} dk kaldı"
+ "voiceLeft": "{n} dk kaldı",
+ "pracBanner": "Kısa ve sık. Beynin en iyi böyle hatırlar.",
+ "pracCards": "Kartlar",
+ "pracCardsNone": "Şu an tekrar edilecek bir şey yok",
+ "pracAll": "Hepsi",
+ "pracQuiz": "Hızlı test",
+ "pracMistakesSub": "Sadece henüz olmayanlar",
+ "pracNoMistakes": "Henüz hata yok",
+ "guide": "Rehber",
+ "todayTasks": "Bugünün görevleri",
+ "taskCards": "Kartları tekrar et",
+ "taskLearn": "Öğren: {name}",
+ "taskMix": "Mini karışık test",
+ "pl_due": {
+  "one": "# tekrar bekliyor",
+  "other": "# tekrar bekliyor"
+ },
+ "pl_quizQs": {
+  "one": "her şeyden # soru",
+  "other": "her şeyden # soru"
+ }
 };

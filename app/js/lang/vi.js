@@ -352,5 +352,23 @@ export default {
  },
  "minLeft": "Còn khoảng {n} phút",
  "lessMinLeft": "Còn chưa đến một phút",
- "voiceLeft": "Còn {n} phút"
+ "voiceLeft": "Còn {n} phút",
+ "pracBanner": "Ngắn và thường xuyên. Đó là cách não nhớ tốt nhất.",
+ "pracCards": "Thẻ ghi nhớ",
+ "pracCardsNone": "Hiện không có gì cần ôn",
+ "pracAll": "Tất cả",
+ "pracQuiz": "Quiz nhanh",
+ "pracMistakesSub": "Chỉ những gì bạn chưa làm được",
+ "pracNoMistakes": "Chưa có lỗi nào",
+ "guide": "Hướng dẫn",
+ "todayTasks": "Việc hôm nay",
+ "taskCards": "Ôn thẻ",
+ "taskLearn": "Học: {name}",
+ "taskMix": "Quiz trộn mini",
+ "pl_due": {
+  "other": "# thẻ chờ ôn"
+ },
+ "pl_quizQs": {
+  "other": "# câu hỏi từ tất cả"
+ }
 };

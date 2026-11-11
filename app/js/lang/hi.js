@@ -359,5 +359,25 @@ export default {
  },
  "minLeft": "लगभग {n} मिनट बाकी",
  "lessMinLeft": "एक मिनट से कम बाकी",
- "voiceLeft": "{n} मिनट बाकी"
+ "voiceLeft": "{n} मिनट बाकी",
+ "pracBanner": "कम समय, बार-बार। ऐसे दिमाग सबसे अच्छा याद रखता है।",
+ "pracCards": "फ़्लैशकार्ड",
+ "pracCardsNone": "अभी दोहराने को कुछ नहीं",
+ "pracAll": "सब कुछ",
+ "pracQuiz": "झटपट क्विज़",
+ "pracMistakesSub": "सिर्फ़ वो जो अभी नहीं आता",
+ "pracNoMistakes": "अभी तक कोई गलती नहीं",
+ "guide": "गाइड",
+ "todayTasks": "आज के काम",
+ "taskCards": "फ़्लैशकार्ड दोहराओ",
+ "taskLearn": "सीखो: {name}",
+ "taskMix": "मिनी मिक्स क्विज़",
+ "pl_due": {
+  "one": "# दोहराने के लिए बाकी",
+  "other": "# दोहराने के लिए बाकी"
+ },
+ "pl_quizQs": {
+  "one": "सब में से # सवाल",
+  "other": "सब में से # सवाल"
+ }
 };

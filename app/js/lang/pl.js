@@ -373,5 +373,29 @@ export default {
  },
  "minLeft": "Zostało około {n} min",
  "lessMinLeft": "Zostało mniej niż minuta",
- "voiceLeft": "Zostało {n} min"
+ "voiceLeft": "Zostało {n} min",
+ "pracBanner": "Krótko i często. Tak mózg zapamiętuje najlepiej.",
+ "pracCards": "Fiszki",
+ "pracCardsNone": "Teraz nic do powtórki",
+ "pracAll": "Wszystko",
+ "pracQuiz": "Szybki quiz",
+ "pracMistakesSub": "Tylko to, co nie wychodzi",
+ "pracNoMistakes": "Na razie bez błędów",
+ "guide": "Przewodnik",
+ "todayTasks": "Dzisiejsze zadania",
+ "taskCards": "Powtórka fiszek",
+ "taskLearn": "Naucz się: {name}",
+ "taskMix": "Mini quiz mieszany",
+ "pl_due": {
+  "one": "# czeka na powtórkę",
+  "few": "# czekają na powtórkę",
+  "many": "# czeka na powtórkę",
+  "other": "# czeka na powtórkę"
+ },
+ "pl_quizQs": {
+  "one": "# pytanie ze wszystkiego",
+  "few": "# pytania ze wszystkiego",
+  "many": "# pytań ze wszystkiego",
+  "other": "# pytania ze wszystkiego"
+ }
 };

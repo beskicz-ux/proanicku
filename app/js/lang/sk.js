@@ -373,5 +373,29 @@ export default {
  },
  "minLeft": "Zostáva približne {n} min",
  "lessMinLeft": "Zostáva menej ako minúta",
- "voiceLeft": "Zostáva {n} min"
+ "voiceLeft": "Zostáva {n} min",
+ "pracBanner": "Krátko a často. Tak si to mozog uloží najlepšie.",
+ "pracCards": "Kartičky",
+ "pracCardsNone": "Teraz nič na opakovanie",
+ "pracAll": "Všetko",
+ "pracQuiz": "Rýchly kvíz",
+ "pracMistakesSub": "Len to, čo nejde",
+ "pracNoMistakes": "Zatiaľ žiadne chyby",
+ "guide": "Sprievodca",
+ "todayTasks": "Dnešné úlohy",
+ "taskCards": "Opakovanie kartičiek",
+ "taskLearn": "Nauč sa: {name}",
+ "taskMix": "Mini mix kvíz",
+ "pl_due": {
+  "one": "# čaká na zopakovanie",
+  "few": "# čakajú na zopakovanie",
+  "many": "# čaká na zopakovanie",
+  "other": "# čaká na zopakovanie"
+ },
+ "pl_quizQs": {
+  "one": "# otázka zo všetkého",
+  "few": "# otázky zo všetkého",
+  "many": "# otázky zo všetkého",
+  "other": "# otázok zo všetkého"
+ }
 };
