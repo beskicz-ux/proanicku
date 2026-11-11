@@ -824,6 +824,56 @@ body.map-page .mmain > .pc-unlock{margin-top:14px}
   .st .ob-h{font-size:30px}
 }
 
+/* ---------- store, livelier (Marek: "looks boring", 2026-11-11): violet hero with the headline and a calendar page,
+   PRO / MAX as coloured wordmarks, chunky 3D plan cards with the badge on the top edge, a chunky CTA with a soft shine. ---------- */
+.st-hero{align-items:center; justify-content:space-between; gap:8px; min-height:0; padding:18px 4px 18px 18px; isolation:isolate;
+  background:linear-gradient(135deg, #7A5CF0 0%, #6C5CE7 45%, #C04FD8 100%); box-shadow:0 5px 0 #4B3CC4}
+.st-hx{position:relative; z-index:1; min-width:0; flex:1}
+.st .st-hero .ob-h{margin:0; color:#fff; font-size:27px; line-height:1.12; letter-spacing:-.01em; text-wrap:balance}
+.st-hero .st-art{width:104px; margin:0 -2px -24px 0; align-self:flex-end; position:relative; z-index:1; filter:drop-shadow(0 4px 0 #0002)}
+.st-spark{position:absolute; z-index:0; border-radius:50%; background:#fff; opacity:.16; pointer-events:none}
+.st-spark.s1{width:150px; height:150px; right:-40px; top:-60px}
+.st-spark.s2{width:70px; height:70px; right:110px; bottom:-34px; opacity:.1}
+.st-spark.s3{width:12px; height:12px; left:46%; top:16px; opacity:.5; box-shadow:26px 30px 0 -3px #fff, -40px 54px 0 -4px #ffffffaa}
+.st-urg{margin:12px 0 0; gap:10px; flex-wrap:nowrap; color:#fff}
+.st-urg > span{display:flex; flex-direction:column; padding:0; background:none; color:#fff; font-size:15px; line-height:1.25}
+.st-urg > span b{font:800 16px var(--head); color:#fff}
+.st-urg > span small{font-weight:700; font-size:13px; color:#ffffffcc}
+.st-cal{flex:none; width:40px; height:42px; display:grid; place-items:end center; padding-bottom:3px; box-sizing:border-box; border-radius:9px; font:900 19px/1 var(--head); font-style:normal; color:#161A2D;
+  background:linear-gradient(#FF5A6E 0 12px, #fff 12px); box-shadow:0 3px 0 #0003}
+.st-top .st-tap, .st-top .ob-sub{margin-top:14px}
+
+.st-opts{gap:16px; padding-top:8px}
+.st-opt{border-width:2px 2px 4px; border-radius:18px; padding:16px 14px 14px; transition:transform .12s, border-color .15s, background .15s}
+.st-opt:active{transform:translateY(2px)}
+.st-opt.on{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); box-shadow:none}
+.st-opt.pl-pro.on{border-color:#E69A1A; background:color-mix(in srgb, #F5A524 10%, var(--surface))}
+.st-dot{display:grid; place-items:center; color:transparent; width:26px; height:26px; transition:background .15s, border-color .15s}
+.st-dot svg{width:16px; height:16px}
+.st-opt.on .st-dot{box-shadow:none; background:var(--accent); border-color:var(--accent); color:#fff}
+.st-opt.pl-pro.on .st-dot{background:#E69A1A; border-color:#E69A1A}
+.st-o-t em{position:absolute; top:-12px; left:14px; margin:0; padding:3px 10px; border-radius:99px; font-size:11.5px; letter-spacing:.05em; color:#fff; background:var(--accent); box-shadow:0 2px 0 #4B3CC4}
+.st-opt.pl-pro .st-o-t em{background:#F5A524; color:#3A2400; box-shadow:0 2px 0 #C47F0C}
+.st-o-t b{font:900 22px/1.1 var(--head); letter-spacing:.04em; font-style:italic; width:max-content;
+  background:linear-gradient(90deg, var(--accent), color-mix(in srgb, #D04FE0 70%, var(--accent))); -webkit-background-clip:text; background-clip:text; color:transparent}
+.st-opt.pl-pro .st-o-t b{background-image:linear-gradient(90deg, #F08A3A, #E5446D)}
+.st-o-t small{margin-top:3px}
+.st-o-p b{font-size:24px}
+
+.st-consent{background:none; padding:2px 2px}
+.st-buy{position:relative; overflow:hidden; min-height:58px; font-size:18px; letter-spacing:.01em; box-shadow:0 5px 0 #4B3CC4; transition:transform .1s, box-shadow .1s}
+.st-buy:active{transform:translateY(3px); box-shadow:0 2px 0 #4B3CC4}
+.st-buy::after{content:""; position:absolute; top:0; bottom:0; left:-40%; width:30%; background:linear-gradient(100deg, transparent, #ffffff55, transparent); transform:skewX(-18deg); animation:stShine 3.6s ease-in-out 1s infinite}
+@keyframes stShine{0%, 70%{left:-40%} 100%{left:130%}}
+@media (prefers-reduced-motion:reduce){ .st-buy::after{animation:none; display:none} }
+.st-pay{border-width:2px 2px 4px}
+.st-feats li svg{box-sizing:border-box; width:22px; height:22px; padding:3px; border-radius:50%; background:var(--good); color:#fff; margin-top:1px}
+@media (min-width:1000px){
+  .st-hero{padding:26px 8px 26px 28px}
+  .st .st-hero .ob-h{font-size:34px}
+  .st-hero .st-art{width:150px; margin-bottom:-30px}
+}
+
 /* Map unlock card: matches the store's payment card. */
 body .pc-unlock{background:var(--surface); border:2px solid var(--accent); color:var(--text); gap:14px; align-items:center}
 .pc-unlock .ul-ic{width:44px; height:44px; flex:none; display:grid; place-items:center; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink)}

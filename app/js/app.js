@@ -344,14 +344,15 @@ async function viewUnlock() {
   let pick = (plans.find(p => p.default) || plans[0])?.id;
   const planOf = id => plans.find(p => p.id === id);
   const amount = p => `${p.price} ${cur}${p.interval === "month" ? " / " + t("stMonthShort") : ""}`;
-  const urg = info?.exam ? `<p class="st-urg"><b>${esc(t("stTlExam"))}: ${esc(fmtDay(info.exam))}</b>${left > 0 ? `<span>${esc(inDays(left))}</span>` : ""}</p>` : "";
+  // A little calendar page with the exam's day, then "Zkouška za 5 dní" and the full date
+  const urg = info?.exam ? `<p class="st-urg"><i class="st-cal" aria-hidden="true">${+String(info.exam).slice(8, 10) || ""}</i><span><b>${esc(t("stTlExam"))}${left > 0 ? " " + esc(inDays(left)) : ""}</b><small>${esc(fmtDay(info.exam))}</small></span></p>` : "";
   const tap = info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`;
   const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2><ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><b>${esc(u.title)}</b><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
   const tl = info ? `<ol class="st-tl">
       <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
       <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
       ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
-  const opt = p => `<label class="st-opt" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot"></i>
+  const opt = p => `<label class="st-opt pl-${esc(p.id)}" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot">${ic.check}</i>
       <span class="st-o-t">${L(p.badge) ? `<em>${esc(L(p.badge))}</em>` : ""}<b>${esc(L(p.name) || "")}</b><small>${esc(L(p.pitch) || "")}</small></span>
       <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? t("stMonth") : t("stOnceShort"))}</small></span></label>`;
   const feats = () => { const p = planOf(pick); return p ? `<h2 class="st-h">${esc(t("stGet").replace("%", L(p.name) || ""))}</h2><ul class="st-feats">${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>` : ""; };
@@ -368,8 +369,9 @@ async function viewUnlock() {
   view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
     <div class="st-grid">
       <div class="st-top">
-        <div class="st-hero"><div class="st-art">${tutorArt(info?.tutor || "penny")}</div><p class="st-say">${t("stSay")}</p></div>
-        <h1 class="ob-h">${t("stTitle")}</h1>${urg}${tap}
+        <div class="st-hero"><i class="st-spark s1"></i><i class="st-spark s2"></i><i class="st-spark s3"></i>
+          <div class="st-hx"><h1 class="ob-h">${t("stTitle")}</h1>${urg}</div><div class="st-art">${tutorArt(info?.tutor || "penny", "", "happy")}</div></div>
+        ${tap}
       </div>
       <section class="st-pay" aria-label="${esc(t("storeBuy"))}">${pay}<a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a></section>
       <div class="st-more"><div id="feats">${proOpen ? "" : feats()}</div>${what}${tl}</div>
