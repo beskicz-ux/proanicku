@@ -286,12 +286,11 @@ function popHtml(kind) {
   if (kind === "subj") return `<div class="hc-lbl">${t("popCourses")}</div><div class="hc-list">${subjRows(ACCT?.a)}</div>`;
   if (kind === "ready") {
     // a round flask that fills to the readiness with a wobbling surface and rising bubbles; the number counts up
-    const r = readiness(), ls = openLessons(), done = ls.filter(l => lessonPct(l) >= 1).length;
+    const r = readiness();
     const wave = "M0 6 Q 12.5 0 25 6 T 50 6 T 75 6 T 100 6 T 125 6 T 150 6 T 175 6 T 200 6 V 120 H 0 Z";
     return `<div class="hc-top"><div class="flask" style="--lvl:${Math.max(3, r)}%" aria-hidden="true"><i class="fl-liq"><svg viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg><svg class="w2" viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg></i>
         <i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i><i class="fl-shine"></i><b class="fl-n" data-to="${r}">0 %</b></div>
-      <div class="hc-t"><b>${t("readinessTitle")}</b><p>${t("popReadySub")}</p></div></div>
-      <div class="hc-row"><span class="hc-chip">${esc(t("doneOf", { x: done, y: ls.length }))}</span></div>`;
+      <div class="hc-t"><b>${t("readinessTitle")}</b><p>${t("popReadySub")}</p></div></div>`;
   }
   // the calendar counts down to the days left; under it the road from today to the exam, one stop per day
   const ex = examDate(), left = Math.max(0, daysToExam()), now = today(), streak = studyStreak(), doneToday = S.xp[now] > 0;
