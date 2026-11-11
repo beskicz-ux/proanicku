@@ -279,14 +279,11 @@ function studyStreak() {
   while (S.xp[d] > 0) { n++; d = addDays(d, -1); }
   return n;
 }
-function nextStep() {
-  const l = openLessons().find(x => lessonPct(x) < 1);
-  return l ? [`#/s/${SLUG}/lesson/${encodeURIComponent(l.id)}`, `${t("popGo")}: ${l.title}`] : [`#/s/${SLUG}/practice`, t("popGo")];
-}
-const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.1l-5.9 3.1 1.2-6.5L2.5 9.1l6.6-.9z"/></svg>`;
+const CHECK = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const FLAG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4m0 1h11l-2.5 4L17 13H6" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+const wd = iso => { try { return new Date(iso + "T12:00").toLocaleDateString(lang(), { weekday: "short" }).replace(".", "").slice(0, 2); } catch (e) { return ""; } };
 function popHtml(kind) {
   if (kind === "subj") return `<div class="hc-lbl">${t("popCourses")}</div><div class="hc-list">${subjRows(ACCT?.a)}</div>`;
-  const [href, go] = nextStep();
   if (kind === "ready") {
     // a round flask that fills to the readiness with a wobbling surface and rising bubbles; the number counts up
     const r = readiness(), ls = openLessons(), done = ls.filter(l => lessonPct(l) >= 1).length;
@@ -294,22 +291,41 @@ function popHtml(kind) {
     return `<div class="hc-top"><div class="flask" style="--lvl:${Math.max(3, r)}%" aria-hidden="true"><i class="fl-liq"><svg viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg><svg class="w2" viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg></i>
         <i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i><i class="fl-shine"></i><b class="fl-n" data-to="${r}">0 %</b></div>
       <div class="hc-t"><b>${t("readinessTitle")}</b><p>${t("popReadySub")}</p></div></div>
-      <div class="hc-row"><span class="hc-chip">${esc(t("doneOf", { x: done, y: ls.length }))}</span></div><a class="btn-p hc-go" href="${href}">${esc(go)}</a>`;
+      <div class="hc-row"><span class="hc-chip">${esc(t("doneOf", { x: done, y: ls.length }))}</span></div>`;
   }
-  // a tear-off calendar: yesterday's page flips away and shows the days left; the last 7 days as stars you collected
-  const ex = examDate(), left = Math.max(0, daysToExam()), now = today(), streak = studyStreak();
-  const stars = [...Array(7)].map((_, i) => { const d = addDays(now, i - 6); return `<i class="st${S.xp[d] > 0 ? " on" : ""}${d === now ? " now" : ""}" style="--i:${i}">${STAR}</i>`; }).join("");
-  return `<div class="hc-top"><div class="tear" aria-hidden="true"><i class="tr-ring"></i><i class="tr-ring r2"></i><div class="tr-pg tr-under"><b>${left}</b></div><div class="tr-pg tr-off"><b>${left + 1}</b></div></div>
+  // the calendar counts down to the days left; under it the road from today to the exam, one stop per day
+  const ex = examDate(), left = Math.max(0, daysToExam()), now = today(), streak = studyStreak(), doneToday = S.xp[now] > 0;
+  const idx = left <= 7 ? [...Array(left + 1).keys()] : [0, 1, 2, 3, 4, 5, -1, left];
+  const stops = idx.map((k, j) => {
+    if (k < 0) return `<i class="dy gap" style="--i:${j}"><small>&nbsp;</small><span>…</span></i>`;
+    const d = addDays(now, k), cls = k === left ? " ex" : k === 0 ? (doneToday ? " now done" : " now") : "";
+    return `<i class="dy${cls}" style="--i:${j}"><small>${esc(wd(d))}</small><span>${k === left ? FLAG : k === 0 && doneToday ? CHECK : ""}</span></i>`;
+  }).join("");
+  return `<div class="hc-top"><div class="cal" aria-hidden="true"><i class="tr-ring"></i><i class="tr-ring r2"></i><div class="tr-pg"><b data-to="${left}">${left}</b></div></div>
       <div class="hc-t"><b>${esc(daysTxt(left))} ${t("toExam")}</b><p>${esc(fmtDay(ex))}</p></div></div>
-    <div class="hc-stars"><div class="sts">${stars}</div><p>${streak ? `<b>${esc(daysTxt(streak))}</b> ${t("inARow")}` : t("popStreakNone")}</p></div>
-    <a class="btn-p hc-go" href="${href}">${esc(go)}</a>`;
+    <div class="road"><div class="dys" style="--n:${idx.length}">${stops}</div>
+      <p>${doneToday ? t("todayDone") : t("todayNot")}${streak ? ` · <b>${esc(daysTxt(streak))}</b> ${t("inARow")}` : ""}</p></div>`;
 }
+const calm = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
 // counts the flask's number up while it fills
 function countUp(el) {
   const n = el.querySelector(".fl-n"); if (!n) return;
-  const to = +n.dataset.to, t0 = performance.now(), dur = matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 900;
+  const to = +n.dataset.to, t0 = performance.now(), dur = calm() ? 0 : 900;
   const tick = now => { const k = dur ? Math.min(1, (now - t0 - 150) / dur) : 1, e = 1 - Math.pow(1 - Math.max(0, k), 3); n.textContent = Math.round(to * e) + " %"; if (k < 1 && el.isConnected) requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
+}
+// the calendar's number ticks down to the days left, slowing as it lands
+function countDown(el) {
+  const n = el.querySelector(".cal b"); if (!n || calm()) return;
+  const to = +n.dataset.to, steps = 7; let k = 0;
+  n.textContent = to + steps;
+  const step = () => {
+    if (!el.isConnected) return;
+    k++; n.textContent = to + steps - k;
+    n.classList.remove("tk"); void n.offsetWidth; n.classList.add(k === steps ? "land" : "tk");
+    if (k < steps) setTimeout(step, 55 + k * k * 9);
+  };
+  setTimeout(step, 180);
 }
 function popClose(now) {
   clearTimeout(popT);
@@ -330,13 +346,13 @@ function popOpen(trig, kind) {
   POP = { el, trig }; trig.classList.add("popped");
   el.onmouseenter = () => clearTimeout(popT);
   el.onmouseleave = () => { clearTimeout(popT); popT = setTimeout(popClose, 200); };
-  el.querySelectorAll("a").forEach(a => a.addEventListener("click", () => popClose(true)));
   if (kind === "subj") {
     wireSubjects(el, () => popClose(true));
     acctFetch().then(a => { const list = el.querySelector(".hc-list"), fresh = subjRows(a); if (list && el.isConnected && list.innerHTML !== fresh) { list.innerHTML = fresh; wireSubjects(el, () => popClose(true)); } }).catch(() => { });
   }
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
   if (kind === "ready") countUp(el);
+  if (kind === "exam") countDown(el);
 }
 addEventListener("keydown", e => { if (e.key === "Escape") popClose(); });
 addEventListener("scroll", () => { if (POP) popClose(true); }, { passive: true });

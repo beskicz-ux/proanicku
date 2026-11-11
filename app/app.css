@@ -989,7 +989,6 @@ body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px;
 .hc-t p{margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.35}
 .hc-row{margin-top:14px}
 .hc-chip{display:inline-block; padding:4px 10px; border-radius:99px; background:var(--fill); font:800 13px var(--head)}
-.hc-go{margin-top:16px; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; padding:0 18px; min-height:50px}
 
 /* readiness: a round flask */
 .flask{--liq:#22C07F; --liq2:#14A866; position:relative; flex:none; width:96px; height:96px; border-radius:50%; overflow:hidden; isolation:isolate;
@@ -1012,31 +1011,39 @@ body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px;
 @keyframes flBub{0%{opacity:0; transform:translateY(0)} 15%{opacity:1} 100%{opacity:0; transform:translateY(-70px) translateX(4px)}}
 @keyframes flPop{from{transform:scale(.6)}}
 
-/* countdown: a tear-off calendar */
-.tear{position:relative; flex:none; width:92px; height:96px; perspective:300px}
+/* countdown: a calendar whose number ticks down to the days left, then the road from today to the exam */
+.cal{position:relative; flex:none; width:92px; height:96px}
 .tr-ring{position:absolute; top:2px; left:22px; z-index:3; width:8px; height:16px; border-radius:4px; background:#B8342A}
 .tr-ring.r2{left:auto; right:22px}
 .tr-pg{position:absolute; left:0; right:0; top:8px; bottom:0; border-radius:14px; background:#fff; overflow:hidden; display:grid; place-items:center;
   box-shadow:inset 0 0 0 2px #E3E5EC, 0 4px 0 #D3D6E0}
 .tr-pg:before{content:""; position:absolute; left:0; right:0; top:0; height:22px; background:#FF5A47}
 .tr-pg b{position:relative; top:9px; font:800 40px var(--head); color:#1F2333; font-variant-numeric:tabular-nums}
-.tr-off{transform-origin:50% 0; z-index:2; backface-visibility:hidden}
-.hc.in .tr-off{animation:trOff .75s cubic-bezier(.5,0,.75,0) .3s both}
-.hc.in .tr-under b{animation:trIn .45s cubic-bezier(.3,1.8,.5,1) .85s both}
-@keyframes trOff{0%{transform:none} 30%{transform:rotateX(-18deg) rotateZ(-3deg)} 100%{transform:translateY(60px) rotateX(-95deg) rotateZ(8deg); opacity:0}}
-@keyframes trIn{from{transform:scale(.6)}}
-.hc-stars{margin-top:16px; padding:12px 14px; border-radius:16px; background:var(--fill)}
-.sts{display:flex; justify-content:space-between}
-.sts .st{width:30px; height:30px; display:grid; place-items:center}
-.sts .st svg{width:26px; height:26px; fill:color-mix(in srgb, var(--muted) 30%, transparent)}
-.sts .st.on svg{fill:#FFC531; filter:drop-shadow(0 2px 0 #E0A410)}
-.sts .st.now:not(.on) svg{fill:none; stroke:#FFC531; stroke-width:2; stroke-dasharray:3 2.6}
-.hc-stars p{margin:8px 0 0; text-align:center; font:700 14px var(--font); color:var(--muted)}
-.hc-stars p b{font:800 16px var(--head); color:#D98A00}
-.hc.in .sts .st.on svg{animation:stPop .5s cubic-bezier(.3,1.9,.5,1) calc(.5s + var(--i) * 70ms) both}
-.hc.in .sts .st.now.on svg{animation:stPop .5s cubic-bezier(.3,1.9,.5,1) calc(.5s + var(--i) * 70ms) both, stShimmer 2s ease-in-out 1.6s infinite}
-@keyframes stPop{0%{transform:scale(0) rotate(-40deg)} 100%{transform:none}}
-@keyframes stShimmer{0%, 100%{transform:none} 50%{transform:scale(1.18) rotate(12deg)}}
+.tr-pg b.tk{animation:calTick .14s ease-out}
+.tr-pg b.land{animation:calLand .45s cubic-bezier(.3,1.8,.5,1)}
+@keyframes calTick{from{transform:translateY(-14px); opacity:.2}}
+@keyframes calLand{0%{transform:translateY(-14px) scale(1); opacity:.2} 60%{transform:scale(1.18); opacity:1} 100%{transform:none}}
+.road{margin-top:16px; padding:14px 12px 12px; border-radius:16px; background:var(--fill)}
+.dys{position:relative; display:grid; grid-template-columns:repeat(var(--n), 1fr); text-align:center}
+.dys:before{content:""; position:absolute; left:calc(50% / var(--n)); right:calc(50% / var(--n)); bottom:13px; height:4px; border-radius:2px;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 35%, transparent) 0 6px, transparent 6px 11px)}
+.dy{position:relative; display:grid; justify-items:center; gap:5px}
+.dy small{font:800 11px var(--head); text-transform:uppercase; color:var(--muted)}
+.dy span{display:grid; place-items:center; width:16px; height:16px; margin:5px 0; border-radius:50%; background:var(--surface); box-shadow:0 0 0 3px color-mix(in srgb, var(--muted) 30%, transparent)}
+.dy.gap span{background:none; box-shadow:none; color:var(--muted); font-weight:800}
+.dy.now small{color:var(--text)}
+.dy.now span{width:26px; height:26px; margin:0; box-shadow:0 0 0 3px #7B6CF6}
+.dy.now.done span{background:#22C07F; box-shadow:0 2px 0 #14A866; color:#fff}
+.dy.now.done svg{width:16px; height:16px}
+.dy.ex small{color:#D98A00}
+.dy.ex span{width:26px; height:26px; margin:0; background:#FFC531; color:#7A4F00; box-shadow:0 2px 0 #E0A410}
+.dy.ex svg{width:14px; height:14px}
+.road p{margin:10px 0 0; text-align:center; font:700 14px var(--font); color:var(--muted)}
+.road p b{font:800 15px var(--head); color:var(--text)}
+.hc.in .dy span{animation:dyIn .35s cubic-bezier(.3,1.7,.5,1) calc(.15s + var(--i) * 45ms) both}
+.hc.in .dy.now:not(.done) span{animation:dyIn .35s cubic-bezier(.3,1.7,.5,1) .15s both, dyNow 1.8s ease-in-out .8s infinite}
+@keyframes dyIn{from{transform:scale(0)}}
+@keyframes dyNow{50%{box-shadow:0 0 0 6px color-mix(in srgb, #7B6CF6 35%, transparent)}}
 
 /* subjects drop-down */
 .hc-subj{width:300px; padding:10px 8px 8px}
@@ -1050,5 +1057,4 @@ body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px;
 @media (prefers-reduced-motion:reduce){
   .hc{transition:opacity .12s}
   .hc.in *, .hc.in .flask{animation:none !important}
-  .tr-off{display:none}
 }
