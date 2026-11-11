@@ -251,26 +251,26 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 .mw{position:relative; margin:0 auto; max-width:100%}
 .band{position:absolute; left:0; right:0}
 .band svg{position:absolute; inset:0; display:block}
-.trail{position:absolute; left:0; top:0; z-index:1; pointer-events:none}
 .div{position:absolute; left:0; right:0; display:flex; align-items:center; gap:12px; padding:0 22px; transform:translateY(-50%); z-index:2}
 .div:before,.div:after{content:""; flex:1; height:2px; background:var(--dline)}
 .div span{background:var(--surface); padding:6px 14px; border-radius:12px; box-shadow:0 2px 8px #0001; font:800 14px var(--head); color:var(--dtext); text-align:center; max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .div span small{display:block; font:700 11px var(--font); opacity:.75; letter-spacing:.05em; text-transform:uppercase}
 .n{position:absolute; transform:translate(-50%,-50%); z-index:2; isolation:isolate}
-.n .c{--nc:var(--chc); --nl:color-mix(in srgb, var(--nc) 62%, #000); width:64px; height:64px; border-radius:50%; display:grid; place-items:center; border:none; position:relative; color:#fff; cursor:pointer; padding:0;
-  background:linear-gradient(118deg, transparent 0 32%, #ffffff3d 32% 48%, transparent 48%), radial-gradient(110% 80% at 50% 12%, #ffffff40, transparent 60%), var(--nc); box-shadow:0 5px 0 var(--nl), 0 10px 16px -6px #0004}
+.n .c{--nc:var(--chc); --nl:color-mix(in srgb, var(--nc) 62%, #000); width:70px; height:58px; border-radius:50%; display:grid; place-items:center; border:none; position:relative; color:#fff; cursor:pointer; padding:0;
+  background:linear-gradient(118deg, transparent 0 32%, #ffffff3d 32% 48%, transparent 48%), radial-gradient(110% 80% at 50% 12%, #ffffff40, transparent 60%), var(--nc); box-shadow:0 6px 0 var(--nl), 0 11px 16px -6px #0004}
 .n .c:active{transform:translateY(3px); box-shadow:0 2px 0 var(--nl)}
 .n .c svg{width:30px; height:30px; filter:drop-shadow(0 2px 0 #0002)}
 .n.gold .c{--nc:#F2B630; color:#8A5A00}
-.n.cur .c{width:76px; height:76px}
+.n.cur .c{width:82px; height:68px; box-shadow:0 7px 0 var(--nl), 0 12px 16px -6px #0004}
 .n.cur .c:before{content:""; position:absolute; inset:-12px; border-radius:50%; z-index:-1; border:5px solid color-mix(in srgb, var(--chc) 40%, #fff);
   box-shadow:0 5px 0 color-mix(in srgb, var(--chc) 60%, #000 0%), inset 0 5px 0 color-mix(in srgb, var(--chc) 60%, #000 0%); animation:halo 1.8s ease-in-out infinite}
 @keyframes halo{50%{transform:scale(1.07); opacity:.55}}
 @media (prefers-reduced-motion:reduce){ .n.cur .c:before{animation:none} }
 .n.cur .c svg{width:34px; height:34px}
-.n.nlock .c{--nc:var(--lockbg); --nl:var(--lockedge); color:var(--lockink); box-shadow:0 5px 0 var(--nl); background:var(--nc)}
+.n.nlock .c{--nc:var(--lockbg); --nl:var(--lockedge); color:var(--lockink); box-shadow:0 6px 0 var(--nl); background:var(--nc)}
 .n.nlock .c svg{filter:none}
-.n.test .c{width:72px; height:72px}
+.n.test .c{width:76px; height:63px; box-shadow:0 7px 0 var(--nl), 0 12px 16px -6px #0004}
+.n.nlock.cur .c,.n.nlock.test .c{box-shadow:0 7px 0 var(--nl)}
 .n .tick{position:absolute; right:-4px; bottom:-2px; width:24px; height:24px; border-radius:50%; background:var(--surface); color:var(--chc); display:grid; place-items:center; box-shadow:0 2px 4px #0003}
 .n .tick svg{width:15px; height:15px; filter:none}
 .n.gold .tick{color:#C98A00}
@@ -279,9 +279,22 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 .tut{position:absolute; z-index:2; width:84px; transform:translate(-50%,-62%); pointer-events:none}
 .tut svg{width:84px; height:auto; display:block}
 .exam{position:absolute; transform:translate(-50%,-50%); z-index:2; text-align:center; width:240px}
-.exam .c{width:92px; height:92px; border-radius:50%; background:var(--surface); display:grid; place-items:center; box-shadow:0 5px 0 var(--lockedge), 0 0 0 6px var(--star); margin:0 auto; color:var(--accent-ink)}
-.exam .c svg{width:42px; height:42px}
-.exam b{display:block; font:800 16px var(--head); margin-top:12px; color:var(--dtext)}
+/* The goal node: a bigger chunky gold button with its readiness ring. Muted gold until it is near. */
+.exam{--ef:#FFC531; --el:#E0A410; --ei:#7A4F00; --er:#FFC531}
+.exam.far{--ef:#F2DE9F; --el:#D8BC6A; --ei:#9C7B2A; --er:#E3C060}
+@media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .exam.far{--ef:#5C4D25; --el:#3F3418; --ei:#E6C460; --er:#B8973A} }
+:root[data-theme=dark] .exam.far{--ef:#5C4D25; --el:#3F3418; --ei:#E6C460; --er:#B8973A}
+.exam .eb{position:relative; width:max-content; margin:14px auto 0}
+.exam .rg{position:absolute; left:50%; top:50%; overflow:visible; pointer-events:none}
+.exam .rg path{fill:none; stroke-width:7.5; stroke-linecap:round}
+.exam .rg-t{stroke:color-mix(in srgb, var(--er) 24%, transparent)}
+.exam .rg-p{stroke:var(--er)}
+.exam .c{width:104px; height:86px; border-radius:50%; display:grid; place-items:center; color:var(--ei);
+  background:linear-gradient(118deg, transparent 0 32%, #ffffff47 32% 48%, transparent 48%), radial-gradient(110% 80% at 50% 12%, #ffffff4d, transparent 60%), var(--ef); box-shadow:0 8px 0 var(--el), 0 13px 18px -6px #0004}
+.exam.far .c{background:linear-gradient(118deg, transparent 0 32%, #ffffff26 32% 48%, transparent 48%), var(--ef)}
+.exam .c svg{width:44px; height:44px; filter:drop-shadow(0 2px 0 #ffffff59)}
+.exam.far .c svg{filter:none}
+.exam b{display:block; font:800 16px var(--head); margin-top:22px; color:var(--dtext)}
 .exam small{font:700 13px var(--font); color:var(--dtext); opacity:.8}
 
 /* ---------- pages: notes, review ---------- */
@@ -485,10 +498,8 @@ html[dir=rtl] :is(b, h1, p, small, .tb-name, .md, .q, .opt){unicode-bidi:plainte
 
 /* ---------- readiness ring round each open level (replaces the START bubble and the pulsing halo) ---------- */
 .n.cur .c:before{display:none}
-.n .rg{position:absolute; left:50%; top:50%; width:94px; height:94px; margin:-47px 0 0 -47px; transform:rotate(-90deg); pointer-events:none; overflow:visible}
-.n.cur .rg{width:114px; height:114px; margin:-57px 0 0 -57px}
-.n.test .rg{width:102px; height:102px; margin:-51px 0 0 -51px}
-.n .rg circle{fill:none; stroke-width:6.5; stroke-linecap:round}
+.n .rg{position:absolute; left:50%; top:50%; pointer-events:none; overflow:visible}
+.n .rg path{fill:none; stroke-width:7.5; stroke-linecap:round}
 .n .rg-t{stroke:color-mix(in srgb, var(--chc) 22%, transparent)}
 .n .rg-p{stroke:var(--chc)}
 .n.gold .rg-p{stroke:#F2B630}

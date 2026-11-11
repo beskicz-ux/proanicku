@@ -88,7 +88,14 @@ const lastReview = l => Math.max(0, ...l.items.map(it => Math.max(S.cards[it.id]
 const lessonReady = l => { const last = lastReview(l); return Math.round(lessonPct(l) * (last ? Math.pow(.5, Math.max(0, Date.now() - last) / (7 * DAY)) : 0) * 100); };
 const chapterReady = ui => { const ls = C.units[ui].lessons; return ls.length ? Math.round(ls.reduce((a, l) => a + lessonReady(l), 0) / ls.length) : 0; };
 // The ring drawn round a level on the map: full = ready for the test on this level.
-const levelRing = p => `<svg class="rg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45" pathLength="100" class="rg-t"/>${p > 0 ? `<circle cx="50" cy="50" r="45" pathLength="100" class="rg-p" stroke-dasharray="${Math.max(4, p)} 100"/>` : ""}</svg>`;
+// Map buttons are squished ellipses on a lip: [face width, face height, lip]. Keep in step with .n .c / .exam .c in app.css.
+const NODE = { n: [70, 58, 6], cur: [82, 68, 7], test: [76, 63, 7], exam: [104, 86, 8] };
+// Readiness ring that hugs the button and its lip with a small even gap; starts at the top, runs clockwise.
+const levelRing = (p, [fw, fh, lip]) => {
+  const g = 4, sw = 7.5, rx = fw / 2 + g + sw / 2, ry = (fh + lip) / 2 + g + sw / 2, W = 2 * rx + sw, H = 2 * ry + sw, cx = W / 2, cy = H / 2;
+  const d = `M${cx} ${cy - ry}A${rx} ${ry} 0 1 1 ${cx} ${cy + ry}A${rx} ${ry} 0 1 1 ${cx} ${cy - ry}`;
+  return `<svg class="rg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="margin:${-H / 2 + lip / 2}px 0 0 ${-W / 2}px" aria-hidden="true"><path d="${d}" pathLength="100" class="rg-t"/>${p > 0 ? `<path d="${d}" pathLength="100" class="rg-p" stroke-dasharray="${Math.max(4, p)} 100"/>` : ""}</svg>`;
+};
 function readiness() {
   const ls = allLessons(); if (!ls.length) return 0;
   const now = Date.now();
@@ -202,14 +209,10 @@ function nodes() {
   return { list: out, cur };
 }
 const MAPMAX = 620; // widest the map gets; wider screens get the side panel instead of empty map
-const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 200, BOTPAD = 120;
+const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 310, BOTPAD = 120, EXAMY = 200;
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
-const isDark = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
-const smooth = P => P.map((p, i) => {
-  if (!i) return `M${p[0]} ${p[1]}`;
-  const a = P[i - 2] || P[i - 1], b = P[i - 1], c = p, e = P[i + 1] || p;
-  return `C${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6} ${c[1] - (e[1] - b[1]) / 6} ${c[0]} ${c[1]}`;
-}).join(" ");
+// The goal at the top of the map: a solid flag on a gold button.
+const EXAM_FLAG = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2.5" width="2.8" height="19" rx="1.4" fill="currentColor"/><path d="M6.4 3.6h11.9c.8 0 1.2.9.7 1.5l-2.6 3.4 2.6 3.4c.5.6.1 1.5-.7 1.5H6.4z" fill="currentColor"/></svg>`;
 function examLine() {
   const left = daysToExam();
   if (left == null) return "";
@@ -218,7 +221,7 @@ function examLine() {
   return `${fmtDay(examDate())} · ${left < 14 ? inDays(left) : inWeeks(Math.round(left / 7))}`;
 }
 function viewMap() {
-  const { list, cur } = nodes(), locked = lockedCount(), dark = isDark();
+  const { list, cur } = nodes(), locked = lockedCount();
   document.body.classList.add("map-page");
   view().innerHTML = `<div class="mlay"><div class="mmain"><div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div></div>${sidePanel(locked)}</div>`;
   bindTopbar();
@@ -228,7 +231,7 @@ function viewMap() {
   const chH = byCh.map(ns => DIVH + ns.length * STEPY + (ns.some(n => n.cur) ? CURX : 0));
   const total = TOPPAD + chH.reduce((a, b) => a + b, 0) + BOTPAD;
   let out = "", y = total - BOTPAD, k = 0, curPt = -1, curY = 0;
-  const pts = [], ptCol = [], chTop = [];
+  const pts = [], chTop = [];
   C.units.forEach((u, ui) => {
     const col = chapterColour(ui), top = y - chH[ui], hh = chH[ui] + (ui === 0 ? BOTPAD : 0);
     chTop.push([top, y]);
@@ -236,25 +239,21 @@ function viewMap() {
     y -= DIVH;
     byCh[ui].forEach(n => {
       const big = n.cur ? CURX : 0, ny = y - STEPY / 2 - big * .25, nx = CX + SWAY[k % SWAY.length] * sw;
-      pts.push([nx, ny]); ptCol.push(col);
+      pts.push([nx, ny]);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
       const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
       const rp = n.locked || n.next ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l);
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
-        ${rp == null ? "" : levelRing(rp)}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
+        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : state === "cur" ? "cur" : "n"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 120 * sc : nx + 120 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
       y -= STEPY + big; k++;
     });
   });
-  out += `<div class="exam" style="top:${TOPPAD / 2 + 10}px;left:${CX}px"><div class="c">${LEVEL_ICONS.flag}</div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
-  const all = [...pts, [CX, TOPPAD / 2 + 10]], walkedTo = curPt < 0 ? (list.length && list.every(n => n.done) ? all.length - 1 : 0) : curPt;
-  let walked = "", i = 0;
-  while (i < walkedTo) { let j = i; while (j < walkedTo && ptCol[j + 1] === ptCol[i]) j++; if (j === i) j = i + 1; walked += `<path d="${smooth(all.slice(i, j + 1))}" fill="none" stroke="${ptCol[Math.min(j, ptCol.length - 1)]}" stroke-opacity=".75" stroke-width="9" stroke-linecap="round"/>`; i = j; }
-  const road = dark ? "#ffffff0d" : "#0000000b", edge = "transparent";
-  out += `<svg class="trail" style="width:${W}px;height:${total}px" viewBox="0 0 ${W} ${total}" aria-hidden="true">
-    <path d="${smooth(all)}" fill="none" stroke="${edge}" stroke-width="26" stroke-linecap="round"/><path d="${smooth(all)}" fill="none" stroke="${road}" stroke-width="22" stroke-linecap="round"/>${walked}</svg>`;
+  // Bright gold once every level is done or the exam is a week away; muted gold before that.
+  const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7), er = readiness();
+  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb">${levelRing(er, NODE.exam)}<div class="c">${EXAM_FLAG}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
   mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
   // The header shows the chapter in view.
   const curIdx = cur < 0 ? list.length : cur;
