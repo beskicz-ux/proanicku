@@ -3,7 +3,7 @@ import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx 
 import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
 import { countPages, validFile, daysBetween } from "./forecast.js";
-import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo } from "./course.js";
+import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
@@ -175,7 +175,8 @@ function viewFiles() {
 export const RULER = { MIN: 3, MAX: 150, STEP: 12 };
 const paceOf = n => n < 14 ? "sprint" : n < 35 ? "tempo" : "chill";
 // Minutes a day: one pass plus three repeats of every page (3 min a page), spread over the days before the last two.
-export const minutesFor = (pages, n) => Math.max(10, Math.min(90, Math.round((pages || 20) * 3 / Math.max(1, n - 2) / 5) * 5));
+// The plan's daily minutes, snapped to the goals the settings offer (10/15/20/30/60).
+export const minutesFor = (pages, n) => snapGoal(Math.max(10, Math.min(90, Math.round((pages || 20) * 3 / Math.max(1, n - 2) / 5) * 5)));
 export function rulerHtml() {
   let html = "";
   for (let n = RULER.MIN; n <= RULER.MAX; n++) {
@@ -221,32 +222,41 @@ function viewDate() {
 }
 
 /* ---------- step 3: tutor, a swipe carousel ---------- */
-const pickable = () => TUTORS.filter(x => x.idx >= 0);
+// Every tutor, Penny too. The list is drawn three times so the carousel wraps both ways: one swipe past the
+// last tutor shows the first one, and the current tutor always sits in the middle with a neighbour on each side.
+const pickable = () => TUTORS;
 export function carouselHtml() {
-  return `<div class="car" id="car" dir="ltr">${pickable().map(x => `<div class="slot"><div class="fig">${tutorArt(x.id)}</div></div>`).join("")}</div><div class="car-floor" aria-hidden="true"></div>
+  const one = copy => pickable().map((x, i) => `<div class="slot" data-i="${i}"${copy === 1 ? "" : ' aria-hidden="true"'}><div class="fig">${tutorArt(x.id)}</div></div>`).join("");
+  return `<div class="car" id="car" dir="ltr">${one(0)}${one(1)}${one(2)}</div><div class="car-floor" aria-hidden="true"></div>
     <div class="tinfo"><b id="tName"></b></div><div class="dots" id="dots" aria-hidden="true">${pickable().map(() => "<i></i>").join("")}</div>`;
 }
 export function bindCarousel(startId, onChange) {
-  const c = $("#car");
-  let cur = -1;
+  const c = $("#car"), n = pickable().length, slots = [...c.children];
+  let cur = -1, abs = n, settle = null;
+  // how far to scroll so slot s sits exactly in the middle of the carousel
+  const centre = s => { const sr = s.getBoundingClientRect(), cr = c.getBoundingClientRect(); return c.scrollLeft + sr.left + sr.width / 2 - cr.left - cr.width / 2; };
   const paint = () => {
-    const mid = c.scrollLeft + c.clientWidth / 2;
+    const cr = c.getBoundingClientRect(), mid = cr.left + cr.width / 2;
     let best = 0, bd = 1e9;
-    [...c.children].forEach((s, i) => {
-      const dist = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid) / s.offsetWidth, k = Math.min(dist, 1.4);
+    slots.forEach((s, i) => {
+      const r = s.getBoundingClientRect(), dist = Math.abs(r.left + r.width / 2 - mid) / r.width, k = Math.min(dist, 1.4);
       s.firstChild.style.transform = `scale(${1 - k * 0.42}) translateY(${k * 10}px)`;
       s.firstChild.style.opacity = 1 - k * 0.45;
       s.firstChild.style.filter = k > .5 ? "saturate(.6)" : "";
       if (dist < bd) { bd = dist; best = i; }
     });
-    if (best !== cur) { cur = best; $("#tName").textContent = pickable()[best].name; [...$("#dots").children].forEach((d, i) => d.classList.toggle("on", i === best)); onChange(pickable()[best]); }
+    abs = best;
+    const i = best % n;
+    if (i !== cur) { cur = i; $("#tName").textContent = pickable()[i].name; [...$("#dots").children].forEach((d, j) => d.classList.toggle("on", j === i)); onChange(pickable()[i]); }
   };
-  const go = (i, smooth = true) => { const s = c.children[Math.max(0, Math.min(pickable().length - 1, i))]; c.scrollTo({ left: s.offsetLeft + s.offsetWidth / 2 - c.clientWidth / 2, behavior: smooth ? "smooth" : "auto" }); };
-  c.addEventListener("scroll", paint, { passive: true });
-  [...c.children].forEach((s, i) => s.onclick = () => go(i));
-  c.tabIndex = 0; c.onkeydown = e => { if (e.key === "ArrowRight") go(cur + 1); if (e.key === "ArrowLeft") go(cur - 1); };
+  // once the swipe stops on a copy, jump without animation to the same tutor in the middle copy (looks identical)
+  const recentre = () => { if (abs < n || abs >= 2 * n) { c.scrollLeft = centre(slots[abs % n + n]); paint(); } };
+  const go = (k, smooth = true) => c.scrollTo({ left: centre(slots[Math.max(0, Math.min(slots.length - 1, k))]), behavior: smooth ? "smooth" : "auto" });
+  c.addEventListener("scroll", () => { paint(); clearTimeout(settle); settle = setTimeout(recentre, 140); }, { passive: true });
+  slots.forEach((s, i) => s.onclick = () => go(i));
+  c.tabIndex = 0; c.onkeydown = e => { if (e.key === "ArrowRight") go(abs + 1); if (e.key === "ArrowLeft") go(abs - 1); };
   const startI = Math.max(0, pickable().findIndex(x => x.id === startId));
-  requestAnimationFrame(() => { go(startI, false); paint(); });
+  requestAnimationFrame(() => { go(n + startI, false); paint(); });
   return { get: () => pickable()[Math.max(0, cur)] };
 }
 function viewTutor() {

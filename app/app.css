@@ -131,7 +131,7 @@ body.plain .app{padding-bottom:0}
 .sh .ruler:after{background:linear-gradient(90deg, var(--surface), transparent 18%, transparent 82%, var(--surface))}
 
 /* tutor carousel */
-.car{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:10px calc(50% - 90px) 0; margin:0 calc(-1 * var(--gutter)); outline:none}
+.car{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:10px 0 0; margin:0 calc(-1 * var(--gutter)); outline:none}
 .car::-webkit-scrollbar{display:none}
 .slot{flex:0 0 180px; scroll-snap-align:center; display:flex; justify-content:center; cursor:pointer}
 .fig{transition:transform .08s linear, opacity .08s linear; transform-origin:50% 90%}
@@ -818,3 +818,65 @@ body .pc-unlock{background:var(--surface); border:2px solid var(--accent); color
 .gold-ic svg{width:36px; height:36px}
 .sh .gold-ic + .sh-h{text-align:center} .sh .gold-ic ~ .sh-p{text-align:center}
 .sh .btn-p.gold-go{background:#FFC531; box-shadow:0 4px 0 #E0A410; color:#5C3B00}
+
+/* ---------- map like Anna's: a banner per unit, one size for every level, a name under each, a tutor per unit ---------- */
+.mtop + .mapv{margin-top:0}
+.ubn{position:absolute; left:0; right:0; z-index:3; padding:0 var(--gutter)}
+@media (min-width:768px){ .ubn{padding:0} }
+.ubn .unit{min-height:84px; padding:14px 14px 14px 18px; box-sizing:border-box}
+.ubn .unit b{font-size:20px}
+.n.cur .c{width:76px; height:63px; box-shadow:0 7px 0 var(--nl), 0 12px 16px -6px #0004}
+.n.cur .c svg{width:32px; height:32px}
+.n .c{width:76px; height:63px; box-shadow:0 7px 0 var(--nl), 0 12px 16px -6px #0004}
+.n.nlock .c{box-shadow:0 7px 0 var(--nl)}
+.n .nl{position:absolute; left:50%; top:calc(100% + 18px); transform:translateX(-50%); width:170px; text-align:center; font:800 13.5px/1.25 var(--head); color:var(--text);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; pointer-events:none}
+.n.nlock .nl{color:var(--muted)}
+.n.cur .nl{top:calc(100% + 24px)}
+.n .nl i{display:inline-block; margin-left:6px; padding:0 5px; border:1.5px solid var(--edge); border-radius:6px; font:800 11px/16px var(--font); font-style:normal; color:var(--muted); vertical-align:1px}
+.n .start{bottom:calc(100% + 18px)}
+.tut{width:96px} .tut svg{width:96px}
+@media (min-width:1200px){ .tut{width:110px} .tut svg{width:110px} }
+.exam .eb{position:relative}
+.exam .etut{position:absolute; left:calc(100% + 34px); top:50%; width:92px; transform:translateY(-58%); pointer-events:none}
+.exam .etut svg{width:92px; height:auto; display:block}
+
+/* daily goal: one clean list, one tap saves */
+.goals{display:flex; flex-direction:column; gap:8px; margin-top:12px}
+.goal{display:flex; align-items:center; justify-content:space-between; min-height:56px; padding:0 18px; border:2px solid var(--edge); border-radius:16px; background:var(--surface); color:var(--text); font:800 16px var(--head); cursor:pointer; box-shadow:0 3px 0 var(--edge)}
+.goal span{font:700 15px var(--font); color:var(--muted)}
+.goal:hover{background:var(--fill)}
+.goal:active{transform:translateY(3px); box-shadow:none}
+.goal.on{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, var(--surface)); box-shadow:0 3px 0 var(--accent)}
+.goal.on span{color:var(--accent)}
+
+/* a tutor on the centred screens (course failed to load) */
+.ob-center .teacher{width:150px; height:auto}
+
+/* ---------- notes: a banner with the tutor, chapter banners like the map, numbered rows that tick when read ---------- */
+.notes-pg{padding-top:8px}
+.nbanner{min-height:150px}
+.nbanner h2{margin:0 0 6px; font:800 26px var(--head)}
+.nbanner p{margin:0; font-size:15px; opacity:.95; line-height:1.4}
+.nb-count{display:inline-block; margin-top:12px; padding:4px 10px; border-radius:99px; background:#ffffff33; font:800 13px var(--font)}
+.nch{margin-top:22px}
+.nch-h{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:72px; box-sizing:border-box; border-radius:18px; margin-bottom:12px}
+.nch-h b{font-size:20px}
+.nch-ic{flex:none; width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:#ffffff2e}
+.nch-ic svg{width:28px; height:28px}
+.note{display:block; background:var(--surface); border:2px solid var(--edge); border-radius:16px; margin-bottom:10px; box-shadow:0 3px 0 var(--edge); color:var(--text); text-decoration:none}
+.note summary,.note.nlk{display:flex; align-items:center; gap:14px; padding:12px 14px; font:inherit}
+.note summary b,.note.nlk b{flex:1; min-width:0; font:800 16px/1.3 var(--head)}
+.note .nn{flex:none; width:36px; height:36px; border-radius:12px; display:grid; place-items:center; font:800 15px var(--head);
+  background:color-mix(in srgb, var(--chc) 16%, var(--surface)); color:var(--chc)}
+.note .nn svg{width:20px; height:20px}
+.note.read .nn{background:var(--good, #58CC02); color:#fff}
+.note[open]{border-color:var(--chc); box-shadow:0 3px 0 var(--chc)}
+.note[open] summary{border-bottom:2px solid var(--edge)}
+.note .md{padding:14px 18px 6px; line-height:1.6}
+.note .pc-source{padding:0 18px 16px}
+.note:not([open]):hover,.note.nlk:hover{background:var(--fill)}
+.note.nlk{cursor:pointer}
+.note.nlk b{color:var(--muted)}
+.note.nlk .nn{background:var(--fill); color:var(--muted)}
+.nlk-go{flex:none; font:800 12px var(--font); font-style:normal; text-transform:uppercase; letter-spacing:.04em; color:var(--accent); padding:6px 10px; border-radius:10px; border:2px solid var(--edge)}

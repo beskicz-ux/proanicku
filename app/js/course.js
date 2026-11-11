@@ -52,7 +52,7 @@ function addXP(n) { const d = today(); S.xp[d] = (S.xp[d] || 0) + n; doneToday()
 const totalMs = () => Object.values(S.done).reduce((a, d) => a + (d.ms || 0), 0);
 const examDate = () => STUDENT?.examDate || C?.meta.examDate || null;
 const daysToExam = () => examDate() ? daysBetween(today(), examDate()) : null;
-const curTutor = () => store.get("tutor." + SLUG, null) || STUDENT?.tutor || C?.meta.tutor || "penny";
+const curTutor = () => store.get("tutor." + SLUG, null) || STUDENT?.tutor || C?.meta.tutor || "fox";
 
 /* ---------- spaced repetition, same rules as Penny ---------- */
 function grade(id, g) {
@@ -90,7 +90,7 @@ const lessonReady = l => { const last = lastReview(l); return Math.round(lessonP
 const chapterReady = ui => { const ls = C.units[ui].lessons; return ls.length ? Math.round(ls.reduce((a, l) => a + lessonReady(l), 0) / ls.length) : 0; };
 // The ring drawn round a level on the map: full = ready for the test on this level.
 // Map buttons are squished ellipses on a lip: [face width, face height, lip]. Keep in step with .n .c / .exam .c in app.css.
-const NODE = { n: [70, 58, 6], cur: [82, 68, 7], test: [76, 63, 7], exam: [104, 86, 8] };
+const NODE = { n: [76, 63, 7], cur: [76, 63, 7], test: [76, 63, 7], exam: [104, 86, 8] }; // every level the same size, like Anna's
 // Readiness ring that hugs the button and its lip with a small even gap; starts at the top, runs clockwise.
 const levelRing = (p, [fw, fh, lip]) => {
   const g = 4, sw = 7.5, rx = fw / 2 + g + sw / 2, ry = (fh + lip) / 2 + g + sw / 2, W = 2 * rx + sw, H = 2 * ry + sw, cx = W / 2, cy = H / 2;
@@ -149,7 +149,7 @@ export async function courseRoute(parts, nav, render) {
     if (e.status === 401) { store.del("session"); toast(t("sessionExpired")); return nav("#/login"); }
     if (e.code === "not_ready") return nav("#/wait");
     $("#nav").hidden = true;
-    view().innerHTML = `<div class="ob ob-center">${ham("sad")}<h1 class="ob-h">${t("courseFail")}</h1><p class="ob-sub">${esc(errText(e.code))}</p><div class="ob-foot"><button class="btn-p" id="again">${t("retry")}</button></div></div>`;
+    view().innerHTML = `<div class="ob ob-center">${tutorArt(curTutor(), "", "sad")}<h1 class="ob-h">${t("courseFail")}</h1><p class="ob-sub">${esc(errText(e.code))}</p><div class="ob-foot"><button class="btn-p" id="again">${t("retry")}</button></div></div>`;
     $("#again").onclick = render;
     return;
   }
@@ -246,9 +246,9 @@ function nodes() {
 }
 const MAPMAX = 590; // widest the map gets; wider screens get the side panel instead of empty map
 // Top-down like a book: chapter divider, its levels, the next chapter, and the exam goal at the end.
-const TOPPAD = 120, EXAMH = 300;
+const TOPPAD = 8, EXAMH = 300, BANH = 112; // BANH: a unit banner plus the gap under it
 // Desktop (side panel showing) packs the nodes tighter with a gentler zig-zag; phones keep the roomier map.
-const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 106, CURX: 74, DIVH: 150, SWX: .8 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
+const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 142, CURX: 0, SWX: .8 } : { STEPY: 138, CURX: 0, SWX: 0 };
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 // The goal at the end of the map: a solid trophy on a gold coin.
 const EXAM_CUP = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11v5.5a5.5 5.5 0 0 1-11 0z" fill="currentColor"/><path d="M6.6 5H3.8v1.6a3.6 3.6 0 0 0 3.4 3.6M17.4 5h2.8v1.6a3.6 3.6 0 0 1-3.4 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="10.8" y="13" width="2.4" height="4" fill="currentColor"/><rect x="7" y="17.5" width="10" height="3" rx="1.5" fill="currentColor"/></svg>`;
@@ -264,9 +264,9 @@ function viewMap() {
   const { list, cur } = nodes(), locked = lockedCount();
   document.body.classList.add("map-page");
   TAPPED = null; // the store names the lesson tapped since the map was last shown
-  view().innerHTML = framed("map", `<div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`);
+  view().innerHTML = framed("map", `<div class="mtop">${topbar()}</div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`);
   bindTopbar();
-  const { STEPY, CURX, DIVH, SWX } = mapSpacing();
+  const { STEPY, CURX, SWX } = mapSpacing();
   const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = SWX || Math.min(1.7, W / 375);
   mw.dataset.w = W;
   const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
@@ -274,9 +274,12 @@ function viewMap() {
   const pts = [], chTop = [];
   C.units.forEach((u, ui) => {
     const col = chapterColour(ui), top = y;
-    // The first chapter is named by the sticky banner above the map; later ones get a divider above their levels.
-    if (ui > 0) { out += `<div class="div" style="top:${y + DIVH / 2}px;--chc:${col}"><span><small>${t("chapter", { n: ui + 1 })}</small>${esc(u.title)}</span></div>`; y += DIVH; }
-    byCh[ui].forEach(n => {
+    // Every unit opens with its own banner in its colour, like Anna's.
+    const nDone = byCh[ui].filter(n => n.done).length;
+    out += `<div class="ubn" style="top:${y}px"><div class="unit" style="background:${col};--uc:${col}"><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: nDone, y: byCh[ui].length })}</small><b>${esc(u.title)}</b></div><a class="guide" href="#/s/${SLUG}/notes/${ui}">${HUB.book}<span>${t("guide")}</span></a></div></div>`;
+    y += BANH;
+    const mid = Math.floor((byCh[ui].length - 1) / 2), me = curTutor();
+    byCh[ui].forEach((n, j) => {
       const big = n.cur ? CURX : 0, ny = y + STEPY / 2 + big * .75, nx = CX + SWAY[k % SWAY.length] * sw;
       pts.push([nx, ny]);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
@@ -284,17 +287,20 @@ function viewMap() {
       const rp = !n.cur ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l); // the ring only goes round the level in progress
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
+      const name = n.kind === "test" ? t("unitQuiz") : n.l.title, chip = n.kind === "test" ? "" : `<i>${ui + 1}${String.fromCharCode(65 + n.k)}</i>`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
-        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}${state === "cur" && n.cur ? `<span class="start">${t("startBubble")}</span>` : ""}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
-      if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 130 * sc : nx + 130 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
+        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button><span class="nl" aria-hidden="true">${esc(name)}${chip}</span></div>`;
+      if (n.cur) { curPt = pts.length - 1; curY = ny; }
+      if (j === mid) out += `<div class="tut" style="left:${nx > CX ? nx - 140 * sc : nx + 140 * sc}px;top:${ny + STEPY / 2}px">${tutorArt(me, "", "happy")}</div>`;
       y += STEPY + big; k++;
     });
+    y += 28; // room between the last level's name and the next banner
     chTop.push([top, y]);
   });
   const EXAMY = y + 110, total = y + EXAMH;
   // Bright gold once every level is done or the exam is a week away; muted gold before that.
   const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7);
-  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb"><div class="c">${EXAM_CUP}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
+  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb"><div class="c">${EXAM_CUP}</div><div class="etut">${tutorArt(curTutor(), "", "happy")}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
   mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
   // The header shows the chapter in view.
   const curIdx = cur < 0 ? list.length : cur;
@@ -361,18 +367,36 @@ function watchRest() {
 }
 
 /* ---------- notes: the reading sections, chapter by chapter ---------- */
+// Notes: a banner with the tutor, then each chapter as a coloured banner like the map, every section a numbered
+// row that turns into a tick once read, and the locked lessons listed (with a lock) so you can see what unlocking adds.
+const LOCK_IC = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.6" fill="currentColor"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>`;
 function viewNotes(arg) {
+  let all = 0, read = 0;
   const chapters = C.units.map((u, ui) => {
     const col = chapterColour(ui);
     const secs = u.lessons.flatMap(l => l.locked ? [] : (l.reading || []));
-    const anyLocked = u.lessons.some(l => l.locked);
-    const body = secs.length ? secs.map(s => `<details class="note"><summary>${esc(s.title)}${CHEV}</summary><div class="md">${md(s.body)}</div>${srcLine(s)}</details>`).join("")
-      : `<p class="note-empty">${t(anyLocked ? "notesLocked" : "notesEmpty")}</p>`;
-    return `<section class="nch" id="nch${ui}" style="--chc:${col}"><div class="nch-h"><small>${t("chapter", { n: ui + 1 })}</small><b>${esc(u.title)}</b></div>${body}${anyLocked && secs.length ? `<p class="note-empty">${t("notesLocked")}</p>` : ""}</section>`;
+    const locked = u.lessons.filter(l => l.locked);
+    const nRead = secs.filter(x => S.read[x.id]).length;
+    all += secs.length; read += nRead;
+    const rows = secs.map((x, i) => `<details class="note${S.read[x.id] ? " read" : ""}" data-sec="${esc(x.id)}"><summary><span class="nn">${S.read[x.id] ? TICK : i + 1}</span><b>${esc(x.title)}</b>${CHEV}</summary><div class="md">${md(x.body)}</div>${srcLine(x)}</details>`).join("");
+    const lockRows = locked.map(l => `<a class="note nlk" href="#/unlock"><span class="nn">${LOCK_IC}</span><b>${esc(l.title)}</b><i class="nlk-go">${t("notesUnlock")}</i></a>`).join("");
+    const empty = !secs.length && !locked.length ? `<p class="note-empty">${t("notesEmpty")}</p>` : "";
+    const line = secs.length ? ` · <span class="nr">${t("notesRead", { x: nRead, y: secs.length })}</span>` : "";
+    return `<section class="nch" id="nch${ui}" style="--chc:${col}"><div class="nch-h"><div><small>${t("chapter", { n: ui + 1 })}${line}</small><b>${esc(u.title)}</b></div><span class="nch-ic">${NOTES_ICON}</span></div>${rows}${lockRows}${empty}</section>`;
   }).join("");
-  view().innerHTML = `${topbar()}<div class="pg"><h1 class="pg-h">${t("notesTitle")}</h1>${C.units.length ? chapters : `<p class="note-empty">${t("notesNone")}</p>`}</div>`;
+  const banner = `<div class="banner c-blue nbanner"><div class="t"><h2>${t("notesTitle")}</h2><p>${t("notesBanner")}</p>${all ? `<span class="nb-count">${t("notesRead", { x: read, y: all })}</span>` : ""}</div><div class="art">${tutorArt(curTutor())}</div><i class="arc"></i><i class="cloud"></i></div>`;
+  view().innerHTML = `${topbar()}<div class="pg notes-pg">${banner}${C.units.length ? chapters : `<p class="note-empty">${t("notesNone")}</p>`}</div>`;
   bindTopbar();
-  if (arg != null && $("#nch" + arg)) { const s = $("#nch" + arg); s.querySelector("details")?.setAttribute("open", ""); requestAnimationFrame(() => s.scrollIntoView({ block: "start" })); }
+  // opening a section counts as reading it
+  $$("details.note").forEach(d => d.addEventListener("toggle", () => {
+    if (!d.open || S.read[d.dataset.sec]) return;
+    S.read[d.dataset.sec] = Date.now(); save(); d.classList.add("read"); d.querySelector(".nn").innerHTML = TICK;
+    // keep the counts in the chapter banner and the top banner in step
+    const cnt = el => { const r = $$("details.note", el), x = r.filter(n => n.classList.contains("read")).length; return t("notesRead", { x, y: r.length }); };
+    const ch = d.closest(".nch").querySelector(".nr"); if (ch) ch.textContent = cnt(d.closest(".nch"));
+    const nb = $(".nb-count"); if (nb) nb.textContent = cnt(document);
+  }));
+  if (arg != null && $("#nch" + arg)) { const x = $("#nch" + arg); x.querySelector("details")?.setAttribute("open", ""); requestAnimationFrame(() => x.scrollIntoView({ block: "start" })); }
 }
 
 
@@ -721,12 +745,17 @@ function dateSheet() {
   bindRuler(start, (n, iso) => { pickIso = iso; const p = datePanel(n, iso, pages); $("#dDate").textContent = p.date; $("#dRel").textContent = p.rel; $("#dBadge").innerHTML = p.badge; });
   $("#shSave").onclick = async () => { if (await saveStudent({ examDate: pickIso })) { s.close(); viewSettings(); } };
 }
+// The only daily goals there are (Marek 2026-11-11). Older picks like 45 or 90 show as the nearest.
+export const GOALS = [10, 15, 20, 30, 60];
+export const snapGoal = m => GOALS.reduce((a, g) => Math.abs(g - m) < Math.abs(a - m) ? g : a, GOALS[0]);
 function goalSheet() {
-  const cur = STUDENT?.minutes || 20;
-  const s = sheet(`<h2 class="sh-h">${t("goalTitle")}</h2><div class="chips">${[10, 15, 20, 30, 45, 60, 90].map(m => `<button class="chip ${m === cur ? "on" : ""}" data-m="${m}">${t("timeM", { m })}</button>`).join("")}</div><button class="btn-p" id="shSave">${t("save")}</button>`);
-  let m = cur;
-  $$("[data-m]", s.el).forEach(b => b.onclick = () => { m = +b.dataset.m; $$("[data-m]", s.el).forEach(x => x.classList.toggle("on", x === b)); });
-  $("#shSave").onclick = async () => { if (await saveStudent({ minutes: m })) { s.close(); viewSettings(); } };
+  const cur = snapGoal(STUDENT?.minutes || 20);
+  // One clean list, one tap saves: a name for the pace on the left, the minutes on the right.
+  const s = sheet(`<h2 class="sh-h">${t("goalTitle")}</h2><div class="goals">${GOALS.map(m => `<button class="goal ${m === cur ? "on" : ""}" data-m="${m}"><b>${t("goal" + m)}</b><span>${t("timeM", { m })}</span></button>`).join("")}</div>`);
+  $$("[data-m]", s.el).forEach(b => b.onclick = async () => {
+    $$("[data-m]", s.el).forEach(x => x.classList.toggle("on", x === b));
+    if (await saveStudent({ minutes: +b.dataset.m })) { s.close(); viewSettings(); }
+  });
 }
 function tutorSheet() {
   const s = sheet(`<h2 class="sh-h">${t("tutorChange")}</h2><div class="sh-car">${carouselHtml()}</div><p class="sh-note">${t("tutorLocal")}</p><button class="btn-p" id="shSave">${t("save")}</button>`);
