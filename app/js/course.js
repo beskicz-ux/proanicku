@@ -90,7 +90,7 @@ const lessonReady = l => { const last = lastReview(l); return Math.round(lessonP
 const chapterReady = ui => { const ls = C.units[ui].lessons; return ls.length ? Math.round(ls.reduce((a, l) => a + lessonReady(l), 0) / ls.length) : 0; };
 // The ring drawn round a level on the map: full = ready for the test on this level.
 // Map buttons are squished ellipses on a lip: [face width, face height, lip]. Keep in step with .n .c / .exam .c in app.css.
-const NODE = { n: [76, 63, 7], cur: [76, 63, 7], test: [76, 63, 7], exam: [104, 86, 8] }; // every level the same size, like Anna's
+const NODE = { n: [76, 63, 7], cur: [76, 63, 7], test: [76, 63, 7], exam: [76, 63, 7] }; // every level and the exam the same size, like Anna's
 // Readiness ring that hugs the button and its lip with a small even gap; starts at the top, runs clockwise.
 const levelRing = (p, [fw, fh, lip]) => {
   const g = 4, sw = 7.5, rx = fw / 2 + g + sw / 2, ry = (fh + lip) / 2 + g + sw / 2, W = 2 * rx + sw, H = 2 * ry + sw, cx = W / 2, cy = H / 2;

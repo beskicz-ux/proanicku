@@ -279,16 +279,16 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 .tut{position:absolute; z-index:2; width:84px; transform:translate(-50%,-62%); pointer-events:none}
 .tut svg{width:84px; height:auto; display:block}
 .exam{position:absolute; transform:translate(-50%,-50%); z-index:2; text-align:center; width:240px}
-/* The goal node: a big chunky gold coin with a trophy, always bright (like Anna's). */
+/* The goal node: a gold coin the same size as a level with a trophy, always bright (like Anna's). */
 .exam{--ef:#FFC531; --el:#E0A410; --ei:#7A4F00; --er:#FFC531}
 .exam .eb{position:relative; width:max-content; margin:14px auto 0}
 .exam .rg{position:absolute; left:50%; top:50%; overflow:visible; pointer-events:none}
 .exam .rg path{fill:none; stroke-width:7.5; stroke-linecap:round}
 .exam .rg-t{stroke:color-mix(in srgb, var(--er) 24%, transparent)}
 .exam .rg-p{stroke:var(--er)}
-.exam .c{width:104px; height:86px; border-radius:50%; display:grid; place-items:center; color:var(--ei);
-  background:linear-gradient(118deg, transparent 0 32%, #ffffff47 32% 48%, transparent 48%), radial-gradient(110% 80% at 50% 12%, #ffffff4d, transparent 60%), var(--ef); box-shadow:0 8px 0 var(--el), 0 13px 18px -6px #0004}
-.exam .c svg{width:48px; height:48px; filter:drop-shadow(0 2px 0 #ffffff59)}
+.exam .c{width:76px; height:63px; border-radius:50%; display:grid; place-items:center; color:var(--ei);
+  background:linear-gradient(118deg, transparent 0 32%, #ffffff47 32% 48%, transparent 48%), radial-gradient(110% 80% at 50% 12%, #ffffff4d, transparent 60%), var(--ef); box-shadow:0 7px 0 var(--el), 0 12px 16px -6px #0004}
+.exam .c svg{width:34px; height:34px; filter:drop-shadow(0 2px 0 #ffffff59)}
 .exam b{display:block; font:800 16px var(--head); margin-top:22px; color:var(--dtext)}
 .exam small{font:700 13px var(--font); color:var(--dtext); opacity:.8}
 
@@ -690,7 +690,7 @@ a.sc{color:var(--text); text-decoration:none}
 .exam b{color:var(--text)}
 @media (min-width:1200px){
   .n{transform:translate(-50%,-50%) scale(1.16)}
-  .exam{transform:translate(-50%,-50%) scale(1.1)}
+  .exam{transform:translate(-50%,-50%) scale(1.16)}
   .tut{width:124px} .tut svg{width:124px}
   .div:before,.div:after{height:2px; background:var(--line)}
   .div span{color:var(--text); font:800 19px var(--head); padding:0 10px}
