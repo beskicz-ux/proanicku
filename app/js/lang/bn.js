@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "তোমার স্লাইড থেকে,",
  "welcomeTitle2": "তোমার পরীক্ষার কোর্স।",
  "welcomeSub": "তোমার লেকচার আপলোড করো আর পরীক্ষার দিন পর্যন্ত ছড়িয়ে দেওয়া লেভেল, ফ্ল্যাশকার্ড ও কুইজ পাও।",
+ "welcomePrice": "প্রথম পাঠগুলো ফ্রি, পুরো কোর্স {price}।",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "লেভেল",
  "chipExam": "পরীক্ষা",

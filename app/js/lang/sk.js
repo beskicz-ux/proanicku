@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Z tvojich slajdov",
  "welcomeTitle2": "kurz na tvoju skúšku.",
  "welcomeSub": "Nahraj prednášky a získaj úrovne, kartičky a kvízy rozložené až do dňa skúšky.",
+ "welcomePrice": "Prvé lekcie zadarmo, celý kurz za {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "úrovne",
  "chipExam": "skúška",

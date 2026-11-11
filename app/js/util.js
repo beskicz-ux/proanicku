@@ -31,6 +31,12 @@ export async function api(action, body = {}) {
   return j;
 }
 
+// Course text is written by an AI from uploaded slides and shares an origin with Anna's Penny, so it never becomes live HTML:
+// raw HTML is shown as text, and links only go to web, mail or in-app addresses.
+if (globalThis.marked) marked.use({
+  renderer: { html: ({ text }) => esc(text) },
+  walkTokens(tok) { if ((tok.type === "link" || tok.type === "image") && !/^(https?:|mailto:|#)/i.test(String(tok.href || "").trim())) tok.href = "#"; },
+});
 export function md(text, inline = false) {
   const math = [];
   const t = String(text ?? "").replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (m, a, b) => { math.push([a ?? b, a != null]); return `@@M${math.length - 1}@@`; });

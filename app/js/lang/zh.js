@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "用你的幻灯片，",
  "welcomeTitle2": "做一门备考课程。",
  "welcomeSub": "上传你的讲义，就能得到分布到考试当天的关卡、闪卡和测验。",
+ "welcomePrice": "前几节课免费，完整课程 {price}。",
  "chipFiles": "PDF、PPTX",
  "chipLevels": "关卡",
  "chipExam": "考试",

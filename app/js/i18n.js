@@ -44,7 +44,8 @@ export const voiceMinutes = sec => t("voiceLeft", { n: Math.floor(sec / 60) });
 export const studyTime = ms => { const m = Math.round(ms / 60000), h = Math.floor(m / 60); return h ? t("timeHM", { h, m: m % 60 }) : t("timeM", { m }); };
 // Dates in the UI language: "pá 15. ledna".
 const parseD = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
-export const fmtDay = iso => { try { return parseD(iso).toLocaleDateString(lang(), { weekday: "short", day: "numeric", month: "long" }); } catch (e) { return iso; } };
+// The weekday in full: Czech "ne 20. prosince" reads as "not 20 December".
+export const fmtDay = iso => { try { return parseD(iso).toLocaleDateString(lang(), { weekday: "long", day: "numeric", month: "long" }); } catch (e) { return iso; } };
 export const fmtDateLong = iso => { try { return parseD(iso).toLocaleDateString(lang(), { day: "numeric", month: "long", year: "numeric" }); } catch (e) { return iso; } };
 export const fmtShortMonth = d => { try { return d.toLocaleDateString(lang(), { month: "short" }).replace(".", ""); } catch (e) { return ""; } };
 
@@ -282,6 +283,7 @@ D.cs = {
     welcomeTitle1: "Ze tvých slidů",
     welcomeTitle2: "kurz na zkoušku.",
     welcomeSub: "Nahraj přednášky a dostaneš z nich úrovně, kartičky a kvízy rozvržené až do dne zkoušky.",
+    welcomePrice: "První lekce zdarma, celý kurz za {price}.",
     chipFiles: "PDF, PPTX",
     chipLevels: "úrovně",
     chipExam: "zkouška",
@@ -626,6 +628,7 @@ D.en = {
     welcomeTitle1: "From your slides,",
     welcomeTitle2: "a course for your exam.",
     welcomeSub: "Upload your lectures and get levels, flashcards and quizzes spread out up to exam day.",
+    welcomePrice: "First lessons free, the full course is {price}.",
     chipFiles: "PDF, PPTX",
     chipLevels: "levels",
     chipExam: "exam",

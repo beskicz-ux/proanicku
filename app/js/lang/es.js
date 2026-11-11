@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "A partir de tus diapositivas,",
  "welcomeTitle2": "un curso para tu examen.",
  "welcomeSub": "Sube tus clases y consigue niveles, tarjetas y cuestionarios repartidos hasta el día del examen.",
+ "welcomePrice": "Las primeras lecciones son gratis, el curso completo cuesta {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "niveles",
  "chipExam": "examen",

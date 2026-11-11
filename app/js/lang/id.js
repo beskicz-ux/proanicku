@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Dari slide-mu,",
  "welcomeTitle2": "jadi kursus untuk ujianmu.",
  "welcomeSub": "Unggah materi kuliahmu dan dapatkan level, kartu belajar, dan kuis yang tersebar sampai hari ujian.",
+ "welcomePrice": "Pelajaran pertama gratis, kursus lengkap {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "level",
  "chipExam": "ujian",

@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Ze swoich slajdów",
  "welcomeTitle2": "zrób kurs na egzamin.",
  "welcomeSub": "Wgraj wykłady i dostań poziomy, fiszki i quizy rozłożone aż do dnia egzaminu.",
+ "welcomePrice": "Pierwsze lekcje za darmo, cały kurs kosztuje {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "poziomy",
  "chipExam": "egzamin",

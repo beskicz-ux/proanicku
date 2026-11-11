@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "من شرائحك،",
  "welcomeTitle2": "كورس لاختبارك.",
  "welcomeSub": "ارفع محاضراتك واحصل على مستويات وبطاقات تعليمية واختبارات قصيرة موزّعة حتى يوم الامتحان.",
+ "welcomePrice": "الدروس الأولى مجانية، والدورة كاملة بسعر {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "مستويات",
  "chipExam": "امتحان",

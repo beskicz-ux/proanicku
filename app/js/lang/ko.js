@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "내 슬라이드로",
  "welcomeTitle2": "시험 대비 코스를.",
  "welcomeSub": "강의 자료를 올리면 시험 당일까지 나눠진 레벨, 플래시카드, 퀴즈를 받을 수 있어요.",
+ "welcomePrice": "첫 레슨은 무료, 전체 코스는 {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "레벨",
  "chipExam": "시험",

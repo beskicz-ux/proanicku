@@ -208,8 +208,10 @@ function nodes() {
   out.forEach((n, i) => { n.cur = i === cur && !n.locked; n.next = cur >= 0 && i > cur; });
   return { list: out, cur };
 }
-const MAPMAX = 620; // widest the map gets; wider screens get the side panel instead of empty map
-const STEPY = 100, CURX = 60, DIVH = 84, TOPPAD = 310, BOTPAD = 120, EXAMY = 200;
+const MAPMAX = 590; // widest the map gets; wider screens get the side panel instead of empty map
+const TOPPAD = 310, BOTPAD = 120, EXAMY = 200;
+// Desktop (side panel showing) packs the nodes tighter with a gentler zig-zag; phones keep the roomier map.
+const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 94, CURX: 26, DIVH: 140, SWX: .78 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 // The goal at the top of the map: a solid flag on a gold button.
 const EXAM_FLAG = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2.5" width="2.8" height="19" rx="1.4" fill="currentColor"/><path d="M6.4 3.6h11.9c.8 0 1.2.9.7 1.5l-2.6 3.4 2.6 3.4c.5.6.1 1.5-.7 1.5H6.4z" fill="currentColor"/></svg>`;
@@ -225,7 +227,8 @@ function viewMap() {
   document.body.classList.add("map-page");
   view().innerHTML = `<div class="mlay"><div class="mmain"><div class="mtop">${topbar()}<div class="unitwrap"><div class="unit" id="unitHead"></div></div></div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div></div>${sidePanel(locked)}</div>`;
   bindTopbar();
-  const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = Math.min(1.7, W / 375);
+  const { STEPY, CURX, DIVH, SWX } = mapSpacing();
+  const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = SWX || Math.min(1.7, W / 375);
   mw.dataset.w = W;
   const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
   const chH = byCh.map(ns => DIVH + ns.length * STEPY + (ns.some(n => n.cur) ? CURX : 0));

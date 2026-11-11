@@ -569,3 +569,32 @@ a.sc{color:var(--text); text-decoration:none}
 .sc-ask svg{width:64px; height:64px; flex:none}
 .sc-ask b{display:block; font:800 17px var(--head)}
 .sc-ask span{color:var(--muted); font-size:15px}
+
+/* ---------- desktop map page (Duolingo-like spacing): map 590 · gap 48 · side 370, stats row on top of the side column ---------- */
+@media (min-width:1200px){
+  body.map-page .app{max-width:calc(590px + 48px + 370px + 56px)}
+  .mlay{grid-template-columns:minmax(0,590px) 370px; gap:48px}
+  .mlay > .mmain{position:relative}
+  /* the course switcher + readiness + countdown sit above the side cards; the map column starts with the unit header */
+  .mtop{padding-top:24px; background:var(--bg)}
+  .mtop .tb{position:absolute; top:18px; left:calc(100% + 48px); width:370px; padding:0; background:none; box-shadow:none}
+  .unitwrap{padding:0 0 12px}
+  .unit,.mtop .unit{min-height:90px; padding:16px 18px 16px 22px; box-sizing:border-box}
+  .unit b{font-size:22px}
+  .side{top:0; padding-top:96px}
+  /* chapter divider: thin line, muted title, no pill */
+  .div{padding:0 8px}
+  .div:before,.div:after{height:1px; background:var(--line)}
+  .div span{background:none; box-shadow:none; padding:0 6px; color:var(--muted); font:700 16px var(--head)}
+  .div span small{font-size:11px}
+}
+
+/* ---------- thin rounded page scrollbar on desktop (phones keep the native one) ---------- */
+@media (min-width:768px) and (hover:hover){
+  html::-webkit-scrollbar{width:8px; height:8px; background:transparent}
+  html::-webkit-scrollbar-track{background:transparent}
+  html::-webkit-scrollbar-thumb{background:var(--line); border-radius:99px}
+  html::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+  html::-webkit-scrollbar-button{display:none; width:0; height:0}
+  @supports (-moz-appearance:none){ html{scrollbar-width:thin; scrollbar-color:var(--line) transparent} }
+}

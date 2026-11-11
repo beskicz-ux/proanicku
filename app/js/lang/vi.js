@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Từ slide của bạn,",
  "welcomeTitle2": "thành khóa học cho kỳ thi.",
  "welcomeSub": "Tải bài giảng lên và nhận các cấp độ, thẻ ghi nhớ và bài kiểm tra được rải đều đến ngày thi.",
+ "welcomePrice": "Những bài đầu miễn phí, cả khóa học giá {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "cấp độ",
  "chipExam": "kỳ thi",

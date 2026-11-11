@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Из твоих слайдов",
  "welcomeTitle2": "курс к твоему экзамену.",
  "welcomeSub": "Загрузи лекции и получи уровни, карточки и тесты, распределённые до самого экзамена.",
+ "welcomePrice": "Первые уроки бесплатно, весь курс — {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "уровни",
  "chipExam": "экзамен",

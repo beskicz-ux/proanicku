@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "З твоїх слайдів",
  "welcomeTitle2": "курс до твого іспиту.",
  "welcomeSub": "Завантаж лекції й отримай рівні, картки та тести, розподілені до самого іспиту.",
+ "welcomePrice": "Перші уроки безкоштовно, весь курс — {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "рівні",
  "chipExam": "іспит",

@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "あなたのスライドから、",
  "welcomeTitle2": "試験対策コースを。",
  "welcomeSub": "講義資料をアップロードすると、試験当日までに配分されたレベル、フラッシュカード、クイズが手に入ります。",
+ "welcomePrice": "最初のレッスンは無料、コース全体は{price}。",
  "chipFiles": "PDF、PPTX",
  "chipLevels": "レベル",
  "chipExam": "試験",

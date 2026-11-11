@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Slaytlarından",
  "welcomeTitle2": "sınavına özel bir kurs.",
  "welcomeSub": "Derslerini yükle; sınav gününe kadar yayılmış seviyeler, bilgi kartları ve sınavlar al.",
+ "welcomePrice": "İlk dersler ücretsiz, kursun tamamı {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "seviyeler",
  "chipExam": "sınav",

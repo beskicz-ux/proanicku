@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "Aus deinen Folien",
  "welcomeTitle2": "ein Kurs für deine Prüfung.",
  "welcomeSub": "Lade deine Vorlesungen hoch und bekomm Level, Karteikarten und Quizze, verteilt bis zum Prüfungstag.",
+ "welcomePrice": "Die ersten Lektionen sind gratis, der ganze Kurs kostet {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "Level",
  "chipExam": "Prüfung",

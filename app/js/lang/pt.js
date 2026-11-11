@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "A partir dos seus slides,",
  "welcomeTitle2": "um curso para a sua prova.",
  "welcomeSub": "Envie suas aulas e receba níveis, flashcards e quizzes distribuídos até o dia da prova.",
+ "welcomePrice": "As primeiras lições são grátis, o curso completo custa {price}.",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "níveis",
  "chipExam": "prova",

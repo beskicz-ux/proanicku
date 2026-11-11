@@ -231,6 +231,7 @@ export default {
  "welcomeTitle1": "तुम्हारी स्लाइड से,",
  "welcomeTitle2": "तुम्हारे एग्ज़ाम का कोर्स।",
  "welcomeSub": "अपने लेक्चर अपलोड करो और एग्ज़ाम के दिन तक फैले लेवल, फ़्लैशकार्ड और क्विज़ पाओ।",
+ "welcomePrice": "पहले पाठ मुफ़्त, पूरा कोर्स {price} का।",
  "chipFiles": "PDF, PPTX",
  "chipLevels": "लेवल",
  "chipExam": "एग्ज़ाम",

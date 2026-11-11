@@ -50,10 +50,12 @@ function viewWelcome() {
     <div class="ob-wbody"><div class="ob-hero">${ham("happy", "bob")}</div>
     <h1 class="ob-display">${t("welcomeTitle1")} <em>${t("welcomeTitle2")}</em></h1>
     <p class="ob-sub">${t("welcomeSub")}</p>
-    <div class="ob-chips"><span>${t("chipFiles")}</span><i>→</i><span>${t("chipLevels")}</span><i>→</i><span>${t("chipExam")}</span></div></div>
+    <div class="ob-chips"><span>${t("chipFiles")}</span><i>→</i><span>${t("chipLevels")}</span><i>→</i><span>${t("chipExam")}</span></div>
+    <p class="ob-note c" id="priceNote" hidden></p></div>
     <div class="ob-foot">${d ? `<a class="btn-p" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : `<button class="btn-p" id="goStart">${t("welcomeStart")}</button>`}
       <a class="btn-t" href="#/login">${t("welcomeHave")}</a>${legalLinks()}</div></div>`;
   bindLang(); showBadge();
+  storeConfig().then(c => { const p = c.plans?.[0], el = $("#priceNote"); if (p && el) { el.textContent = t("welcomePrice", { price: `${p.price} ${c.currency}` }); el.hidden = false; } }).catch(() => { });
   const go = $("#goStart");
   if (go) go.onclick = async () => {
     go.disabled = true;
@@ -461,7 +463,16 @@ export function render() {
   document.querySelectorAll(".feedback,.confetti,#sh,#shDim").forEach(e => e.remove());
   document.body.classList.remove("plain", "map-page");
   window.onkeydown = null; window.onscroll = null;
-  const h = location.hash.replace(/^#/, "") || "/";
+  try { Promise.resolve(route()).catch(viewError); } catch (e) { viewError(e); }
+}
+// A view that couldn't load (no network, store.config or the API failing) shows why and a retry button, never a blank page.
+function viewError(e) {
+  console.error(e);
+  view().innerHTML = `<div class="ob ob-center">${ham("sad")}<h1 class="ob-h">${esc(errText(e?.code || (e instanceof TypeError ? "offline" : "server")))}</h1><div class="ob-foot"><button class="btn-p" id="again">${t("retry")}</button></div></div>`;
+  $("#again").onclick = render;
+}
+function route() {
+  const h = location.hash.replace(/^#/, "").split("?")[0] || "/"; // ?r= only forces a fresh render of the same lesson
   const parts = h.split("/").filter(Boolean);
   window.scrollTo({ top: 0, behavior: "instant" });
   if (!parts.length) return viewWelcome();
