@@ -62,7 +62,7 @@ function teacher(i, cls = "", scene = false) {
   const bob = scene ? `<animateTransform attributeName="transform" type="translate" dur="3.2s" repeatCount="indefinite" keyTimes="0;.5;1" values="0 0;0 -4;0 0"/>` : "";
   return `<svg class="teacher ${cls} ${scene ? "scene sc" + i : ""}" viewBox="${scene ? "0 0 196 134" : "0 0 124 134"}" aria-label="${esc(t.n)}" role="img">
 <ellipse class="tsh" cx="62" cy="128" rx="34" ry="5.5" fill="#000" opacity=".12"/>
-<g class="tj">${scene ? BODYMOVE[i % BODYMOVE.length] : ""}<g class="${scene ? "tbs" : "tb"}">${bob}${ears}
+<g class="tj">${scene ? BODYMOVE[i % BODYMOVE.length] : ""}<g class="${scene ? "tbs" : "tbody"}">${bob}${ears}
 <ellipse cx="60" cy="80" rx="42" ry="44" fill="${c}" ${K === "panda" ? `stroke="#e5e5e5" stroke-width="2"` : ""}/>
 <ellipse cx="60" cy="100" rx="26" ry="20" fill="${c2}"/>
 <ellipse cx="22" cy="98" rx="8" ry="12" fill="${K === "panda" ? ink : c}" transform="rotate(20 22 98)"/>

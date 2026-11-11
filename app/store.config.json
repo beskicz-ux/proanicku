@@ -11,7 +11,7 @@
     {
       "id": "course",
       "price": 299,
-      "highlight": true,
+      "interval": "once",
       "name": {
         "cs": "Kurz",
         "en": "Course"
@@ -30,6 +30,30 @@
           "A plan built around your test date",
           "Progress on all your devices",
           "Access for 12 months"
+        ]
+      }
+    },
+    {
+      "id": "pro",
+      "price": 399,
+      "interval": "month",
+      "highlight": true,
+      "name": {
+        "cs": "Pro",
+        "en": "Pro"
+      },
+      "features": {
+        "cs": [
+          "Až 5 nových předmětů každý měsíc",
+          "Hlasový tutor: 40 minut měsíčně",
+          "Všechno z Kurzu u každého předmětu",
+          "Zrušíš kdykoli, platí do konce měsíce"
+        ],
+        "en": [
+          "Up to 5 new subjects every month",
+          "Voice tutor: 40 minutes a month",
+          "Everything in Course, for every subject",
+          "Cancel anytime, it runs to the end of the month"
         ]
       }
     }

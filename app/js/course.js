@@ -163,6 +163,7 @@ export async function courseRoute(parts, nav, render) {
   if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(curTutor(), "bob"), topbar: "", onOut: () => { store.del("session"); nav("#/login"); } });
   if (sub === "lesson") return startLesson(arg);
   if (sub === "test") return startTest(+arg);
+  if (sub === "gold") return startGold(arg);
   if (sub === "review") return startReview(arg);
   nav("#/s/" + slug);
 }
@@ -193,14 +194,34 @@ function topbar() {
     <div class="mets"><a class="met ready" href="#/s/${SLUG}/progress" aria-label="${t("readinessTitle")}: ${r} %">${ringIcon(r)}<span>${r} %</span></a>
     ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
 }
+// The subject switcher: every course of the account, the current one ticked, and + New subject.
 function bindTopbar() {
   const title = C.meta.subject || C.meta.title || "";
-  $$(".subj").forEach(b => b.onclick = () => {
-    const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list">
-      <button class="subrow on" id="subCur"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${examDate() ? esc(fmtDay(examDate())) : ""}</small></div><i class="lok">${TICK}</i></button>
-      <button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("soon")}</small></div></button></div>`);
-    $("#subCur").onclick = s.close;
-    $("#subNew").onclick = () => { s.close(); toast(t("subjSoon")); };
+  $$(".subj").forEach(b => b.onclick = async () => {
+    const cur = `<button class="subrow on" data-slug="${esc(SLUG)}"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${examDate() ? esc(fmtDay(examDate())) : ""}</small></div><i class="lok">${TICK}</i></button>`;
+    const add = `<button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("subjNewSub")}</small></div></button>`;
+    const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list" id="subList">${cur}</div>`);
+    const wire = () => {
+      $$("#subList [data-slug]").forEach(x => x.onclick = async () => {
+        if (x.dataset.slug === SLUG) return s.close();
+        x.disabled = true;
+        try {
+          await SYNC.push();
+          const r = await api("switch_course", { session: TOKEN, slug: x.dataset.slug });
+          store.set("session", { token: r.session, slug: r.student.slug }); TOKEN = r.session; s.close(); resetCourse();
+          ctx.nav(r.course ? "#/s/" + r.student.slug : "#/wait");
+        } catch (e) { x.disabled = false; toast(errText(e.code)); }
+      });
+      const n = $("#subNew"); if (n) n.onclick = () => { s.close(); ctx.nav("#/new-subject"); };
+    };
+    wire();
+    try {
+      const a = await api("account", { session: TOKEN });
+      const list = $("#subList"); if (!list) return;
+      const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
+      list.innerHTML = (a.courses.length ? a.courses.map(row).join("") : cur) + (a.account ? add : "");
+      wire();
+    } catch (e) { /* offline: the current subject is enough */ }
   });
 }
 // One desktop frame for the map, practice and progress: a content column and a side column whose top is the stats row.
@@ -215,7 +236,7 @@ function framed(page, main) {
 function nodes() {
   const out = [];
   C.units.forEach((u, ui) => {
-    u.lessons.forEach((l, k) => out.push({ kind: "lesson", ui, l, k, done: lessonPct(l) >= 1, gold: l.items.length > 0 && l.items.every(solid), locked: !!l.locked }));
+    u.lessons.forEach((l, k) => out.push({ kind: "lesson", ui, l, k, done: lessonPct(l) >= 1, gold: l.items.length > 0 && (l.items.every(solid) || !!S.lessons["gold:" + l.id]), locked: !!l.locked }));
     const items = u.lessons.flatMap(l => l.items);
     if (items.length) { const r = S.lessons["test:" + (u.id || ui)]; out.push({ kind: "test", ui, done: !!r, gold: !!r && r.best >= .9, locked: u.lessons.some(l => l.locked) }); }
   });
@@ -227,9 +248,10 @@ const MAPMAX = 590; // widest the map gets; wider screens get the side panel ins
 // Top-down like a book: chapter divider, its levels, the next chapter, and the exam goal at the end.
 const TOPPAD = 120, EXAMH = 300;
 // Desktop (side panel showing) packs the nodes tighter with a gentler zig-zag; phones keep the roomier map.
-const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 106, CURX: 34, DIVH: 150, SWX: .8 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
+const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 106, CURX: 74, DIVH: 150, SWX: .8 } : { STEPY: 100, CURX: 60, DIVH: 84, SWX: 0 };
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
-// The goal at the top of the map: a solid flag on a gold button.
+// The goal at the end of the map: a solid trophy on a gold coin.
+const EXAM_CUP = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11v5.5a5.5 5.5 0 0 1-11 0z" fill="currentColor"/><path d="M6.6 5H3.8v1.6a3.6 3.6 0 0 0 3.4 3.6M17.4 5h2.8v1.6a3.6 3.6 0 0 1-3.4 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="10.8" y="13" width="2.4" height="4" fill="currentColor"/><rect x="7" y="17.5" width="10" height="3" rx="1.5" fill="currentColor"/></svg>`;
 const EXAM_FLAG = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2.5" width="2.8" height="19" rx="1.4" fill="currentColor"/><path d="M6.4 3.6h11.9c.8 0 1.2.9.7 1.5l-2.6 3.4 2.6 3.4c.5.6.1 1.5-.7 1.5H6.4z" fill="currentColor"/></svg>`;
 function examLine() {
   const left = daysToExam();
@@ -259,11 +281,11 @@ function viewMap() {
       pts.push([nx, ny]);
       const state = n.locked || n.next ? "nlock" : n.cur ? "cur" : n.gold ? "gold" : n.done ? "done" : "cur";
       const icon = n.kind === "test" ? LEVEL_ICONS.test : levelIcon(n.l.title, n.k);
-      const rp = n.locked || n.next ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l);
+      const rp = !n.cur ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l); // the ring only goes round the level in progress
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
-        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : state === "cur" ? "cur" : "n"])}${state === "cur" && n.cur ? `<span class="start">${t("startBubble")}</span>` : ""}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
+        ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}${state === "cur" && n.cur ? `<span class="start">${t("startBubble")}</span>` : ""}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; out += `<div class="tut" style="left:${nx > CX ? nx - 130 * sc : nx + 130 * sc}px;top:${ny}px">${ham("happy")}</div>`; }
       y += STEPY + big; k++;
     });
@@ -271,8 +293,8 @@ function viewMap() {
   });
   const EXAMY = y + 110, total = y + EXAMH;
   // Bright gold once every level is done or the exam is a week away; muted gold before that.
-  const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7), er = readiness();
-  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb">${levelRing(er, NODE.exam)}<div class="c">${EXAM_FLAG}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
+  const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7);
+  out += `<div class="exam ${near ? "near" : "far"}" style="top:${EXAMY}px;left:${CX}px"><div class="eb"><div class="c">${EXAM_CUP}</div></div><b>${t("exam")}</b><small>${esc(examLine())}</small></div>`;
   mw.style.height = total + "px"; mw.style.width = W + "px"; mw.innerHTML = out;
   // The header shows the chapter in view.
   const curIdx = cur < 0 ? list.length : cur;
@@ -296,6 +318,7 @@ function viewMap() {
     const st = b.dataset.state;
     if (st === "paywall") { TAPPED = b.dataset.lesson ?? null; return ACCESS.paid ? toast(t(ACCESS.status === "failed" ? "restFailed" : "restBuilding")) : ctx.nav("#/unlock"); }
     if (st === "next") return toast(t(b.dataset.test != null ? "testLocked" : "levelLocked"));
+    if (st === "gold") return goldSheet(b.dataset.lesson, b.dataset.test);
     ctx.nav(b.dataset.test != null ? `#/s/${SLUG}/test/${b.dataset.test}` : `#/s/${SLUG}/lesson/${b.dataset.lesson}`);
   });
   requestAnimationFrame(() => { scrollTo({ top: Math.max(0, mwTop() + (curPt >= 0 ? curY : EXAMY) - innerHeight * .55), behavior: "instant" }); onScroll(); });
@@ -379,6 +402,19 @@ function startTest(ui) {
   const items = shuffle(u.lessons.flatMap(l => l.items)).slice(0, 12);
   if (!items.length) return ctx.nav("#/s/" + SLUG);
   runSession({ title: `${t("testTitle")}: ${u.title}`, reading: [], items, test: u.id || ui, back: "#/s/" + SLUG });
+}
+// Gold (like Duolingo's Legendary): a finished level, every question once, no reading. 90 % on first tries turns it gold.
+const GOLD_AT = 90;
+function startGold(id) {
+  const l = LESSON[id];
+  if (!l || l.locked || !l.items.length) return ctx.nav("#/s/" + SLUG);
+  runSession({ title: l.title, reading: [], items: shuffle(l.items), gold: l, back: "#/s/" + SLUG });
+}
+function goldSheet(lessonId, test) {
+  const isTest = test != null, href = isTest ? `#/s/${SLUG}/test/${test}` : `#/s/${SLUG}/gold/${encodeURIComponent(lessonId)}`;
+  const s = sheet(`<div class="gold-ic" aria-hidden="true">${EXAM_CUP}</div><h2 class="sh-h">${t("goldTitle")}</h2><p class="sh-p">${t(isTest ? "goldTestSub" : "goldSub", { n: GOLD_AT })}</p>
+    <a class="btn-p gold-go" href="${href}" id="goldGo">${t("goldGo")}</a>${isTest ? "" : `<a class="btn-s" href="#/s/${SLUG}/lesson/${encodeURIComponent(lessonId)}" id="goldRep">${t("goldRepeat")}</a>`}`);
+  $$("a", s.el).forEach(a => a.addEventListener("click", () => s.close()));
 }
 function startReview(kind) {
   const list = kind === "due" ? dueIds().map(id => ITEM[id]) : kind === "mistakes" ? mistakeIds().map(id => ITEM[id])
@@ -555,11 +591,13 @@ function finish(st) {
   const pct = st.firstN ? Math.round(st.firstRight / st.firstN * 100) : st.answered ? Math.round(st.right / st.answered * 100) : 100;
   if (l) S.lessons[l.id] = { ts: Date.now(), best: Math.max(S.lessons[l.id]?.best || 0, lessonPct(l)) };
   if (st.test != null) { const k = "test:" + st.test; S.lessons[k] = { ts: Date.now(), best: Math.max(S.lessons[k]?.best || 0, pct / 100) }; }
+  const won = st.gold && pct >= GOLD_AT;
+  if (won) S.lessons["gold:" + st.gold.id] = { ts: Date.now(), best: pct / 100 };
   save(); SYNC.push();
   const more = l && lessonPct(l) < 1;
-  sfx.done(); confetti();
+  sfx.done(); if (!st.gold || won) confetti();
   const boxes = [[t("xp"), st.xp, "y"], [t("correct"), pct + " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), "b"]];
-  view().innerHTML = `<div class="done-screen">${tutorArt(curTutor(), "jump", "happy")}<div class="title">${t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle")}</div>${l || st.test != null ? `<p class="sub">${esc(st.title)}</p>` : ""}
+  view().innerHTML = `<div class="done-screen">${tutorArt(curTutor(), "jump", "happy")}<div class="title">${st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle")}</div>${l || st.test != null || st.gold ? `<p class="sub">${esc(st.title)}</p>` : ""}
     <div class="statboxes">${boxes.map(([h, v, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></div>
     ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : st.back}" id="endNext">${t("cont")}</a>`)}`;
 }
@@ -624,7 +662,8 @@ function viewSettings() {
       ${row("look", "look", t("setLook"), t({ auto: "lookAuto", light: "lookLight", dark: "lookDark" }[th] || "lookAuto"))}</div>
     <h2 class="grp">${t("grpAccount")}</h2><div class="sgrp">
       ${row("email", "mail", t("setEmail"), esc(email), { chev: false, cls: "static" })}
-      ${row("pay", "pay", t("setSubjects"), "1")}
+      ${row("pay", "pay", t("setSubjects"), "")}
+      <div id="proRow"></div>
       ${row("out", "out", t("setLogout"), "", { chev: false, cls: "muted" })}</div>
     <p class="set-foot"><a href="#/terms">${t("footTerms")}</a> · <a href="#/privacy">${t("footPrivacy")}</a> · <a href="#" id="contact">${t("footContact")}</a></p>
     <p class="set-foot"><a href="#" id="delAcc" class="del">${t("setDelete")}</a></p></div>`;
@@ -648,6 +687,27 @@ function viewSettings() {
     },
   };
   $$("[data-s]").forEach(b => b.onclick = () => H[b.dataset.s]?.());
+  api("account", { session: TOKEN }).then(a => {
+    const el = $("#proRow"); if (!el) return;
+    const sv = $('[data-s="pay"] .sv'); if (sv) sv.textContent = String(a.courses.length || 1);
+    if (a.pro?.status) { el.outerHTML = row("pro", "pay", t("setPro"), esc(proLine(a.pro))); $('[data-s="pro"]').onclick = () => proSheet(a.pro); }
+  }).catch(() => { });
+}
+const proDate = p => p.until ? fmtDay(new Date(Date.parse(p.until) - 86400e3).toISOString().slice(0, 10)) : ""; // pro_until carries a day of grace
+const proLine = p => !p.active ? t("proOff") : p.cancelAtEnd ? t("proEnds", { date: proDate(p) }) : t("proRenews", { date: proDate(p) });
+function proSheet(p) {
+  const s = sheet(`<h2 class="sh-h">${t("setPro")}</h2><p class="sh-p">${esc(proLine(p))}</p>
+    ${p.active ? `<p class="sh-p">${esc(t("proLeft", { n: p.newLeft, x: p.newPerWindow, m: Math.floor(p.voiceLeftSeconds / 60) }))}</p>` : ""}
+    ${p.active ? `<button class="${p.cancelAtEnd ? "btn-p" : "btn-s"}" id="proGo">${t(p.cancelAtEnd ? "proResume" : "proCancel")}</button>` : ""}`);
+  const b = $("#proGo"); if (!b) return;
+  b.onclick = async () => {
+    if (!p.cancelAtEnd && !confirm(t("proCancelQ", { date: proDate(p) }))) return;
+    b.disabled = true;
+    try {
+      const r = await api("pro_cancel", { session: TOKEN, resume: p.cancelAtEnd });
+      s.close(); toast(r.pro.cancelAtEnd ? t("proCanceled", { date: proDate(r.pro) }) : t("proResumed")); viewSettings();
+    } catch (e) { b.disabled = false; toast(errText(e.code)); }
+  };
 }
 async function saveStudent(fields) {
   try { const r = await api("update_student", { session: TOKEN, ...fields }); STUDENT = { ...STUDENT, ...(r.student || fields) }; toast(t("saved")); return true; }

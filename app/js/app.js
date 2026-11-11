@@ -260,8 +260,13 @@ function viewTutor() {
     btn.disabled = true;
     try { // the free lessons start building now, while the student makes an account
       await api("update_order", { orderToken: cur.orderToken, pages: cur.pages, tutor: cur.tutor, examDate: cur.examDate, minutes: cur.minutes || 20, days: 7, lang: courseLang() });
-      const { slug } = await api("queue_free", { orderToken: cur.orderToken });
-      const y = draft(); y.slug = slug; y.step = "account"; saveDraft(y);
+      const r = await api("queue_free", { orderToken: cur.orderToken });
+      if (r.session) { // another subject of a signed-in account: no account step
+        store.set("session", { token: r.session, slug: r.slug }); store.del("draft"); resetCourse();
+        if (r.proCap) toast(errText("pro_cap"));
+        return nav("#/wait");
+      }
+      const y = draft(); y.slug = r.slug; y.step = "account"; saveDraft(y);
       nav("#/new/account");
     } catch (e) { toast(errText(e.code)); btn.disabled = false; }
   };
@@ -329,9 +334,15 @@ async function viewUnlock() {
       <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
       <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
       ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
-  const plan = p => `<div class="st-plan"><div class="st-price"><b>${p.price} ${cur}</b><span>${t("stOnce")}</span></div>
-      ${left > 0 ? `<p class="st-perday">${esc(t("stPerDay").replace("%", `${Math.max(1, Math.round(p.price / left))} ${cfg.currency}`))}</p>` : ""}
-      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul></div>`;
+  const pro = st.pro, proOpen = pro?.active && pro.newLeft > 0;
+  const buy = p => `<button class="${p.highlight ? "btn-p" : "btn-s"}" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${cur}${p.interval === "month" ? " / " + t("stMonthShort") : ""}</button>`;
+  const plan = p => `<div class="st-plan${p.highlight ? " hi" : ""}"><div class="st-price"><b>${p.price} ${cur}</b><span>${t(p.interval === "month" ? "stMonth" : "stOnce")}</span></div>
+      <h3 class="st-pname">${esc(L(p.name) || "")}</h3>
+      ${left > 0 && p.interval !== "month" ? `<p class="st-perday">${esc(t("stPerDay").replace("%", `${Math.max(1, Math.round(p.price / left))} ${cfg.currency}`))}</p>` : ""}
+      <ul>${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>${buy(p)}</div>`;
+  // Already Pro: this subject opens from the month's allowance. Allowance used up: only the one-off course is sold.
+  const plans = proOpen ? `<div class="st-plan hi"><h3 class="st-pname">Pro</h3><p>${esc(t("stProOn"))}</p><p class="st-perday">${esc(t("stProLeft", { n: pro.newLeft, x: pro.newPerWindow }))}</p><button class="btn-p" data-pro>${t("stProOpen")}</button></div>`
+    : (pro?.active ? `<p class="ob-note">${esc(errText("pro_cap"))}</p>` : "") + cfg.plans.filter(p => !(pro?.active && p.id === "pro")).map(plan).join("");
   view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
     <div class="st-grid"><div class="st-main">
       <div class="st-hero"><div class="st-art">${tutorArt(info?.tutor || "penny")}</div><p class="st-say">${t("stSay")}</p></div>
@@ -340,14 +351,19 @@ async function viewUnlock() {
       ${what}${tl}
     </div><aside class="st-pay">
       ${cfg.testMode ? `<div class="ob-test" role="note">${t("storeTest")}</div>` : ""}
-      ${cfg.plans.map(plan).join("")}
       <label class="ob-check"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
-      ${cfg.plans.map(p => `<button class="btn-p" data-plan="${p.id}">${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${p.price} ${cur}</button>`).join("")}
+      ${plans}
       <p class="ob-note c">${t("storeSecure")}</p>
       <a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a>
     </aside></div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
+  const proBtn = $("[data-pro]");
+  if (proBtn) proBtn.onclick = async () => {
+    $("#err").hidden = true; proBtn.disabled = true;
+    try { await api("pro_unlock", { session: s.token }); resetCourse(); confetti(); sfx.done(); toast(t("unlockDone")); nav("#/s/" + s.slug); }
+    catch (e) { fail($("#err"), e); proBtn.disabled = false; }
+  };
   $$("[data-plan]").forEach(b => b.onclick = async () => {
     const label = b.textContent;
     $("#err").hidden = true;
@@ -477,6 +493,23 @@ async function viewWait() {
   poll();
 }
 
+/* ---------- another subject for a signed-in account: the same setup, without the account step ---------- */
+async function newSubject() {
+  hideNav(); plain();
+  const s = session(); if (!s) return nav("#/login");
+  const d = draft();
+  if (d?.acct) return nav("#/new/" + (d.step || "files")); // one in progress already
+  view().innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`;
+  try {
+    const { orderToken } = await api("new_subject", { session: s.token, lang: courseLang() });
+    saveDraft({ orderToken, step: "files", files: [], days: 7, acct: true });
+    nav("#/new/files");
+  } catch (e) {
+    if (e.status === 401) { store.del("session"); return nav("#/login"); }
+    toast(errText(e.code)); nav("#/s/" + s.slug);
+  }
+}
+
 /* ---------- router ---------- */
 export function render() {
   clearTimeout(waitTimer); clearTimeout(paidTimer);
@@ -503,6 +536,7 @@ function route() {
   if (parts[0] === "privacy") return viewPrivacy();
   if (parts[0] === "terms") return viewTerms();
   if (parts[0] === "paid") return viewPaid();
+  if (parts[0] === "new-subject") return newSubject();
   if (parts[0] === "new") {
     hideNav(); plain();
     const d = draft();
