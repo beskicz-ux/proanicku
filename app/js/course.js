@@ -380,7 +380,14 @@ const MAPMAX = 590; // widest the map gets; wider screens get the side panel ins
 // Top-down like a book: chapter divider, its levels, the next chapter, and the exam goal at the end.
 const TOPPAD = 8, EXAMH = 300, BANH = 112; // BANH: a unit banner plus the gap under it
 // Desktop (side panel showing) packs the nodes tighter with a gentler zig-zag; phones keep the roomier map.
-const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 142, CURX: 0, SWX: .8 } : { STEPY: 138, CURX: 0, SWX: 0 };
+// the short name under a level: the course's own short title if it has one, else the topic half of "Topic: detail"
+const mapName = l => {
+  if (l.short) return l.short;
+  const t = (l.title || "").trim(); if (t.length <= 24) return t;
+  const parts = t.split(/\s*[:–—]\s+|\s+-\s+/).filter(Boolean);
+  return parts.length > 1 && parts[0].split(" ").length > 1 ? parts[0] : t;
+};
+const mapSpacing = () => matchMedia("(min-width:1200px)").matches ? { STEPY: 166, CURX: 0, SWX: .8 } : { STEPY: 158, CURX: 0, SWX: 0 };
 const SWAY = [0, 56, 74, 40, -12, -58, -74, -40];
 // The goal at the end of the map: a solid trophy on a gold coin.
 const EXAM_CUP = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11v5.5a5.5 5.5 0 0 1-11 0z" fill="currentColor"/><path d="M6.6 5H3.8v1.6a3.6 3.6 0 0 0 3.4 3.6M17.4 5h2.8v1.6a3.6 3.6 0 0 1-3.4 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="10.8" y="13" width="2.4" height="4" fill="currentColor"/><rect x="7" y="17.5" width="10" height="3" rx="1.5" fill="currentColor"/></svg>`;
@@ -419,7 +426,7 @@ function viewMap() {
       const rp = !n.cur ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l); // the ring only goes round the level in progress
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
-      const name = n.kind === "test" ? t("unitQuiz") : n.l.title, chip = n.kind === "test" || !TAGS?.[n.l.id] ? "" : `<i>${esc(TAGS[n.l.id])}</i>`;
+      const name = n.kind === "test" ? t("unitQuiz") : mapName(n.l), chip = n.kind === "test" || !TAGS?.[n.l.id] ? "" : `<i>${esc(TAGS[n.l.id])}</i>`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
         ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button><span class="nl" aria-hidden="true">${esc(name)}${chip}</span></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; }
