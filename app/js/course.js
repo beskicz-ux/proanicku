@@ -6,7 +6,7 @@ import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
 import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
-import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel } from "./app.js";
+import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel, startNewSubject } from "./app.js";
 
 const DAY = 86400000;
 export const TUTORS = [
@@ -123,6 +123,23 @@ export async function storeInfo(slug) {
     units: C.units.map((u, ci) => ({ ci, title: u.title, n: u.lessons.filter(l => l.locked).length })).filter(u => u.n) };
 }
 
+/* ---------- presentation tags (1A, 1B, 2A…) ---------- */
+// A level shows a chip like "1A" only when the student's own presentations are tagged that way: every lesson's source
+// carries a tag (Anna's lecture ids, or a tag in the file name such as "1A Derivace.pdf" / "prednaska_2b.pptx") and
+// there are at least two different ones. Otherwise no chip: we never invent numbering the slides don't have.
+let TAGS = null;
+const fileTag = f => { const m = String(f || "").replace(/\.[a-z0-9]{2,5}$/i, "").match(/(?:^|[\s_\-.(\[])0?(\d{1,2})\s?([a-z])(?=$|[\s_\-.)\]])/i); return m ? m[1] + m[2].toUpperCase() : ""; };
+function lessonTags() {
+  const out = {}, seen = new Set();
+  for (const l of allLessons()) {
+    const src = [...(l.reading || []), ...l.items].map(x => x.source).find(Boolean);
+    const tag = src?.lecture ? String(src.lecture).toUpperCase() : fileTag(src?.file);
+    if (!tag) return null;
+    out[l.id] = tag; seen.add(tag);
+  }
+  return seen.size >= 2 ? out : null;
+}
+
 /* ---------- load ---------- */
 async function loadCourse(slug) {
   const sess = store.get("session");
@@ -138,6 +155,7 @@ async function loadCourse(slug) {
   if (voice) C.meta.voice = voice.enabled;
   ITEM = {}; LESSON = {};
   for (const l of allLessons()) { LESSON[l.id] = l; for (const it of l.items) { it._l = l.id; ITEM[it.id] = it; } }
+  TAGS = lessonTags();
   S = Object.assign(defaults(), store.get(lsKey(), {}));
   await SYNC.pull();
 }
@@ -195,35 +213,134 @@ function topbar() {
     ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
 }
 // The subject switcher: every course of the account, the current one ticked, and + New subject.
+// The account's list is fetched when the top bar is drawn and kept, so the sheet opens complete (no row popping in later);
+// opening it refreshes the list quietly and only redraws if something changed.
+let ACCT = null; // { token, a }: the last account reply for this session
+const acctFetch = () => { const tk = TOKEN; return api("account", { session: tk }).then(a => (ACCT = { token: tk, a }, a)); };
 function bindTopbar() {
   const title = C.meta.subject || C.meta.title || "";
+  if (ACCT?.token !== TOKEN) { ACCT = { token: TOKEN, a: null }; acctFetch().catch(() => { }); }
+  const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
+  const add = `<button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("subjNewSub")}</small></div></button>`;
+  const me = { slug: SLUG, current: true, ready: true, paid: ACCESS.paid };
+  // Before the first reply: this subject, and + New subject when signed in with an account (an e-mail is stored).
+  const rows = a => a ? (a.courses.length ? a.courses : [me]).map(row).join("") + (a.account ? add : "") : row(me) + (store.get("email") ? add : "");
   $$(".subj").forEach(b => b.onclick = async () => {
-    const cur = `<button class="subrow on" data-slug="${esc(SLUG)}"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${examDate() ? esc(fmtDay(examDate())) : ""}</small></div><i class="lok">${TICK}</i></button>`;
-    const add = `<button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("subjNewSub")}</small></div></button>`;
-    const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list" id="subList">${cur}</div>`);
-    const wire = () => {
-      $$("#subList [data-slug]").forEach(x => x.onclick = async () => {
-        if (x.dataset.slug === SLUG) return s.close();
-        x.disabled = true;
-        try {
-          await SYNC.push();
-          const r = await api("switch_course", { session: TOKEN, slug: x.dataset.slug });
-          store.set("session", { token: r.session, slug: r.student.slug }); TOKEN = r.session; s.close(); resetCourse();
-          ctx.nav(r.course ? "#/s/" + r.student.slug : "#/wait");
-        } catch (e) { x.disabled = false; toast(errText(e.code)); }
-      });
-      const n = $("#subNew"); if (n) n.onclick = () => { s.close(); ctx.nav("#/new-subject"); };
-    };
-    wire();
+    if (HOVER.matches) return popOpen(b, "subj"); // a mouse: the subjects drop down under the button instead of a sheet
+    const html = rows(ACCT?.a);
+    const s = sheet(`<h2 class="sh-h">${t("subjTitle")}</h2><div class="sh-list" id="subList">${html}</div>`);
+    wireSubjects(s.el, s.close);
     try {
-      const a = await api("account", { session: TOKEN });
-      const list = $("#subList"); if (!list) return;
-      const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
-      list.innerHTML = (a.courses.length ? a.courses.map(row).join("") : cur) + (a.account ? add : "");
-      wire();
-    } catch (e) { /* offline: the current subject is enough */ }
+      const fresh = rows(await acctFetch()), list = s.el.querySelector(".sh-list");
+      if (list && s.el.isConnected && fresh !== html) { list.innerHTML = fresh; wireSubjects(s.el, s.close); }
+    } catch (e) { /* offline: what we had is enough */ }
   });
+  // With a mouse, the subject button, the readiness ring and the countdown each open a little card on hover (like
+  // Duolingo's streak card). Clicking the ring or the countdown still opens Progress.
+  if (HOVER.matches) $$(".tb").forEach(tb => {
+    const [ready, exam] = tb.querySelectorAll(".met");
+    [[tb.querySelector(".subj"), "subj"], [ready, "ready"], [exam, "exam"]].forEach(([el, kind]) => {
+      if (!el) return;
+      el.onmouseenter = () => { clearTimeout(popT); popT = setTimeout(() => popOpen(el, kind), POP ? 0 : 90); };
+      el.onmouseleave = () => { clearTimeout(popT); popT = setTimeout(popClose, 200); };
+      el.onfocus = () => popOpen(el, kind);
+    });
+  });
+  subjRows = rows;
 }
+let subjRows = () => "";
+// The subject rows work the same in the sheet (phone) and the drop-down (mouse): pick one to switch, + to start a new one.
+function wireSubjects(root, close) {
+  root.querySelectorAll("[data-slug]").forEach(x => x.onclick = async () => {
+    if (x.dataset.slug === SLUG) return close();
+    x.disabled = true;
+    try {
+      await SYNC.push();
+      const r = await api("switch_course", { session: TOKEN, slug: x.dataset.slug });
+      store.set("session", { token: r.session, slug: r.student.slug }); TOKEN = r.session; close(); resetCourse();
+      ctx.nav(r.course ? "#/s/" + r.student.slug : "#/wait");
+    } catch (e) { x.disabled = false; toast(errText(e.code)); }
+  });
+  // + New subject: the row shows it's working and stays until the setup is ready, then the files step opens
+  const n = root.querySelector(".subrow.add"); if (n) n.onclick = async () => {
+    n.disabled = true; n.classList.add("busy");
+    try { const to = await startNewSubject(); close(); ctx.nav(to); }
+    catch (e) { n.disabled = false; n.classList.remove("busy"); toast(errText(e.code)); }
+  };
+}
+
+/* ---------- hover cards on the top bar: subjects, readiness, countdown ---------- */
+const HOVER = matchMedia("(hover:hover) and (pointer:fine)");
+let POP = null, popT = 0;
+// days in a row with any study, counting back from today (or from yesterday while today is still open)
+function studyStreak() {
+  let d = today(), n = 0;
+  if (!(S.xp[d] > 0)) d = addDays(d, -1);
+  while (S.xp[d] > 0) { n++; d = addDays(d, -1); }
+  return n;
+}
+function nextStep() {
+  const l = openLessons().find(x => lessonPct(x) < 1);
+  return l ? [`#/s/${SLUG}/lesson/${encodeURIComponent(l.id)}`, `${t("popGo")}: ${l.title}`] : [`#/s/${SLUG}/practice`, t("popGo")];
+}
+const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.1l-5.9 3.1 1.2-6.5L2.5 9.1l6.6-.9z"/></svg>`;
+function popHtml(kind) {
+  if (kind === "subj") return `<div class="hc-lbl">${t("popCourses")}</div><div class="hc-list">${subjRows(ACCT?.a)}</div>`;
+  const [href, go] = nextStep();
+  if (kind === "ready") {
+    // a round flask that fills to the readiness with a wobbling surface and rising bubbles; the number counts up
+    const r = readiness(), ls = openLessons(), done = ls.filter(l => lessonPct(l) >= 1).length;
+    const wave = "M0 6 Q 12.5 0 25 6 T 50 6 T 75 6 T 100 6 T 125 6 T 150 6 T 175 6 T 200 6 V 120 H 0 Z";
+    return `<div class="hc-top"><div class="flask" style="--lvl:${Math.max(3, r)}%" aria-hidden="true"><i class="fl-liq"><svg viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg><svg class="w2" viewBox="0 0 200 120" preserveAspectRatio="none"><path d="${wave}"/></svg></i>
+        <i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i><i class="fl-shine"></i><b class="fl-n" data-to="${r}">0 %</b></div>
+      <div class="hc-t"><b>${t("readinessTitle")}</b><p>${t("popReadySub")}</p></div></div>
+      <div class="hc-row"><span class="hc-chip">${esc(t("doneOf", { x: done, y: ls.length }))}</span></div><a class="btn-p hc-go" href="${href}">${esc(go)}</a>`;
+  }
+  // a tear-off calendar: yesterday's page flips away and shows the days left; the last 7 days as stars you collected
+  const ex = examDate(), left = Math.max(0, daysToExam()), now = today(), streak = studyStreak();
+  const stars = [...Array(7)].map((_, i) => { const d = addDays(now, i - 6); return `<i class="st${S.xp[d] > 0 ? " on" : ""}${d === now ? " now" : ""}" style="--i:${i}">${STAR}</i>`; }).join("");
+  return `<div class="hc-top"><div class="tear" aria-hidden="true"><i class="tr-ring"></i><i class="tr-ring r2"></i><div class="tr-pg tr-under"><b>${left}</b></div><div class="tr-pg tr-off"><b>${left + 1}</b></div></div>
+      <div class="hc-t"><b>${esc(daysTxt(left))} ${t("toExam")}</b><p>${esc(fmtDay(ex))}</p></div></div>
+    <div class="hc-stars"><div class="sts">${stars}</div><p>${streak ? `<b>${esc(daysTxt(streak))}</b> ${t("inARow")}` : t("popStreakNone")}</p></div>
+    <a class="btn-p hc-go" href="${href}">${esc(go)}</a>`;
+}
+// counts the flask's number up while it fills
+function countUp(el) {
+  const n = el.querySelector(".fl-n"); if (!n) return;
+  const to = +n.dataset.to, t0 = performance.now(), dur = matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 900;
+  const tick = now => { const k = dur ? Math.min(1, (now - t0 - 150) / dur) : 1, e = 1 - Math.pow(1 - Math.max(0, k), 3); n.textContent = Math.round(to * e) + " %"; if (k < 1 && el.isConnected) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function popClose(now) {
+  clearTimeout(popT);
+  const p = POP; if (!p) return;
+  POP = null; p.trig.classList.remove("popped"); p.el.classList.remove("in");
+  if (now === true) p.el.remove(); else setTimeout(() => p.el.remove(), 170);
+}
+function popOpen(trig, kind) {
+  clearTimeout(popT);
+  if (POP?.trig === trig) return;
+  popClose(true);
+  const el = document.createElement("div");
+  el.className = "hc hc-" + kind; el.setAttribute("role", kind === "subj" ? "menu" : "dialog");
+  el.innerHTML = popHtml(kind);
+  document.body.append(el);
+  const r = trig.getBoundingClientRect(), w = el.offsetWidth, left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2));
+  el.style.left = left + "px"; el.style.top = r.bottom + 12 + "px"; el.style.setProperty("--ax", r.left + r.width / 2 - left + "px");
+  POP = { el, trig }; trig.classList.add("popped");
+  el.onmouseenter = () => clearTimeout(popT);
+  el.onmouseleave = () => { clearTimeout(popT); popT = setTimeout(popClose, 200); };
+  el.querySelectorAll("a").forEach(a => a.addEventListener("click", () => popClose(true)));
+  if (kind === "subj") {
+    wireSubjects(el, () => popClose(true));
+    acctFetch().then(a => { const list = el.querySelector(".hc-list"), fresh = subjRows(a); if (list && el.isConnected && list.innerHTML !== fresh) { list.innerHTML = fresh; wireSubjects(el, () => popClose(true)); } }).catch(() => { });
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
+  if (kind === "ready") countUp(el);
+}
+addEventListener("keydown", e => { if (e.key === "Escape") popClose(); });
+addEventListener("scroll", () => { if (POP) popClose(true); }, { passive: true });
+addEventListener("hashchange", () => popClose(true));
 // One desktop frame for the map, practice and progress: a content column and a side column whose top is the stats row.
 // Below 1200px the side column is hidden and the page is the content column alone (its own top bar shows instead).
 function framed(page, main) {
@@ -287,7 +404,7 @@ function viewMap() {
       const rp = !n.cur ? null : n.kind === "test" ? chapterReady(ui) : lessonReady(n.l); // the ring only goes round the level in progress
       const label = (n.kind === "test" ? `${t("testTitle")}: ${u.title}` : n.l.title) + (rp == null ? "" : ` · ${rp} % ${t("readiness")}`);
       const key = n.kind === "test" ? `data-test="${ui}"` : `data-lesson="${esc(n.l.id)}"`;
-      const name = n.kind === "test" ? t("unitQuiz") : n.l.title, chip = n.kind === "test" ? "" : `<i>${ui + 1}${String.fromCharCode(65 + n.k)}</i>`;
+      const name = n.kind === "test" ? t("unitQuiz") : n.l.title, chip = n.kind === "test" || !TAGS?.[n.l.id] ? "" : `<i>${esc(TAGS[n.l.id])}</i>`;
       out += `<div class="n ${state} ${n.kind === "test" ? "test" : ""}" style="left:${nx}px;top:${ny}px;--chc:${col}">
         ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button><span class="nl" aria-hidden="true">${esc(name)}${chip}</span></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; }
@@ -386,7 +503,7 @@ function viewNotes(arg) {
     return `<section class="nch" id="nch${ui}" style="--chc:${col}"><div class="nch-h"><div><small>${t("chapter", { n: ui + 1 })}${line}</small><b>${esc(u.title)}</b></div><span class="nch-ic">${NOTES_ICON}</span></div>${rows}${lockRows}${empty}</section>`;
   }).join("");
   const banner = `<div class="banner c-blue nbanner"><div class="t"><h2>${t("notesTitle")}</h2><p>${t("notesBanner")}</p>${all ? `<span class="nb-count">${t("notesRead", { x: read, y: all })}</span>` : ""}</div><div class="art">${tutorArt(curTutor())}</div><i class="arc"></i><i class="cloud"></i></div>`;
-  view().innerHTML = `${topbar()}<div class="pg notes-pg">${banner}${C.units.length ? chapters : `<p class="note-empty">${t("notesNone")}</p>`}</div>`;
+  view().innerHTML = framed("notes", `${topbar()}<div class="pg notes-pg">${banner}${C.units.length ? chapters : `<p class="note-empty">${t("notesNone")}</p>`}</div>`);
   bindTopbar();
   // opening a section counts as reading it
   $$("details.note").forEach(d => d.addEventListener("toggle", () => {

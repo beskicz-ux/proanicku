@@ -151,13 +151,20 @@ export function sheet(html, { onClose } = {}) {
   sh.innerHTML = `<div class="sh-hdl" aria-hidden="true"></div>${html}`;
   document.body.append(dim, sh);
   requestAnimationFrame(() => { dim.classList.add("in"); sh.classList.add("in"); });
-  const close = () => { closeSheet(); onClose?.(); };
-  dim.onclick = close;
+  let shut = false;
   const esc_ = e => { if (e.key === "Escape") close(); };
-  document.addEventListener("keydown", esc_, { once: true });
+  const close = () => { if (shut) return; shut = true; document.removeEventListener("keydown", esc_); fadeOut(sh, dim); onClose?.(); };
+  dim.onclick = close;
+  document.addEventListener("keydown", esc_);
   return { el: sh, close };
 }
+// Closing slides/fades the sheet out (the same way it came in) and removes it after; a new sheet replaces it at once.
 export function closeSheet() { $("#sh")?.remove(); $("#shDim")?.remove(); }
+function fadeOut(...els) {
+  const now = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  // its ids go at once, so a sheet opened during the fade never finds this one's buttons with $("#…")
+  for (const e of els) { for (const x of [e, ...e.querySelectorAll("[id]")]) x.removeAttribute("id"); e.classList.remove("in"); if (now) e.remove(); else setTimeout(() => e.remove(), 280); }
+}
 
 /* ---------- appearance: auto follows the system, or a forced light/dark ---------- */
 export function applyTheme() {

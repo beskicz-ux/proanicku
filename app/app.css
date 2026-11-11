@@ -135,6 +135,7 @@ body.plain .app{padding-bottom:0}
 .car::-webkit-scrollbar{display:none}
 .slot{flex:0 0 180px; scroll-snap-align:center; display:flex; justify-content:center; cursor:pointer}
 .fig{transition:transform .08s linear, opacity .08s linear; transform-origin:50% 90%}
+.car.jump .fig{transition:none}
 .fig svg{width:180px; height:auto; display:block}
 .car-floor{height:14px; width:170px; margin:-6px auto 0; border-radius:50%; background:radial-gradient(closest-side, #0000001f, transparent)}
 .tinfo{text-align:center; margin-top:14px}
@@ -187,6 +188,7 @@ body.plain .app{padding-bottom:0}
 .sh{position:fixed; left:0; right:0; bottom:0; z-index:61; max-width:520px; margin:0 auto; max-height:88dvh; overflow:auto; box-sizing:border-box; background:var(--surface); color:var(--text);
   border-radius:26px 26px 0 0; padding:8px 18px calc(18px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .26s cubic-bezier(.2,.8,.2,1); overscroll-behavior:contain}
 .sh.in{transform:none}
+.sh:not(.in),.sh-dim:not(.in){pointer-events:none} /* a closing sheet never catches a tap */
 .sh-hdl{width:44px; height:5px; border-radius:5px; background:var(--line); margin:4px auto 10px}
 .sh-h{font:800 22px var(--head); text-align:center; margin:4px 0 16px}
 .sh-search{display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:16px; padding:0 14px; min-height:52px; color:var(--muted)}
@@ -206,6 +208,8 @@ body.plain .app{padding-bottom:0}
 .subrow b{display:block; font:800 16px var(--head)}
 .subrow small{color:var(--muted); font-size:14px}
 .subrow.add .sq{background:var(--fill); color:var(--muted)}
+.subrow.busy{cursor:progress} .subrow.busy .sq{font-size:0}
+.subrow.busy .sq:after{content:""; width:18px; height:18px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--accent); animation:spin .8s linear infinite}
 .chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:6px 0 18px}
 .chip{border:1.5px solid var(--line); background:var(--surface); color:var(--text); border-radius:999px; padding:10px 16px; font:700 15px var(--font); cursor:pointer}
 .chip.on{border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink)}
@@ -385,7 +389,9 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 /* numbers that change don't jump */
 .met,.pt b,.pch em,.dbig b,.dbig span,.ob-plan .price,.srow .sv,.unit small,.exam small,.ob-sum,.pc-code b{font-variant-numeric:tabular-nums}
 /* loading state instead of a lone "…" */
-.loading{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-height:70dvh; color:var(--muted)}
+.loading{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-height:70dvh; color:var(--muted); animation:loadIn .2s .3s both}
+/* a quick load shows nothing instead of a spinner that flashes for a frame */
+@keyframes loadIn{from{opacity:0}}
 .loading i{width:44px; height:44px; border-radius:50%; border:4px solid var(--line); border-top-color:var(--accent); animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){ .loading i{animation-duration:2.4s} }
@@ -673,7 +679,10 @@ a.sc{color:var(--text); text-decoration:none}
   .side .pc-unlock svg{width:36px; height:36px}
   .side .pc-unlock b{font:800 19px var(--head)}
   .side .pc-unlock span{font-size:15px; margin-top:2px}
-  .pg-practice .mmain, .pg-progress .mmain{padding-top:28px}
+  .pg-practice .mmain, .pg-progress .mmain, .pg-notes .mmain{padding-top:28px}
+  /* the Practice and Notes banners start at the same height as the Progress hero */
+  .pg-practice .mmain > .pg, .pg-notes .mmain > .pg{padding-top:0}
+  .pg-practice .mmain > .pg > .banner:first-child, .pg-notes .mmain > .pg > .banner:first-child{margin-top:0; min-height:176px; box-sizing:border-box}
   .prof-hero{margin:0; border-radius:20px; min-height:260px; padding-top:22px}
 }
 
@@ -734,7 +743,7 @@ a.sc{color:var(--text); text-decoration:none}
   .prof .prof-hero{margin:0; min-height:240px}
   .prof .prof-art, .prof .prof-art svg{width:200px}
   .prof > .prof-t{padding:20px 0 4px}
-  .pg-progress .pg, .pg-practice .pg{padding-inline:0}
+  .pg-progress .pg, .pg-practice .pg, .pg-notes .pg{padding-inline:0}
 }
 /* Mobile map: the unlock card must not touch the chapter banner. */
 body.map-page .mmain > .pc-unlock{margin-top:14px}
@@ -875,14 +884,22 @@ body.map-page .mmain > .pc-unlock{margin-top:14px}
 }
 
 /* Map unlock card: matches the store's payment card. */
-body .pc-unlock{background:var(--surface); border:2px solid var(--accent); color:var(--text); gap:14px; align-items:center}
-.pc-unlock .ul-ic{width:44px; height:44px; flex:none; display:grid; place-items:center; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink)}
+/* A solid violet button-card on a lip (like the buy button): white text, a gold lock coin, an arrow chip. Hover lifts it,
+   pressing pushes it onto its lip. Same violet as the store hero so the tap continues straight into the store. */
+body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px; align-items:center; border:none; color:#fff;
+  background:linear-gradient(135deg, #7B6CF6, #5A49E0); box-shadow:0 6px 0 #4234B8, 0 12px 20px -8px #4234B888; transition:transform .12s ease, box-shadow .12s ease, filter .2s ease}
+.pc-unlock:before{content:""; position:absolute; right:-40px; top:-60px; width:170px; height:170px; border-radius:50%; background:#ffffff14; z-index:-1}
+.pc-unlock .ul-ic{width:46px; height:46px; flex:none; display:grid; place-items:center; border-radius:50%; background:#FFC531; color:#7A4F00; box-shadow:0 3px 0 #E0A410}
 .pc-unlock .ul-ic svg, body .side .pc-unlock .ul-ic svg{width:22px; height:22px}
 .pc-unlock div{flex:1; min-width:0}
-.pc-unlock span{color:var(--muted)}
-.pc-unlock .ul-go{flex:none; display:grid; color:var(--accent-ink)}
+.pc-unlock b{color:#fff}
+.pc-unlock span{color:#ffffffd9}
+.pc-unlock .ul-go{flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:#fff; color:#5A49E0; box-shadow:0 3px 0 #ffffff59}
 .pc-unlock .ul-go svg, body .side .pc-unlock .ul-go svg{width:20px; height:20px}
-.pc-unlock:hover{background:var(--accent-soft)}
+@media (hover:hover){ .pc-unlock:hover{transform:translateY(-2px); box-shadow:0 8px 0 #4234B8, 0 16px 24px -8px #4234B8aa; filter:brightness(1.06)} .pc-unlock:hover .ul-go{transform:translateX(2px)} }
+.pc-unlock:active{transform:translateY(5px); box-shadow:0 1px 0 #4234B8; filter:none}
+.pc-unlock .ul-go{transition:transform .15s ease}
+@media (prefers-reduced-motion:reduce){ .pc-unlock, .pc-unlock .ul-go{transition:none} .pc-unlock:hover{transform:none} }
 
 /* gold sheet: a gold coin on top, the gold button in gold */
 .gold-ic{width:76px; height:64px; margin:4px auto 10px; border-radius:50%; display:grid; place-items:center; color:#7A4F00;
@@ -952,3 +969,86 @@ body .pc-unlock{background:var(--surface); border:2px solid var(--accent); color
 .note.nlk b{color:var(--muted)}
 .note.nlk .nn{background:var(--fill); color:var(--muted)}
 .nlk-go{flex:none; font:800 12px var(--font); font-style:normal; text-transform:uppercase; letter-spacing:.04em; color:var(--accent); padding:6px 10px; border-radius:10px; border:2px solid var(--edge)}
+
+/* ---------- hover cards on the top bar (mouse only): subjects, readiness, countdown ---------- */
+/* Our own look: a chunky card on a lip like the rest of the app; readiness is a filling flask, the countdown a tear-off
+   calendar with the last week's study days as collected stars. */
+.subj, .met{transition:background-color .15s ease}
+.met{border-radius:12px; padding:6px 8px; margin:-6px -8px}
+@media (hover:hover) and (pointer:fine){ .subj:hover, .subj.popped, .met:hover, .met.popped{background:var(--fill)} }
+.hc{position:fixed; z-index:70; width:330px; box-sizing:border-box; padding:18px; border-radius:22px; background:var(--surface); color:var(--text);
+  border:2px solid var(--line); box-shadow:0 5px 0 var(--line), 0 22px 40px -16px #0006; opacity:0; transform:translateY(-8px) scale(.96); transform-origin:var(--ax) 0;
+  transition:opacity .16s ease, transform .24s cubic-bezier(.2,.9,.3,1.25)}
+.hc.in{opacity:1; transform:none}
+.hc:not(.in){pointer-events:none}
+.hc:before{content:""; position:absolute; top:-9px; left:calc(var(--ax) - 8px); width:14px; height:14px; transform:rotate(45deg); border-radius:4px 0 0 0;
+  background:var(--surface); border:2px solid var(--line); border-right:none; border-bottom:none}
+.hc-top{display:flex; align-items:center; gap:16px}
+.hc-t{min-width:0}
+.hc-t b{display:block; font:800 19px/1.2 var(--head)}
+.hc-t p{margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.35}
+.hc-row{margin-top:14px}
+.hc-chip{display:inline-block; padding:4px 10px; border-radius:99px; background:var(--fill); font:800 13px var(--head)}
+.hc-go{margin-top:16px; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; padding:0 18px; min-height:50px}
+
+/* readiness: a round flask */
+.flask{--liq:#22C07F; --liq2:#14A866; position:relative; flex:none; width:96px; height:96px; border-radius:50%; overflow:hidden; isolation:isolate;
+  background:color-mix(in srgb, var(--liq) 12%, var(--surface)); box-shadow:inset 0 0 0 4px color-mix(in srgb, var(--liq) 35%, var(--surface)), 0 4px 0 color-mix(in srgb, var(--liq) 30%, var(--line))}
+.fl-liq{position:absolute; left:0; right:0; bottom:0; height:var(--lvl); z-index:-1}
+.fl-liq svg{position:absolute; left:0; bottom:0; width:200%; height:calc(100% + 8px); fill:var(--liq)}
+.fl-liq svg.w2{fill:var(--liq2); opacity:.55; left:-50%}
+.fl-n{position:absolute; inset:0; display:grid; place-items:center; font:800 22px var(--head); color:var(--text); font-variant-numeric:tabular-nums; text-shadow:0 1px 0 #fff8}
+.fl-shine{position:absolute; left:18px; top:14px; width:22px; height:10px; border-radius:50%; background:#ffffffa8; transform:rotate(-30deg)}
+.bub{position:absolute; bottom:6px; width:7px; height:7px; border-radius:50%; background:#ffffffb0; opacity:0}
+.bub.b1{left:30%} .bub.b2{left:55%; width:5px; height:5px} .bub.b3{left:70%; width:6px; height:6px}
+.hc.in .fl-liq{animation:flFill 1s cubic-bezier(.3,.8,.3,1) .15s both}
+.hc.in .fl-liq svg{animation:flWave 2.4s linear infinite}
+.hc.in .fl-liq svg.w2{animation-duration:3.6s; animation-direction:reverse}
+.hc.in .bub{animation:flBub 2.2s ease-in .9s infinite}
+.hc.in .bub.b2{animation-delay:1.5s} .hc.in .bub.b3{animation-delay:2.1s}
+.hc.in .flask{animation:flPop .5s cubic-bezier(.3,1.7,.5,1) both}
+@keyframes flFill{from{height:0}}
+@keyframes flWave{to{transform:translateX(-50%)}}
+@keyframes flBub{0%{opacity:0; transform:translateY(0)} 15%{opacity:1} 100%{opacity:0; transform:translateY(-70px) translateX(4px)}}
+@keyframes flPop{from{transform:scale(.6)}}
+
+/* countdown: a tear-off calendar */
+.tear{position:relative; flex:none; width:92px; height:96px; perspective:300px}
+.tr-ring{position:absolute; top:2px; left:22px; z-index:3; width:8px; height:16px; border-radius:4px; background:#B8342A}
+.tr-ring.r2{left:auto; right:22px}
+.tr-pg{position:absolute; left:0; right:0; top:8px; bottom:0; border-radius:14px; background:#fff; overflow:hidden; display:grid; place-items:center;
+  box-shadow:inset 0 0 0 2px #E3E5EC, 0 4px 0 #D3D6E0}
+.tr-pg:before{content:""; position:absolute; left:0; right:0; top:0; height:22px; background:#FF5A47}
+.tr-pg b{position:relative; top:9px; font:800 40px var(--head); color:#1F2333; font-variant-numeric:tabular-nums}
+.tr-off{transform-origin:50% 0; z-index:2; backface-visibility:hidden}
+.hc.in .tr-off{animation:trOff .75s cubic-bezier(.5,0,.75,0) .3s both}
+.hc.in .tr-under b{animation:trIn .45s cubic-bezier(.3,1.8,.5,1) .85s both}
+@keyframes trOff{0%{transform:none} 30%{transform:rotateX(-18deg) rotateZ(-3deg)} 100%{transform:translateY(60px) rotateX(-95deg) rotateZ(8deg); opacity:0}}
+@keyframes trIn{from{transform:scale(.6)}}
+.hc-stars{margin-top:16px; padding:12px 14px; border-radius:16px; background:var(--fill)}
+.sts{display:flex; justify-content:space-between}
+.sts .st{width:30px; height:30px; display:grid; place-items:center}
+.sts .st svg{width:26px; height:26px; fill:color-mix(in srgb, var(--muted) 30%, transparent)}
+.sts .st.on svg{fill:#FFC531; filter:drop-shadow(0 2px 0 #E0A410)}
+.sts .st.now:not(.on) svg{fill:none; stroke:#FFC531; stroke-width:2; stroke-dasharray:3 2.6}
+.hc-stars p{margin:8px 0 0; text-align:center; font:700 14px var(--font); color:var(--muted)}
+.hc-stars p b{font:800 16px var(--head); color:#D98A00}
+.hc.in .sts .st.on svg{animation:stPop .5s cubic-bezier(.3,1.9,.5,1) calc(.5s + var(--i) * 70ms) both}
+.hc.in .sts .st.now.on svg{animation:stPop .5s cubic-bezier(.3,1.9,.5,1) calc(.5s + var(--i) * 70ms) both, stShimmer 2s ease-in-out 1.6s infinite}
+@keyframes stPop{0%{transform:scale(0) rotate(-40deg)} 100%{transform:none}}
+@keyframes stShimmer{0%, 100%{transform:none} 50%{transform:scale(1.18) rotate(12deg)}}
+
+/* subjects drop-down */
+.hc-subj{width:300px; padding:10px 8px 8px}
+.hc-lbl{padding:6px 12px 10px; font:800 12px var(--head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.hc-list{display:grid; gap:2px; max-height:320px; overflow:auto}
+.hc-list .subrow{border:none; border-radius:12px; padding:10px 12px; background:none}
+.hc-list .subrow:hover{background:var(--fill)}
+.hc-list .subrow.on{background:color-mix(in srgb, var(--info, #3B82F6) 10%, var(--surface))}
+.hc-list .subrow.add{border-top:2px solid var(--line); border-radius:0 0 12px 12px; margin-top:6px; padding-top:14px}
+
+@media (prefers-reduced-motion:reduce){
+  .hc{transition:opacity .12s}
+  .hc.in *, .hc.in .flask{animation:none !important}
+  .tr-off{display:none}
+}

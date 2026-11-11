@@ -249,10 +249,19 @@ export function bindCarousel(startId, onChange) {
     const i = best % n;
     if (i !== cur) { cur = i; $("#tName").textContent = pickable()[i].name; [...$("#dots").children].forEach((d, j) => d.classList.toggle("on", j === i)); onChange(pickable()[i]); }
   };
-  // once the swipe stops on a copy, jump without animation to the same tutor in the middle copy (looks identical)
-  const recentre = () => { if (abs < n || abs >= 2 * n) { c.scrollLeft = centre(slots[abs % n + n]); paint(); } };
+  // Once the swipe has fully stopped on a copy, jump to the same tutor in the middle copy. The jump must look like nothing:
+  // no size transition on the figures (they would visibly shrink and regrow) and never mid-swipe or mid-snap (that
+  // cut the motion short). `jump` turns the transitions off for that one frame.
+  const recentre = () => {
+    if (abs >= n && abs < 2 * n) return;
+    c.classList.add("jump"); c.scrollLeft = centre(slots[abs % n + n]); paint();
+    requestAnimationFrame(() => requestAnimationFrame(() => c.classList.remove("jump")));
+  };
   const go = (k, smooth = true) => c.scrollTo({ left: centre(slots[Math.max(0, Math.min(slots.length - 1, k))]), behavior: smooth ? "smooth" : "auto" });
-  c.addEventListener("scroll", () => { paint(); clearTimeout(settle); settle = setTimeout(recentre, 140); }, { passive: true });
+  // scrollend fires after momentum and snapping are done; where it doesn't exist (older Safari), wait for a quiet 300 ms
+  const hasEnd = "onscrollend" in window;
+  c.addEventListener("scroll", () => { paint(); if (!hasEnd) { clearTimeout(settle); settle = setTimeout(recentre, 300); } }, { passive: true });
+  if (hasEnd) c.addEventListener("scrollend", recentre);
   slots.forEach((s, i) => s.onclick = () => go(i));
   c.tabIndex = 0; c.onkeydown = e => { if (e.key === "ArrowRight") go(abs + 1); if (e.key === "ArrowLeft") go(abs - 1); };
   const startI = Math.max(0, pickable().findIndex(x => x.id === startId));
@@ -519,17 +528,21 @@ async function viewWait() {
 }
 
 /* ---------- another subject for a signed-in account: the same setup, without the account step ---------- */
+// Starts (or resumes) the setup and returns where it continues. The subject switcher calls it while its sheet is still
+// open, so the map never blanks to a spinner in between.
+export async function startNewSubject() {
+  const s = session(); if (!s) return "#/login";
+  const d = draft();
+  if (d?.acct) return "#/new/" + (d.step || "files"); // one in progress already
+  const { orderToken } = await api("new_subject", { session: s.token, lang: courseLang() });
+  saveDraft({ orderToken, step: "files", files: [], days: 7, acct: true });
+  return "#/new/files";
+}
 async function newSubject() {
   hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
-  const d = draft();
-  if (d?.acct) return nav("#/new/" + (d.step || "files")); // one in progress already
   view().innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`;
-  try {
-    const { orderToken } = await api("new_subject", { session: s.token, lang: courseLang() });
-    saveDraft({ orderToken, step: "files", files: [], days: 7, acct: true });
-    nav("#/new/files");
-  } catch (e) {
+  try { nav(await startNewSubject()); } catch (e) {
     if (e.status === 401) { store.del("session"); return nav("#/login"); }
     toast(errText(e.code)); nav("#/s/" + s.slug);
   }
@@ -538,7 +551,7 @@ async function newSubject() {
 /* ---------- router ---------- */
 export function render() {
   clearTimeout(waitTimer); clearTimeout(paidTimer);
-  document.querySelectorAll(".feedback,.confetti,#sh,#shDim").forEach(e => e.remove());
+  document.querySelectorAll(".feedback,.confetti,#sh,#shDim,.hc").forEach(e => e.remove());
   document.body.classList.remove("plain", "map-page", "framed", "store");
   window.onkeydown = null; window.onscroll = null;
   try { Promise.resolve(route()).catch(viewError); } catch (e) { viewError(e); }
