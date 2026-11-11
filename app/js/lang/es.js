@@ -419,7 +419,7 @@ export default {
  "proRenews": "Se renueva el {date}",
  "proEnds": "Termina el {date}",
  "proOff": "No activa",
- "proLeft": "Asignaturas nuevas: te quedan {n} de {x} · tutor de voz: {m} min",
+ "proLeft": "Asignaturas nuevas: te quedan {n} de {x}",
  "proCancel": "Cancelar suscripción",
  "proCancelQ": "¿Cancelar MAX? Sigue activo hasta el {date} y después no se cobra nada más.",
  "proResume": "Seguir con MAX",

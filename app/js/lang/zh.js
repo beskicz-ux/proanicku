@@ -401,7 +401,7 @@ export default {
  "proRenews": "{date} 续订",
  "proEnds": "{date} 结束",
  "proOff": "未生效",
- "proLeft": "新科目：还剩 {n}/{x} · 语音导师：{m} 分钟",
+ "proLeft": "新科目：还剩 {n}/{x}",
  "proCancel": "取消订阅",
  "proCancelQ": "取消 MAX？它会用到 {date}，之后不再扣费。",
  "proResume": "继续 MAX",

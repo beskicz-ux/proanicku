@@ -419,7 +419,7 @@ export default {
  "proRenews": "Renova em {date}",
  "proEnds": "Termina em {date}",
  "proOff": "Inativa",
- "proLeft": "Matérias novas: restam {n} de {x} · tutor de voz: {m} min",
+ "proLeft": "Matérias novas: restam {n} de {x}",
  "proCancel": "Cancelar assinatura",
  "proCancelQ": "Cancelar o MAX? Vale até {date} e depois nada mais é cobrado.",
  "proResume": "Continuar com MAX",

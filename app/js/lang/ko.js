@@ -401,7 +401,7 @@ export default {
  "proRenews": "{date}에 갱신",
  "proEnds": "{date}에 종료",
  "proOff": "비활성",
- "proLeft": "새 과목: {x}개 중 {n}개 남음 · 음성 튜터: {m}분",
+ "proLeft": "새 과목: {x}개 중 {n}개 남음",
  "proCancel": "구독 해지",
  "proCancelQ": "MAX를 해지할까요? {date}까지 쓸 수 있고 그 후엔 더 결제되지 않아요.",
  "proResume": "MAX 계속하기",

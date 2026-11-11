@@ -843,7 +843,7 @@ body.map-page .mmain > .pc-unlock{margin-top:14px}
   background:linear-gradient(#FF5A6E 0 12px, #fff 12px); box-shadow:0 3px 0 #0003}
 .st-top .st-tap, .st-top .ob-sub{margin-top:14px}
 
-.st-opts{gap:16px; padding-top:8px}
+.st-opts{display:grid; grid-auto-rows:1fr; gap:16px; padding-top:8px} /* both plan cards the same height */
 .st-opt{border-width:2px 2px 4px; border-radius:18px; padding:16px 14px 14px; transition:transform .12s, border-color .15s, background .15s}
 .st-opt:active{transform:translateY(2px)}
 .st-opt.on{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); box-shadow:none}

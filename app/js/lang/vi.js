@@ -401,7 +401,7 @@ export default {
  "proRenews": "Gia hạn vào {date}",
  "proEnds": "Kết thúc vào {date}",
  "proOff": "Không hoạt động",
- "proLeft": "Môn mới: còn {n}/{x} · gia sư giọng nói: {m} phút",
+ "proLeft": "Môn mới: còn {n}/{x}",
  "proCancel": "Hủy gói đăng ký",
  "proCancelQ": "Hủy MAX? Vẫn dùng được đến {date}, sau đó không bị trừ tiền nữa.",
  "proResume": "Giữ MAX",

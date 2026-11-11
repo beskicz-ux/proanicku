@@ -428,7 +428,7 @@ export default {
  "proRenews": "Obnoví sa {date}",
  "proEnds": "Skončí {date}",
  "proOff": "Neaktívne",
- "proLeft": "Nové predmety: zostáva {n} z {x} · hlasový tútor: {m} min",
+ "proLeft": "Nové predmety: zostáva {n} z {x}",
  "proCancel": "Zrušiť predplatné",
  "proCancelQ": "Zrušiť MAX? Platí do {date} a potom sa už nič nestrhne.",
  "proResume": "Pokračovať v MAX",

@@ -410,7 +410,7 @@ export default {
  "proRenews": "{date} tarihinde yenilenir",
  "proEnds": "{date} tarihinde biter",
  "proOff": "Aktif değil",
- "proLeft": "Yeni dersler: {x} içinden {n} kaldı · sesli tutor: {m} dk",
+ "proLeft": "Yeni dersler: {x} içinden {n} kaldı",
  "proCancel": "Aboneliği iptal et",
  "proCancelQ": "MAX iptal edilsin mi? {date} tarihine kadar geçerli, sonra başka ücret alınmaz.",
  "proResume": "MAX'ya devam et",

@@ -446,7 +446,7 @@ export default {
  "proRenews": "يتجدد في {date}",
  "proEnds": "ينتهي في {date}",
  "proOff": "غير مفعّل",
- "proLeft": "مواد جديدة: تبقّى {n} من {x} · المعلّم الصوتي: {m} دقيقة",
+ "proLeft": "مواد جديدة: تبقّى {n} من {x}",
  "proCancel": "إلغاء الاشتراك",
  "proCancelQ": "إلغاء MAX؟ يبقى فعّالًا حتى {date}، وبعدها لا يُخصم أي شيء.",
  "proResume": "استمر مع MAX",

@@ -428,7 +428,7 @@ export default {
  "proRenews": "Odnawia się {date}",
  "proEnds": "Kończy się {date}",
  "proOff": "Nieaktywna",
- "proLeft": "Nowe przedmioty: zostało {n} z {x} · tutor głosowy: {m} min",
+ "proLeft": "Nowe przedmioty: zostało {n} z {x}",
  "proCancel": "Anuluj subskrypcję",
  "proCancelQ": "Anulować MAX? Działa do {date}, a potem nic więcej nie zostanie pobrane.",
  "proResume": "Zostań przy MAX",

@@ -410,7 +410,7 @@ export default {
  "proRenews": "Verlängert sich am {date}",
  "proEnds": "Endet am {date}",
  "proOff": "Nicht aktiv",
- "proLeft": "Neue Fächer: noch {n} von {x} · Sprach-Tutor: {m} Min.",
+ "proLeft": "Neue Fächer: noch {n} von {x}",
  "proCancel": "Abo kündigen",
  "proCancelQ": "MAX kündigen? Es läuft bis {date}, danach wird nichts mehr abgebucht.",
  "proResume": "MAX behalten",

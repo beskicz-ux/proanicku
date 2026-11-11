@@ -419,7 +419,7 @@ export default {
  "proRenews": "Se renouvelle le {date}",
  "proEnds": "Se termine le {date}",
  "proOff": "Inactif",
- "proLeft": "Nouvelles matières : il en reste {n} sur {x} · tuteur vocal : {m} min",
+ "proLeft": "Nouvelles matières : il en reste {n} sur {x}",
  "proCancel": "Résilier l'abonnement",
  "proCancelQ": "Résilier MAX ? Il reste actif jusqu'au {date}, puis plus rien n'est prélevé.",
  "proResume": "Garder MAX",

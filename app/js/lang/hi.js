@@ -410,7 +410,7 @@ export default {
  "proRenews": "{date} को रिन्यू होगा",
  "proEnds": "{date} को खत्म होगा",
  "proOff": "एक्टिव नहीं",
- "proLeft": "नए विषय: {x} में से {n} बचे · वॉइस ट्यूटर: {m} मिनट",
+ "proLeft": "नए विषय: {x} में से {n} बचे",
  "proCancel": "सब्सक्रिप्शन कैंसिल करो",
  "proCancelQ": "MAX कैंसिल करें? यह {date} तक चलेगा, फिर कुछ नहीं कटेगा।",
  "proResume": "MAX जारी रखो",

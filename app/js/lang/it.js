@@ -419,7 +419,7 @@ export default {
  "proRenews": "Si rinnova il {date}",
  "proEnds": "Termina il {date}",
  "proOff": "Non attivo",
- "proLeft": "Materie nuove: ne restano {n} su {x} · tutor vocale: {m} min",
+ "proLeft": "Materie nuove: ne restano {n} su {x}",
  "proCancel": "Disdici abbonamento",
  "proCancelQ": "Disdire MAX? Resta attivo fino al {date}, poi non ti verrà addebitato più nulla.",
  "proResume": "Continua con MAX",

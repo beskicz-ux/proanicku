@@ -401,7 +401,7 @@ export default {
  "proRenews": "Diperpanjang {date}",
  "proEnds": "Berakhir {date}",
  "proOff": "Tidak aktif",
- "proLeft": "Mata kuliah baru: sisa {n} dari {x} · tutor suara: {m} mnt",
+ "proLeft": "Mata kuliah baru: sisa {n} dari {x}",
  "proCancel": "Batalkan langganan",
  "proCancelQ": "Batalkan MAX? Tetap aktif sampai {date}, lalu tidak ada tagihan lagi.",
  "proResume": "Tetap pakai MAX",

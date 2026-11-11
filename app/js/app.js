@@ -354,7 +354,7 @@ async function viewUnlock() {
       ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
   const opt = p => `<label class="st-opt pl-${esc(p.id)}" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot">${ic.check}</i>
       <span class="st-o-t">${L(p.badge) ? `<em>${esc(L(p.badge))}</em>` : ""}<b>${esc(L(p.name) || "")}</b><small>${esc(L(p.pitch) || "")}</small></span>
-      <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? t("stMonth") : t("stOnceShort"))}</small></span></label>`;
+      <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? "/ " + t("stMonthShort") : t("stOnceShort"))}</small></span></label>`;
   const feats = () => { const p = planOf(pick); return p ? `<h2 class="st-h">${esc(t("stGet").replace("%", L(p.name) || ""))}</h2><ul class="st-feats">${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>` : ""; };
   // Already Pro: this subject opens from the month's allowance. Allowance used up: only the one-off course is sold.
   const pay = proOpen ? `<div class="st-proon"><h3 class="st-pname">MAX</h3><p>${esc(t("stProOn"))}</p><p class="st-perday">${esc(t("stProLeft", { n: pro.newLeft, x: pro.newPerWindow }))}</p></div>

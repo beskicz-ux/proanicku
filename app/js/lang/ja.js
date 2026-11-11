@@ -401,7 +401,7 @@ export default {
  "proRenews": "{date}に更新",
  "proEnds": "{date}に終了",
  "proOff": "無効",
- "proLeft": "新しい科目: 残り{n}/{x} · 音声チューター: {m}分",
+ "proLeft": "新しい科目: 残り{n}/{x}",
  "proCancel": "サブスクを解約",
  "proCancelQ": "MAXを解約しますか？{date}まで使えて、その後は請求されません。",
  "proResume": "MAXを続ける",

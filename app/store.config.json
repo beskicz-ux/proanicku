@@ -53,13 +53,11 @@
       "features": {
         "cs": [
           "Až 5 nových předmětů každý měsíc",
-          "Hlasový tutor: 40 minut měsíčně",
           "Všechno z PRO u každého předmětu",
           "Zrušíš kdykoli, platí do konce měsíce"
         ],
         "en": [
           "Up to 5 new subjects every month",
-          "Voice tutor: 40 minutes a month",
           "Everything in PRO, for every subject",
           "Cancel anytime, it runs to the end of the month"
         ]
@@ -69,8 +67,8 @@
         "en": "Several subjects"
       },
       "pitch": {
-        "cs": "Až 5 předmětů měsíčně, od 80 Kč za předmět. Plus hlasový tutor.",
-        "en": "Up to 5 subjects a month, from 80 Kč each. Plus a voice tutor."
+        "cs": "Až 5 předmětů měsíčně, od 80 Kč za předmět.",
+        "en": "Up to 5 subjects a month, from 80 Kč each."
       }
     }
   ]
