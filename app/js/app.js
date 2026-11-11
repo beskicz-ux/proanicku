@@ -315,6 +315,8 @@ function viewAccount() {
 async function viewUnlock() {
   hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
+  // render() has already dropped the map's layout class, so the old map would show squeezed while this loads
+  view().innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`;
   const [cfg, st] = await Promise.all([storeConfig(), api("status", { session: s.token }).catch(e => e)]);
   if (st.status === 401) { store.del("session"); return nav("#/login"); }
   if (st.paid) return nav("#/s/" + s.slug);
