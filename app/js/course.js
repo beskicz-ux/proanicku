@@ -301,11 +301,14 @@ let subjRows = () => "";
 // The subject rows work the same in the sheet (phone) and the drop-down (mouse): pick one to switch, + to start a new one.
 // Long subject titles roll sideways (out and back) after 1 s, like a song title in a music app (Marek, 2026-11-13)
 function rollTitles(root) {
-  setTimeout(() => root.isConnected && root.querySelectorAll(".subrow b").forEach(b => {
+  // right away: overflowing titles get a soft fade on the right (no "…", so nothing jumps when the roll starts)
+  requestAnimationFrame(() => root.querySelectorAll(".subrow b").forEach(b => {
     const d = b.scrollWidth - b.clientWidth;
-    b.classList.toggle("roll", d > 2);
-    if (d > 2) { b.style.setProperty("--roll", -(d + 16) + "px"); b.style.setProperty("--dur", (4 + d / 25).toFixed(1) + "s"); }
-  }), 1000);
+    b.classList.toggle("long", d > 2); b.classList.remove("roll");
+    // calm: about 22 px a second while moving, with long rests at each end
+    if (d > 2) { b.style.setProperty("--roll", -(d + 18) + "px"); b.style.setProperty("--dur", Math.max(8, (d + 18) / 22 / 0.3).toFixed(1) + "s"); }
+  }));
+  setTimeout(() => root.isConnected && root.querySelectorAll(".subrow b.long").forEach(b => b.classList.add("roll")), 1000);
 }
 function wireSubjects(root, close) {
   rollTitles(root);
@@ -404,8 +407,10 @@ function popOpen(trig, kind) {
   el.onmouseenter = () => clearTimeout(popT);
   el.onmouseleave = () => { clearTimeout(popT); popT = setTimeout(popClose, 200); };
   if (kind === "subj") {
+    // compare with the rows as drawn, not the live list: the roll adds classes to it, and a needless redraw restarts the roll
+    let drawn = el.querySelector(".hc-list")?.innerHTML;
     wireSubjects(el, () => popClose(true));
-    acctFetch().then(a => { const list = el.querySelector(".hc-list"), fresh = subjRows(a); if (list && el.isConnected && list.innerHTML !== fresh) { list.innerHTML = fresh; wireSubjects(el, () => popClose(true)); } }).catch(() => { });
+    acctFetch().then(a => { const list = el.querySelector(".hc-list"), fresh = subjRows(a); if (list && el.isConnected && drawn !== fresh) { list.innerHTML = drawn = fresh; wireSubjects(el, () => popClose(true)); } }).catch(() => { });
   }
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("in")));
   if (kind === "ready") countUp(el);

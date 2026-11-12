@@ -1169,11 +1169,15 @@ body.landing .app{max-width:1040px}
 }
 /* subject lists: never scroll sideways; a long title rolls out and back after 1 s (rollTitles in course.js) */
 .hc-list{grid-template-columns:minmax(0,1fr); overflow-x:hidden; overflow-y:auto}
-.subrow b.roll>span{display:inline-block}
-.subrow b.roll{text-overflow:clip; -webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent); mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent); padding-left:2px}
-.subrow b.roll>span{animation:subroll var(--dur,6s) ease-in-out infinite}
-@keyframes subroll{0%,12%{transform:none} 50%,62%{transform:translateX(var(--roll))} 100%{transform:none}}
-@media (prefers-reduced-motion:reduce){.subrow b.roll>span{animation:none} .subrow b.roll{text-overflow:ellipsis; -webkit-mask-image:none; mask-image:none}}
+@property --fl{syntax:"<length>"; inherits:false; initial-value:0px}
+.subrow b.long{text-overflow:clip; --fl:0px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fl),#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,transparent,#000 var(--fl),#000 calc(100% - 22px),transparent)}
+.subrow b.long>span{display:inline-block}
+.subrow b.roll{animation:subfade var(--dur,12s) linear infinite}
+.subrow b.roll>span{animation:subroll var(--dur,12s) ease-in-out infinite}
+/* rest 2 s-ish, glide left, rest, glide back, rest; the left fade only shows while the text is away from its start */
+@keyframes subroll{0%,20%{transform:none} 50%,65%{transform:translateX(var(--roll))} 95%,100%{transform:none}}
+@keyframes subfade{0%,21%{--fl:0px} 27%,89%{--fl:16px} 95%,100%{--fl:0px}}
+@media (prefers-reduced-motion:reduce){.subrow b.roll,.subrow b.roll>span{animation:none}}
 /* More card: plain uppercase words, no icons (Marek, 2026-11-13) */
 .more-pop{width:200px}
 .more-pop .mm-row{padding:12px 14px; font:800 14px var(--head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
