@@ -191,16 +191,18 @@ export async function courseRoute(parts, nav, render) {
   nav("#/s/" + slug);
 }
 let ctx = null;
-const TAB_COL = { home: "var(--accent)", notes: "var(--accent)", review: "var(--accent)", progress: "var(--accent)" }; // one selected colour for every tab
+const TAB_COL = { home: "var(--accent)", notes: "var(--accent)", review: "var(--accent)", progress: "var(--accent)", more: "var(--accent)" }; // one selected colour for every tab
 function setTabs(slug, sub) {
   const n = $("#nav");
-  const show = !sub || ["notes", "practice", "progress"].includes(sub);
+  const show = !sub || ["notes", "practice", "progress", "settings"].includes(sub);
   n.hidden = !show; document.body.classList.toggle("has-tabs", show);
-  const on = { "": "home", notes: "notes", practice: "review", progress: "progress" }[sub || ""];
+  const on = { "": "home", notes: "notes", practice: "review", progress: "progress", settings: "more" }[sub || ""];
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
-    a.href = `#/s/${slug}` + { home: "", notes: "/notes", review: "/practice", progress: "/progress" }[k];
-    const label = t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress" }[k]);
+    // More (like Duolingo's): settings, contact and log out live here, not on the progress page (Marek, 2026-11-12)
+    a.href = k === "more" ? `#/s/${slug}/settings` : `#/s/${slug}` + { home: "", notes: "/notes", review: "/practice", progress: "/progress" }[k];
+    if (k === "more") a.onclick = e => { e.preventDefault(); moreMenu(a); };
+    const label = t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress", more: "navMore" }[k]);
     a.setAttribute("aria-label", label);
     a.style.setProperty("--tc", TAB_COL[k]);
     if (!a.querySelector("svg")) a.innerHTML = TAB_ICONS[k] + '<span class="nl" aria-hidden="true"></span>';
@@ -209,11 +211,45 @@ function setTabs(slug, sub) {
     if (k === on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
 }
+// The More menu: a small card next to the rail on wide screens, a sheet on phones.
+function moreMenu(anchor) {
+  const old = $(".more-pop"); if (old) { old.remove(); return; }
+  const items = `<a class="mm-row" href="#/s/${SLUG}/settings" data-m="set">${setIcon("gear")}<b>${t("settings")}</b></a>
+    <button class="mm-row" data-m="contact">${setIcon("mail")}<b>${t("footContact")}</b></button>
+    <button class="mm-row" data-m="out">${setIcon("out")}<b>${t("setLogout")}</b></button>`;
+  const wire = (root, close) => {
+    root.querySelector('[data-m="set"]').addEventListener("click", () => close());
+    root.querySelector('[data-m="contact"]').onclick = () => { close(); contactUs(); };
+    root.querySelector('[data-m="out"]').onclick = () => { close(); logOut(); };
+  };
+  if (!matchMedia("(min-width:768px)").matches) { const s = sheet(`<h2 class="sh-h">${t("navMore")}</h2><div class="mm-list">${items}</div>`); return wire(s.el, () => s.close()); }
+  const el = document.createElement("div");
+  el.className = "more-pop"; el.setAttribute("role", "menu"); el.innerHTML = items;
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect();
+  el.style.left = r.right + 12 + "px"; el.style.top = Math.max(12, Math.min(r.top, innerHeight - el.offsetHeight - 12)) + "px";
+  const close = () => { el.remove(); removeEventListener("pointerdown", outside, true); removeEventListener("hashchange", close); };
+  const outside = e => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
+  setTimeout(() => { addEventListener("pointerdown", outside, true); addEventListener("hashchange", close); });
+  wire(el, close);
+}
+async function contactUs() {
+  const op = (await fetch("store.config.json").then(r => r.json()).catch(() => ({}))).operator || {};
+  if (op.email) location.href = "mailto:" + op.email; else toast(t("contactSoon"));
+}
+async function logOut() {
+  if (!confirm(t("setLogoutQ"))) return;
+  await SYNC.push();
+  ["session", "code", "readySeen", "email", "name", lsKey()].forEach(k => store.del(k)); TOKEN = null; resetCourse();
+  location.hash = "#/";
+}
+// The subject's name on the top bar, kept short so the button is always the same size: no "(…)" and no ": detail".
+const shortSubj = s => { const x = String(s || "").replace(/\s*[([][^)\]]*[)\]]/g, "").split(/\s*[:–—]\s+|\s+-\s+/)[0].trim(); return x || String(s || ""); };
 
 /* ---------- top bar: subject, readiness, days to the exam ---------- */
 function topbar() {
   const left = daysToExam(), r = readiness(), title = C.meta.subject || C.meta.title || "";
-  return `<header class="tb"><button class="subj"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(title)}</b>${CHEV_DOWN}</button>
+  return `<header class="tb"><button class="subj" title="${esc(title)}"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(shortSubj(title))}</b>${CHEV_DOWN}</button>
     <div class="mets"><a class="met ready" href="#/s/${SLUG}/progress" aria-label="${t("readinessTitle")}: ${r} %">${ringIcon(r)}<span>${r} %</span></a>
     ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
 }
@@ -419,8 +455,9 @@ function viewMap() {
   C.units.forEach((u, ui) => {
     const col = chapterColour(ui), top = y;
     // Every unit opens with its own banner in its colour, like Anna's.
-    const nDone = byCh[ui].filter(n => n.done).length;
-    out += `<div class="ubn" style="top:${y}px"><div class="unit" style="background:${col};--uc:${col}"><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: nDone, y: byCh[ui].length })}</small><b>${esc(u.title)}</b></div><a class="guide" href="#/s/${SLUG}/notes/${ui}">${HUB.book}<span>${t("guide")}</span></a></div></div>`;
+    const nDone = byCh[ui].filter(n => n.done).length, full = nDone > 0 && nDone === byCh[ui].length;
+    const bcol = full ? "var(--gold)" : col; // a finished chapter turns gold, like Duolingo
+    out += `<div class="ubn" style="top:${y}px"><div class="unit${full ? " ugold" : ""}" style="background:${bcol};--uc:${bcol}"><div><small>${t("chapter", { n: ui + 1 })} · ${t("doneOf", { x: nDone, y: byCh[ui].length })}</small><b>${esc(u.title)}</b></div><a class="guide" href="#/s/${SLUG}/notes/${ui}">${HUB.book}<span>${t("guide")}</span></a></div></div>`;
     y += BANH;
     const me = curTutor();
     byCh[ui].forEach((n, j) => {
@@ -436,7 +473,7 @@ function viewMap() {
         ${rp == null ? "" : levelRing(rp, NODE[n.kind === "test" ? "test" : "cur"])}<button class="c" ${key} data-state="${n.locked ? "paywall" : n.next ? "next" : n.done && !n.gold && !n.cur ? "gold" : "open"}" aria-label="${esc(label)}">${icon}${(n.done || n.gold) && !n.cur ? `<span class="tick">${TICK}</span>` : ""}</button><span class="nl" aria-hidden="true">${esc(name)}${chip}</span></div>`;
       if (n.cur) { curPt = pts.length - 1; curY = ny; }
       // One tutor on the whole map, beside the level in progress (one per chapter looked spammy, Marek 2026-11-11)
-      if (n.cur) out += `<div class="tut" style="left:${nx > CX ? nx - 140 * sc : nx + 140 * sc}px;top:${ny + 14}px">${tutorArt(me, "", "happy")}</div>`;
+      if (n.cur) out += `<div class="tut" style="left:${nx > CX ? nx - 140 * sc : nx + 140 * sc}px;top:${ny + 14}px">${tutorArt(me, "bob", "happy")}</div>`;
       y += STEPY + big; k++;
     });
     y += 28; // room between the last level's name and the next banner
@@ -805,7 +842,7 @@ function viewProfile() {
   const tutorLine = lang() === "cs" ? tutorWith(tu) : t("withTutor", { name: tutorOf(tu).name });
   const tile = (icon, v, label) => `<div class="pt">${icon}<div><b>${esc(v)}</b><span>${esc(label)}</span></div></div>`;
   view().innerHTML = framed("progress", `<div class="prof"><div class="prof-hero"><i class="pb1"></i><i class="pb2"></i><i class="pb3"></i>
-      <a class="prof-gear" href="#/s/${SLUG}/settings" aria-label="${t("settings")}">${GEAR}</a><div class="prof-art">${tutorArt(tu)}</div></div>
+      <div class="prof-art">${tutorArt(tu)}</div></div>
     <div class="prof-t"><h1>${esc(name)}</h1><p>${esc(C.meta.subject || C.meta.title || "")} · ${esc(tutorLine)}</p>${examDate() ? `<p class="prof-meta">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${t("exam")}: ${esc(fmtDay(examDate()))}</span></p>` : ""}</div>
     <div class="pg"><h2 class="grp">${t("profOverview")}</h2><div class="ptiles">
       ${tile(ringIcon(r, 34), r + " %", t("readiness"))}${tile(calIcon(examDate() ? new Date(examDate() + "T12:00").getDate() : ""), left == null ? "–" : daysTxt(Math.max(0, left)), t("toExam"))}
@@ -818,7 +855,7 @@ function viewProfile() {
 function viewSettings() {
   const th = store.get("theme", "auto"), snd = store.get("sound", true), email = store.get("email", "");
   const row = (k, icon, label, value = "", { chev = true, cls = "" } = {}) => `<button class="srow ${cls}" data-s="${k}">${setIcon(icon)}<b>${label}</b><span class="sv">${value}</span>${chev ? CHEV : ""}</button>`;
-  view().innerHTML = `<div class="set"><header class="set-h"><a class="set-x" href="#/s/${SLUG}/progress" aria-label="${t("close")}">${CLOSE}</a><h1>${t("settings")}</h1><span></span></header>
+  view().innerHTML = `<div class="set"><header class="set-h"><a class="set-x" href="#/s/${SLUG}" aria-label="${t("close")}">${CLOSE}</a><h1>${t("settings")}</h1><span></span></header>
     <h2 class="grp">${t("grpLearn")}</h2><div class="sgrp">
       ${row("date", "date", t("setDate"), examDate() ? esc(fmtDay(examDate())) : "")}
       ${row("goal", "goal", t("setGoal"), STUDENT?.minutes ? t("timeM", { m: STUDENT.minutes }) : "")}
@@ -837,23 +874,14 @@ function viewSettings() {
     <p class="set-foot"><a href="#/terms">${t("footTerms")}</a> · <a href="#/privacy">${t("footPrivacy")}</a> · <a href="#" id="contact">${t("footContact")}</a></p>
     <p class="set-foot"><a href="#" id="delAcc" class="del">${t("setDelete")}</a></p></div>`;
   $("#sndSw").onchange = e => { store.set("sound", e.target.checked); if (e.target.checked) sfx.right?.(); };
-  $("#contact").onclick = async e => {
-    e.preventDefault();
-    const op = (await fetch("store.config.json").then(r => r.json()).catch(() => ({}))).operator || {};
-    if (op.email) location.href = "mailto:" + op.email; else toast(t("contactSoon"));
-  };
+  $("#contact").onclick = e => { e.preventDefault(); contactUs(); };
   $("#delAcc").onclick = e => { e.preventDefault(); toast(t("deleteSoon")); };
   const H = {
     date: dateSheet, goal: goalSheet, tutor: tutorSheet, look: lookSheet, pay: paySheet,
     remind: () => toast(t("setRemindSoon")),
     voice: () => ctx.nav(`#/s/${SLUG}/voice`),
     lang: () => langSheet(l => { if (l === "cs" || l === "en") api("update_student", { session: TOKEN, lang: courseLang() }).catch(() => { }); viewSettings(); }),
-    out: async () => {
-      if (!confirm(t("setLogoutQ"))) return;
-      await SYNC.push();
-      ["session", "code", "readySeen", "email", "name", lsKey()].forEach(k => store.del(k)); TOKEN = null; resetCourse();
-      ctx.nav("#/");
-    },
+    out: logOut,
   };
   $$("[data-s]").forEach(b => b.onclick = () => H[b.dataset.s]?.());
   api("account", { session: TOKEN }).then(a => {

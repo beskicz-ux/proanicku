@@ -280,6 +280,7 @@ export default {
  "testTitle": "章末テスト",
  "testDone": "テスト完了！",
  "navHome": "ホーム",
+ "navMore": "その他",
  "navNotes": "ノート",
  "navReview": "復習",
  "notesTitle": "ノート",

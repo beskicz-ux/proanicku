@@ -280,6 +280,7 @@ export default {
  "testTitle": "Tes bab",
  "testDone": "Tes selesai!",
  "navHome": "Beranda",
+ "navMore": "Lainnya",
  "navNotes": "Catatan",
  "navReview": "Ulasan",
  "notesTitle": "Catatan",

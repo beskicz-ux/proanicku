@@ -280,6 +280,7 @@ export default {
  "testTitle": "Тест по главе",
  "testDone": "Тест пройден!",
  "navHome": "Главная",
+ "navMore": "Ещё",
  "navNotes": "Конспект",
  "navReview": "Повтор",
  "notesTitle": "Конспект",

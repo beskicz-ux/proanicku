@@ -280,6 +280,7 @@ export default {
  "testTitle": "اختبار الفصل",
  "testDone": "اكتمل الاختبار!",
  "navHome": "الرئيسية",
+ "navMore": "المزيد",
  "navNotes": "الملاحظات",
  "navReview": "المراجعة",
  "notesTitle": "الملاحظات",

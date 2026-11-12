@@ -10,7 +10,7 @@
   "plans": [
     {
       "id": "course",
-      "price": 299,
+      "price": 349,
       "interval": "once",
       "name": {
         "cs": "PRO",
@@ -44,7 +44,7 @@
     },
     {
       "id": "pro",
-      "price": 399,
+      "price": 429,
       "interval": "month",
       "name": {
         "cs": "MAX",
@@ -67,8 +67,8 @@
         "en": "Several subjects"
       },
       "pitch": {
-        "cs": "Až 5 předmětů měsíčně, od 80 Kč za předmět.",
-        "en": "Up to 5 subjects a month, from 80 Kč each."
+        "cs": "Až 5 předmětů měsíčně, od 86 Kč za předmět.",
+        "en": "Up to 5 subjects a month, from 86 Kč each."
       }
     }
   ]

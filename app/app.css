@@ -1143,3 +1143,27 @@ body.landing .app{max-width:1040px}
 @keyframes ld-bob{50%{translate:0 -6px}}
 @keyframes ld-peek{from{translate:0 50px}}
 @media (prefers-reduced-motion:reduce){ .ld-drop, .ld-plus{transition:none} .ld-drop.busy .ld-plus svg{animation-duration:2.4s} }
+
+/* ---------- 2026-11-12: More menu, same-size subject button, gold finished chapter, settings in the frame ---------- */
+/* the subject button never changes size with the subject's name */
+.tb .subj{flex:1 1 0; width:auto; max-width:250px} /* fills the room the metrics leave, whatever the subject is called */
+.tb .subj b, .side-tb .subj b{flex:1; min-width:0; max-width:none; text-align:start}
+.side-tb .subj{flex:1 1 0; width:auto; max-width:none}
+.subrow b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+/* More: five tabs on phones */
+.nav a{min-width:0}
+@media (max-width:767px){ .nav-in{padding-inline:8px} .nav a{width:56px} }
+.more-pop{position:fixed; z-index:60; width:250px; padding:8px; border-radius:18px; background:var(--surface); border:2px solid var(--edge, var(--line)); box-shadow:0 12px 32px -8px #0007; animation:viewIn .15s ease}
+.mm-row{display:flex; align-items:center; gap:14px; width:100%; padding:10px 12px; border:0; border-radius:12px; background:none; color:var(--text); font:800 16px var(--head); text-align:start; cursor:pointer; text-decoration:none; box-sizing:border-box}
+.mm-row:hover{background:var(--fill)}
+.mm-list{display:flex; flex-direction:column; gap:4px; margin-top:8px}
+.mm-list .mm-row{padding:12px; border:1.5px solid var(--line); background:var(--surface)}
+/* a finished chapter: gold banner */
+.unit.ugold{box-shadow:0 4px 0 color-mix(in srgb, var(--gold) 70%, #000); text-shadow:0 1px 0 #0003}
+/* settings inside the desktop frame: title on the left like the other pages, no close button */
+@media (min-width:1200px){
+  .set{max-width:620px; margin:0 auto}
+  .set-h{grid-template-columns:1fr; border-bottom:0; margin:0; padding:24px 0 4px; position:static}
+  .set-h h1{text-align:start; font-size:30px}
+  .set-h .set-x, .set-h > span{display:none}
+}

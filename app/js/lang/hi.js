@@ -280,6 +280,7 @@ export default {
  "testTitle": "अध्याय टेस्ट",
  "testDone": "टेस्ट पूरा!",
  "navHome": "होम",
+ "navMore": "और",
  "navNotes": "नोट्स",
  "navReview": "रिव्यू",
  "notesTitle": "नोट्स",

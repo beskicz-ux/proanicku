@@ -58,7 +58,6 @@ function viewWelcome() {
       <p class="ld-sub">${t("landSub")}</p>
       ${locked ? `<div class="ld-resume">${ham("happy", "bob")}<a class="btn-p" href="#/new/account">${t("welcomeResume")}</a></div>` : `
       <div class="ld-box">
-        <span class="ld-tag t1" aria-hidden="true">${t("landTag1")}</span><span class="ld-tag t2" aria-hidden="true">${t("landTag2")}</span><span class="ld-tag t3" aria-hidden="true">${t("landTag3")}</span>
         <div class="ld-peek" aria-hidden="true">${ham("happy")}</div>
         <button class="ld-drop" id="drop" type="button" aria-describedby="dropHint"><span class="ld-plus" id="plus">${PLUS}</span><b id="dropTxt">${t("landDrop")}</b><span class="ld-drag">${t("landDrag")}</span><span class="ld-types" id="dropHint">${t("landTypes")}</span></button>
         <input type="file" id="pick" accept="${ACCEPT}" multiple hidden>
@@ -66,11 +65,9 @@ function viewWelcome() {
       <p class="ob-err c" id="err" hidden role="alert"></p>
       ${d ? `<a class="btn-t" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : ""}`}
       <ol class="ld-steps"><li><i>1</i>${t("landS1")}</li><li><i>2</i>${t("landS2")}</li><li><i>3</i>${t("landS3")}</li></ol>
-      <p class="ld-price" id="priceNote" hidden></p>
     </section>
     <footer class="ld-foot">${legalLinks()}</footer></div>`;
   bindLang();
-  storeConfig().then(c => { const p = c.plans?.[0], el = $("#priceNote"); if (p && el) { el.textContent = t("welcomePrice", { price: `${p.price} ${c.currency}` }); el.hidden = false; } }).catch(() => { });
   if (locked) return;
   const drop = $("#drop"), pick = $("#pick"), ld = $("#ld");
   let busy = false;
@@ -100,9 +97,9 @@ function viewWelcome() {
 }
 
 /* ---------- login ---------- */
-function signedIn(r, code, email) {
+// Access codes are gone from the app (Marek, 2026-11-12): email and password only.
+function signedIn(r, email) {
   store.set("session", { token: r.session, slug: r.student.slug });
-  if (code) store.set("code", code.toUpperCase());
   if (email) store.set("email", email);
   resetCourse();
   nav(r.course ? "#/s/" + r.student.slug : "#/wait");
@@ -116,31 +113,19 @@ function loginFrame(title, form) {
 function viewLogin() {
   loginFrame(t("signinTitle"), `<form id="f" class="ob-form"><input class="ob-in" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
     <input class="ob-in" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
-    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>
-    <p class="ob-note">${t("signinForgot")}</p><a class="btn-t" href="#/login/code">${t("signinCode")}</a>`);
+    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>`);
   $("#email").focus();
   $("#f").onsubmit = async e => {
     e.preventDefault();
     const email = $("#email").value.trim(), password = $("#pass").value;
     if (!email || !password) return;
     $("#go").disabled = true; $("#err").hidden = true;
-    try { signedIn(await api("login", { email, password }), null, email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
-  };
-}
-function viewCodeLogin() {
-  loginFrame(t("loginTitle"), `<p class="ob-sub">${t("loginSub")}</p><form id="f" class="ob-form"><input class="ob-in code" id="code" placeholder="${t("loginPh")}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" aria-label="${t("loginPh")}">
-    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>`);
-  $("#code").focus();
-  $("#f").onsubmit = async e => {
-    e.preventDefault();
-    const v = $("#code").value.trim(); if (!v) return;
-    $("#go").disabled = true; $("#err").hidden = true;
-    try { signedIn(await api("login", { code: v }), v); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
+    try { signedIn(await api("login", { email, password }), email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
   };
 }
 
 /* ---------- step 1: slides ---------- */
-// One course holds at most 250 slide pages (Marek, 2026-11-12): a 458-slide semester cost ~300 Kč to build, more than PRO's 299 Kč.
+// One course holds at most 250 slide pages (Marek, 2026-11-12): a 458-slide semester cost ~300 Kč to build, close to PRO's price.
 // Same number in pc-api (upload_url) and the worker (keeps the first 250 pages).
 export const MAX_PAGES = 250;
 const uploading = new Map();
@@ -422,7 +407,7 @@ function viewAccount() {
     try {
       const r = await api("signup", { orderToken: draft().orderToken, ...v });
       store.set("session", { token: r.session, slug: r.slug });
-      store.set("code", r.code); store.set("email", v.email); store.set("name", v.name);
+      store.set("email", v.email); store.set("name", v.name);
       store.del("draft");
       confetti(); sfx.done();
       nav("#/wait");
@@ -593,18 +578,14 @@ async function viewWait() {
     const shown = ready ? (free ? "free_ready" : "ready") : status;
     if (painted === key + offline && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(shown, build) + buildHtml(shown, build, free, offline); return; } // keeps the mascot animation running
     painted = key + offline;
-    const code = store.get("code");
     const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (status === "free_queued" ? "waitFreeQueued" : "waitFreeTitle") : status === "paid_test" ? "waitQueued" : "waitTitle";
     const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
     view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${langBtn()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
       <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
       ${failed ? "" : `<div id="pcLive">${stepsHtml(shown, build) + buildHtml(shown, build, free, offline)}</div>`}
-      ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn-t sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
       ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
     bindLang();
-    const c = $("#copy");
-    if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(code); toast(t("codeCopied")); } catch (e) { } };
   };
   const poll = async () => {
     clearTimeout(waitTimer);
@@ -664,7 +645,7 @@ function route() {
   window.scrollTo({ top: 0, behavior: "instant" });
   if (!parts.length) return viewWelcome();
   if (parts[0] === "start") return nav("#/"); // the old invite page
-  if (parts[0] === "login") return parts[1] === "code" ? viewCodeLogin() : viewLogin();
+  if (parts[0] === "login") return viewLogin();
   if (parts[0] === "wait") return viewWait();
   if (parts[0] === "unlock") return viewUnlock();
   if (parts[0] === "privacy") return viewPrivacy();

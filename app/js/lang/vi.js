@@ -280,6 +280,7 @@ export default {
  "testTitle": "Kiểm tra chương",
  "testDone": "Hoàn thành bài kiểm tra!",
  "navHome": "Trang chủ",
+ "navMore": "Thêm",
  "navNotes": "Ghi chú",
  "navReview": "Ôn tập",
  "notesTitle": "Ghi chú",

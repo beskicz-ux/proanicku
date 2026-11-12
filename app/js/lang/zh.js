@@ -280,6 +280,7 @@ export default {
  "testTitle": "章节测试",
  "testDone": "测试完成！",
  "navHome": "首页",
+ "navMore": "更多",
  "navNotes": "笔记",
  "navReview": "复习",
  "notesTitle": "笔记",

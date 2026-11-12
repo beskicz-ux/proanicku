@@ -280,6 +280,7 @@ export default {
  "testTitle": "Kapiteltest",
  "testDone": "Test geschafft!",
  "navHome": "Start",
+ "navMore": "Mehr",
  "navNotes": "Notizen",
  "navReview": "Wiederholen",
  "notesTitle": "Notizen",

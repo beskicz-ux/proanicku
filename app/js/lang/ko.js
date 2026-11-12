@@ -280,6 +280,7 @@ export default {
  "testTitle": "단원 테스트",
  "testDone": "테스트 완료!",
  "navHome": "홈",
+ "navMore": "더보기",
  "navNotes": "노트",
  "navReview": "복습",
  "notesTitle": "노트",

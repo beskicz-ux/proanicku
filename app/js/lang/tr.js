@@ -280,6 +280,7 @@ export default {
  "testTitle": "Bölüm testi",
  "testDone": "Test tamam!",
  "navHome": "Ana sayfa",
+ "navMore": "Daha fazla",
  "navNotes": "Notlar",
  "navReview": "Tekrar",
  "notesTitle": "Notlar",

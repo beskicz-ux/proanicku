@@ -280,6 +280,7 @@ export default {
  "testTitle": "Test z kapitoly",
  "testDone": "Test hotový!",
  "navHome": "Domov",
+ "navMore": "Viac",
  "navNotes": "Poznámky",
  "navReview": "Opakovanie",
  "notesTitle": "Poznámky",
