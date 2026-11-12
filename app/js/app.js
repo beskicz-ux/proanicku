@@ -2,6 +2,7 @@
 import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx } from "./util.js";
 import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
+import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween } from "./forecast.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
@@ -118,7 +119,7 @@ function fileRows(d) {
 function viewFiles() {
   view().innerHTML = frame("files", { title: t("filesTitle"), sub: t("filesSub"), btn: t("next"),
     body: `<div id="list"></div>
-      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx" multiple hidden></label>
+      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden></label>
       <p class="ob-err" id="err" hidden role="alert"></p><div class="ob-sum" id="total" hidden></div><p class="ob-note">${t("filesNote")}</p>` });
   bindStepBack("files");
   const refresh = () => {
@@ -155,7 +156,24 @@ function viewFiles() {
     } catch (e) { fail($("#err"), e); }
     uploading.delete(key); if ($("#list")) refresh();
   };
-  const addAll = files => { $("#err").hidden = true; [...files].forEach(add); };
+  // Pictures picked or dropped together become one PDF (a page each, in file-name order), then upload like any PDF.
+  const addImages = async imgs => {
+    const key = crypto.randomUUID();
+    uploading.set(key, { name: t("imagesConverting", { n: imgs.length }), pct: 0 }); refresh();
+    try {
+      const pdfs = await imagesToPdfs(imgs, (part, n) => t("imagesPdf", { n }) + (part ? ` (${part})` : ""), (done, total) => {
+        uploading.get(key).pct = done / total * 100; if ($("#list")) $("#list").innerHTML = fileRows(draft());
+      });
+      uploading.delete(key);
+      for (const f of pdfs) await add(f);
+    } catch (e) { uploading.delete(key); fail($("#err"), e); if ($("#list")) refresh(); }
+  };
+  const addAll = files => {
+    $("#err").hidden = true;
+    const all = [...files], imgs = all.filter(isImage);
+    all.filter(f => !isImage(f)).forEach(add);
+    if (imgs.length) addImages(imgs);
+  };
   $("#pick").onchange = e => { addAll(e.target.files); e.target.value = ""; };
   const drop = $("#drop");
   drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
