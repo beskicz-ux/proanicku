@@ -540,52 +540,115 @@ async function viewPrivacy() {
 }
 
 /* ---------- wait page ---------- */
-let waitTimer = null;
-const STAGE_STEP = { outline: 1, lessons: 2, checking: 2, publishing: 3 };
+// Shows the real build as it happens: a builder starting, reading the files, planning, each lesson as it's written.
+// The bar is honest but never stalls: it creeps toward the next real milestone (never past it) and jumps when one is reached.
+let waitTimer = null, waitTick = null;
 const buildMinutesOf = pages => Math.max(3, Math.round(pages / 12) + 2); // same formula as scripts/gen/cost.mjs
-function stepsHtml(status, build) {
-  const stage = build?.progress?.stage;
-  const active = status === "building" && STAGE_STEP[stage] ? STAGE_STEP[stage] : { paid_test: 1, free_queued: 1, draft: 1, building: 2, free_ready: 4, ready: 4, failed: 1 }[status] ?? 1;
-  const queued = status === "paid_test" || status === "free_queued";
-  return `<ol class="pc-steps">${[1, 2, 3, 4].map(n => `<li class="${n <= active ? "done" : n === active + 1 && !queued ? "now" : ""}"><i>${n <= active ? ic.check : n}</i>${t("waitS" + n)}</li>`).join("")}</ol>`;
+const QUEUED = ["free_queued", "paid_test"];
+// Share of the bar each phase covers, and how long it usually takes (s); lessons are split by done/total.
+const STAGE_SPAN = { queued: [0, .06, 60], boot: [.03, .1, 25], reading: [.1, .16, 10], outline: [.16, .34, 45], lessons: [.34, .95, 60], checking: [.34, .95, 30], publishing: [.95, .99, 8] };
+const STEP_OF = { queued: 2, boot: 2, reading: 3, outline: 3, lessons: 4, checking: 4, publishing: 4, done: 6 };
+// Where the build really is. "reading" also counts while still queued: the builder reports it before it changes the status.
+function phaseOf(status, r) {
+  const b = r.build, p = b?.progress;
+  if (["ready", "free_ready"].includes(status)) return "done";
+  if (status === "failed") return "failed";
+  if (status === "building") return p && p.stage !== "reading" && STAGE_SPAN[p.stage] ? p.stage : "reading";
+  if (QUEUED.includes(status) && p?.stage === "reading" && b.progressAge != null && b.progressAge < 120) return "reading";
+  const w = r.worker;
+  if (w && ((w.kicked != null && w.kicked < 180) || (w.seen != null && w.seen < 60))) return "boot"; // a cloud run was started, or a builder is up
+  return "queued";
 }
-function buildHtml(status, build, free, offline) {
-  if (!build || ["ready", "free_ready", "failed"].includes(status)) return "";
-  const buildMinutes = free ? () => "1–2" : buildMinutesOf;
-  const p = status === "building" ? build.progress : null, pages = p?.pages || build.pages || 0;
+function stepsHtml(phase, p) {
+  const ls = p?.lessons || [], now = STEP_OF[phase] || 2, n = ls.length && now === 4 ? ` <small>${ls.filter(l => l.done).length}/${ls.length}</small>` : "";
+  return `<ol class="pc-steps">${["waitS1", "waitSBoot", "waitS2", "waitS3", "waitS4"].map((k, i) => {
+    const step = i + 1, cls = step < now ? "done" : step === now && phase !== "queued" ? "now" : "";
+    return `<li class="${cls}"><i>${step < now ? ic.check : step}</i><span>${t(k)}${step === 4 ? n : ""}</span></li>`;
+  }).join("")}</ol>`;
+}
+const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+function buildHtml(phase, build, free, offline) {
+  if (!build || ["done", "failed"].includes(phase)) return "";
+  const p = ["reading", "queued", "boot"].includes(phase) ? null : build.progress, pages = p?.pages || build.pages || 0;
   const stale = p && build.progressAge > 180;
+  const mins = free ? "1–2" : buildMinutesOf(pages);
+  const time = offline && phase === "queued" ? t("buildOffline") : stale ? t("buildStale")
+    : p ? (p.etaSeconds > 0 ? `<span id="pcEta">${minutesLeft(p.etaSeconds)}</span>` : t("buildAlmost"))
+    : (phase === "queued" ? t("buildQueued") : t("buildTotal")).replace("%", mins);
+  const now = phase === "boot" ? t("buildBooting") : phase === "reading" ? `<span id="pcRead">${t("buildStage_reading")}</span>` : phase === "queued" ? "" : t("buildStage_" + phase);
+  const lessons = p?.lessons || [], writing = ["lessons", "checking"].includes(phase);
   const files = build.files.length ? `<ul class="pc-build-files">${build.files.slice(0, 3).map(f => `<li>${esc(f)}</li>`).join("")}${build.files.length > 3 ? `<li>+${build.files.length - 3}</li>` : ""}</ul>` : "";
-  const time = offline && !p ? t("buildOffline") : stale ? t("buildStale") : p ? (p.etaSeconds > 0 ? minutesLeft(p.etaSeconds) : t("buildAlmost")) : status === "building" ? t("buildTotal").replace("%", buildMinutes(pages)) : t("buildQueued").replace("%", buildMinutes(pages));
-  const pct = p?.total ? Math.round(p.done / p.total * 100) : 0;
-  const lessons = p?.lessons || [];
-  return `<div class="pc-build"><span>${t("buildWhat")}</span>
+  return `<div class="pc-build"><span>${t("buildWhat")}<em id="pcClock" aria-hidden="true"></em></span>
     ${p?.title ? `<b>${esc(p.title)}</b>` : ""}
     <p>${[build.files.length ? fileCount(build.files.length) : "", pages ? pagesTxt(pages) : "", lessons.length ? lessonCount(lessons.length) : ""].filter(Boolean).join(" · ")}</p>
     ${lessons.length ? "" : files}
     <p class="pc-build-time">${time}</p>
-    ${p ? `<div class="ob-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><p class="pc-build-stage">${t("buildStage_" + p.stage)}</p>` : ""}
-    ${lessons.length ? `<ul class="pc-build-lessons">${lessons.map(l => `<li class="${l.done ? "done" : ""}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
+    ${offline && phase === "queued" ? "" : `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="pcBar"></i></div>`}
+    ${now ? `<p class="pc-build-stage">${now}</p>` : ""}
+    ${lessons.length ? `<p class="pc-build-plan">${t("buildPlan")}</p><ul class="pc-build-lessons">${lessons.map((l, i) => `<li class="${l.done ? "done" : writing ? "now" : ""}" style="--d:${i * 70}ms" data-l="${i}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
   </div>`;
 }
+const tipsHtml = () => `<div class="pc-tips"><span>${t("waitTipH")}</span><p id="pcTip">${t("waitTip1")}</p></div>`;
 async function viewWait() {
   hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
-  let painted = null;
+  let painted = null, last = null, gotAt = 0, phaseKey = "", phaseAt = 0, shown = 0, doneSeen = null, tip = 1, tipAt = Date.now();
+  // The bar target: inside the current phase, ease from its start toward its end (never reaching it) over its usual time.
+  const target = () => {
+    if (!last) return 0;
+    const { phase, r } = last, p = r.build?.progress;
+    if (phase === "done") return 1;
+    let [a, b, secs] = STAGE_SPAN[phase] || STAGE_SPAN.queued;
+    if ((phase === "lessons" || phase === "checking") && p?.total > 1) {
+      const step = (b - a) / p.total;
+      a += step * Math.max(0, p.done || 0); b = Math.min(b, a + step);
+      secs = p.etaSeconds > 0 ? Math.max(8, p.etaSeconds / Math.max(1, p.total - p.done)) : 30;
+    }
+    const t0 = (Date.now() - phaseAt) / 1000;
+    return a + (b - a) * (1 - Math.exp(-t0 / (secs / 1.6)));
+  };
+  const tick = () => {
+    const bar = $("#pcBar");
+    if (bar) { shown = Math.max(shown, target()); bar.style.width = (shown * 100).toFixed(1) + "%"; bar.parentNode.setAttribute("aria-valuenow", Math.round(shown * 100)); }
+    const since = (Date.now() - gotAt) / 1000, b = last?.r.build;
+    const c = $("#pcClock"); if (c && b?.queuedAge != null) c.textContent = clock(b.queuedAge + since);
+    const eta = $("#pcEta"), p = b?.progress; if (eta && p?.etaSeconds > 0) eta.textContent = minutesLeft(Math.max(0, p.etaSeconds - (b.progressAge || 0) - since));
+    const rd = $("#pcRead"); if (rd && b?.files?.length) rd.textContent = t("buildReadingFile", { name: b.files[Math.floor(since / 2.5) % b.files.length] });
+    const tipEl = $("#pcTip");
+    if (tipEl && Date.now() - tipAt > 7000) { // a new tip every 7 s
+      tipAt = Date.now(); tip = tip % 3 + 1;
+      tipEl.classList.remove("in"); void tipEl.offsetWidth; tipEl.textContent = t("waitTip" + tip); tipEl.classList.add("in");
+    }
+  };
   const paint = r => {
     const { status, student, build } = r, free = !r.paid, ready = !!r.course, failed = !ready && status === "failed";
-    const offline = r.workerOnline === false && ["free_queued", "paid_test"].includes(status); // building runs on one computer that can be off
-    const tutor = student ? student.tutor || "penny" : null, key = [status, tutor, ready, free, lang()].join();
-    const shown = ready ? (free ? "free_ready" : "ready") : status;
-    if (painted === key + offline && $("#pcLive")) { $("#pcLive").innerHTML = stepsHtml(shown, build) + buildHtml(shown, build, free, offline); return; } // keeps the mascot animation running
-    painted = key + offline;
-    const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (status === "free_queued" ? "waitFreeQueued" : "waitFreeTitle") : status === "paid_test" ? "waitQueued" : "waitTitle";
-    const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
-    view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${langBtn()}</div>
-      <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
-      <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
-      ${failed ? "" : `<div id="pcLive">${stepsHtml(shown, build) + buildHtml(shown, build, free, offline)}</div>`}
-      ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
-    bindLang();
+    const offline = r.workerOnline === false && QUEUED.includes(status); // nothing started a builder and none checked in lately
+    const shownStatus = ready ? (free ? "free_ready" : "ready") : status, phase = phaseOf(shownStatus, r);
+    const p = build?.progress, pk = phase + ":" + (p?.done ?? "");
+    if (pk !== phaseKey) { phaseKey = pk; phaseAt = Date.now() - (["outline", "lessons", "checking", "publishing"].includes(phase) ? Math.min(60, build?.progressAge || 0) * 1000 : 0); }
+    last = { phase, r }; gotAt = Date.now();
+    // small wins: each lesson that turned done since the last poll pops and ticks
+    const doneNow = (phase === "lessons" || phase === "checking" || phase === "publishing" ? p?.lessons || [] : []).map(l => !!l.done);
+    const fresh = doneSeen ? doneNow.map((d, i) => d && !doneSeen[i]) : [];
+    doneSeen = doneNow;
+    const waiting = phase === "queued"; // the heading says "in the queue" only until a builder has it
+    const tutor = student ? student.tutor || "penny" : null, key = [status, waiting, tutor, ready, free, lang(), offline].join();
+    if (painted === key && $("#pcLive")) $("#pcLive").innerHTML = stepsHtml(phase, p) + buildHtml(phase, build, free, offline); // keeps the mascot animation running
+    else {
+      painted = key;
+      const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (waiting ? "waitFreeQueued" : "waitFreeTitle") : waiting ? "waitQueued" : "waitTitle";
+      const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
+      view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${langBtn()}</div>
+        <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
+        <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
+        ${failed ? "" : `<div id="pcLive">${stepsHtml(phase, p) + buildHtml(phase, build, free, offline)}</div>`}
+        ${ready || failed ? "" : tipsHtml()}
+        ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
+      bindLang();
+    }
+    fresh.forEach((f, i) => f && $(`.pc-build-lessons [data-l="${i}"]`)?.classList.add("pop"));
+    if (fresh.some(Boolean)) sfx.flip();
+    tick();
   };
   const poll = async () => {
     clearTimeout(waitTimer);
@@ -594,12 +657,14 @@ async function viewWait() {
       const r = await api("status", { session: s.token });
       if (r.course && store.get("readySeen") === s.slug) return nav("#/s/" + s.slug);
       paint(r);
-      if (r.course) { store.set("readySeen", s.slug); confetti(); sfx.done(); return; }
+      if (r.course) { store.set("readySeen", s.slug); confetti(); sfx.done(); clearInterval(waitTick); return; }
     } catch (e) {
       if (e.status === 401) { store.del("session"); return nav("#/login"); }
     }
-    waitTimer = setTimeout(poll, 5000);
+    waitTimer = setTimeout(poll, last && !["queued", "failed"].includes(last.phase) ? 2500 : 5000); // quicker while something moves
   };
+  clearInterval(waitTick);
+  waitTick = setInterval(() => (location.hash.startsWith("#/wait") ? tick() : clearInterval(waitTick)), 250);
   if (store.get("readySeen") !== s.slug) paint({ status: "free_queued", paid: false });
   poll();
 }
@@ -627,7 +692,7 @@ async function newSubject() {
 
 /* ---------- router ---------- */
 export function render() {
-  clearTimeout(waitTimer); clearTimeout(paidTimer);
+  clearTimeout(waitTimer); clearInterval(waitTick); clearTimeout(paidTimer);
   document.querySelectorAll(".feedback,.confetti,#sh,#shDim,.hc").forEach(e => e.remove());
   document.body.classList.remove("plain", "map-page", "framed", "store", "landing");
   window.onkeydown = null; window.onscroll = null;

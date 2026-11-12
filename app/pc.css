@@ -128,6 +128,22 @@ body{background:var(--bg)}
 .pc-build-lessons i{flex:none; width:20px; height:20px; border-radius:50%; background:var(--line); display:grid; place-items:center; color:#fff; margin-top:1px}
 .pc-build-lessons li.done i{background:var(--green)}
 .pc-build-lessons i svg{width:13px; height:13px}
+/* the live build: a running clock, a bar that keeps moving, lessons that pop in as they're planned and written */
+.pc-build>span{display:flex; justify-content:space-between; gap:var(--s2)}
+.pc-build>span em{font-style:normal; font-variant-numeric:tabular-nums; letter-spacing:0; color:var(--hare)}
+.pc-steps small{font-size:14px; font-weight:800; color:var(--wolf); font-variant-numeric:tabular-nums}
+.pc-build .bar i#pcBar{width:0; transition:width .3s linear; background:linear-gradient(90deg,var(--green) 0 40%,#89e219 50%,var(--green) 60% 100%) 0 0/250% 100%; animation:pcshine 1.8s linear infinite}
+@keyframes pcshine{from{background-position:100% 0} to{background-position:-150% 0}}
+.pc-build .pc-build-plan{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--wolf); margin-top:var(--s1)}
+.pc-build-lessons li{animation:pcin .35s ease-out var(--d,0ms) both}
+@keyframes pcin{from{opacity:0; transform:translateY(6px)}}
+.pc-build-lessons li.now i{background:none; border:3px solid var(--line); border-top-color:var(--blue); animation:spin .9s linear infinite}
+.pc-build-lessons li.pop i{animation:pcpop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pcpop{0%{transform:scale(.4)} 100%{transform:scale(1)}}
+.pc-tips{width:100%; border-radius:var(--r); background:var(--blue-soft); padding:var(--s3) var(--s4); margin-bottom:var(--s4); text-align:start}
+.pc-tips span{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-ink)}
+.pc-tips p{margin:4px 0 0; font-size:15px; font-weight:700; color:var(--ink-strong); min-height:2.6em}
+.pc-tips p.in{animation:pcin .4s ease-out}
 .pc-voice{display:flex; flex-direction:column; align-items:center; gap:var(--s3); text-align:center; padding:var(--s4) 0}
 .pc-voice .pc-voice-left{font-size:28px; font-weight:900; color:var(--ink-strong); margin:0}
 .pc-voice .small{font-size:14px}
@@ -169,7 +185,7 @@ body{background:var(--bg)}
 .pc-unitbar .bar{margin-top:4px; height:12px}
 .pc-set > div{display:flex; justify-content:space-between; align-items:center; min-height:48px; font-weight:700; color:var(--ink)}
 .pc-set > div + div{border-top:2px solid var(--line)}
-@media (prefers-reduced-motion:reduce){.bob,.pc-steps li.now i{animation:none}}
+@media (prefers-reduced-motion:reduce){.bob,.pc-steps li.now i,.pc-build .bar i#pcBar,.pc-build-lessons li,.pc-build-lessons li.pop i,.pc-tips p.in{animation:none}}
 /* Screens without the menu: base.css reserves its space on desktop, so give it back and keep them centred. */
 @media (min-width:1000px){body:has(#nav[hidden]){padding-left:0}}
 @media (min-width:700px){.pc-wait{max-width:480px; margin-inline:auto} .pc-steps{width:fit-content; margin-inline:auto}}
