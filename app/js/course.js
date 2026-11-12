@@ -183,6 +183,7 @@ export async function courseRoute(parts, nav, render) {
   if (sub === "practice") return viewPractice();
   if (sub === "progress") return viewProfile();
   if (sub === "settings") return viewSettings();
+  if (sub === "contact") return viewContact();
   if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(curTutor(), "bob"), topbar: "", onOut: () => { store.del("session"); nav("#/login"); } });
   if (sub === "lesson") return startLesson(arg);
   if (sub === "test") return startTest(+arg);
@@ -194,9 +195,9 @@ let ctx = null;
 const TAB_COL = { home: "var(--accent)", notes: "var(--accent)", review: "var(--accent)", progress: "var(--accent)", more: "var(--accent)" }; // one selected colour for every tab
 function setTabs(slug, sub) {
   const n = $("#nav");
-  const show = !sub || ["notes", "practice", "progress", "settings"].includes(sub);
+  const show = !sub || ["notes", "practice", "progress", "settings", "contact"].includes(sub);
   n.hidden = !show; document.body.classList.toggle("has-tabs", show);
-  const on = { "": "home", notes: "notes", practice: "review", progress: "progress", settings: "more" }[sub || ""];
+  const on = { "": "home", notes: "notes", practice: "review", progress: "progress", settings: "more", contact: "more" }[sub || ""];
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
     // More (like Duolingo's): settings, contact and log out live here, not on the progress page (Marek, 2026-11-12)
@@ -244,20 +245,36 @@ function moreMenu(anchor, hover) {
 // Contact us and the one-time question after the first finished lesson: a short message that reaches Marek through pc-api
 // (it becomes an alert the cloud worker shows, and GitHub emails him). No mail app needed, no address in the page (2026-11-13).
 function contactUs() { feedbackForm("contact"); }
-function feedbackForm(where) {
-  const ask = where === "lesson";
-  const s = sheet(`<h2 class="sh-h">${t(ask ? "fbAskH" : "fbH")}</h2><p class="sh-note">${t(ask ? "fbAskSub" : "fbSub")}</p>
-    <textarea class="fb-ta" id="fbText" rows="5" maxlength="2000" placeholder="${esc(t("fbPh"))}"></textarea>
-    <button class="btn-p" id="fbSend">${t("fbSend")}</button>${ask ? `<button class="btn-t" id="fbSkip">${t("fbSkip")}</button>` : ""}`);
-  const ta = s.el.querySelector("#fbText"), go = s.el.querySelector("#fbSend");
-  setTimeout(() => ta.focus(), 250);
-  const k = s.el.querySelector("#fbSkip"); if (k) k.onclick = () => s.close();
+// A page of its own (Marek, 2026-11-13): a message and an optional screenshot. "lesson" = the one-time question after a finished lesson.
+let FB_WHERE = "contact";
+function feedbackForm(where) { FB_WHERE = where; ctx.nav(`#/s/${SLUG}/contact`); }
+function viewContact() {
+  const ask = FB_WHERE === "lesson"; let img = "";
+  view().innerHTML = `<div class="set fb"><header class="set-h"><a class="set-x" href="#/s/${SLUG}" aria-label="${t("close")}">${CLOSE}</a><h1>${t(ask ? "fbAskH" : "fbH")}</h1><span></span></header>
+    <p class="fb-sub">${t(ask ? "fbAskSub" : "fbSub")}</p>
+    <textarea class="fb-ta" id="fbText" rows="7" maxlength="2000" placeholder="${esc(t("fbPh"))}"></textarea>
+    <input type="file" id="fbFile" accept="image/*" hidden>
+    <div class="fb-pic" id="fbPic"></div>
+    <button class="btn-t fb-add" id="fbAdd">＋ ${t("fbImg")}</button>
+    <button class="btn-p" id="fbSend">${t("fbSend")}</button>${ask ? `<a class="btn-t" href="#/s/${SLUG}">${t("fbSkip")}</a>` : ""}</div>`;
+  FB_WHERE = "contact";
+  const ta = $("#fbText"), go = $("#fbSend"), file = $("#fbFile"), pic = $("#fbPic"), add = $("#fbAdd");
+  const draw = () => { pic.innerHTML = img ? `<img src="${img}" alt=""><button class="fb-rm" aria-label="${t("close")}">${CLOSE}</button>` : ""; add.hidden = !!img; const x = pic.querySelector(".fb-rm"); if (x) x.onclick = () => { img = ""; draw(); }; };
+  add.onclick = () => file.click();
+  file.onchange = async () => { const f = file.files[0]; file.value = ""; if (!f) return; try { img = await shrinkImage(f); draw(); } catch { toast(t("fbImgBad")); } };
   go.onclick = async () => {
-    const text = ta.value.trim(); if (text.length < 2) return ta.focus();
+    const text = ta.value.trim(); if (text.length < 2 && !img) return ta.focus();
     go.disabled = true;
-    try { await api("feedback", { session: TOKEN, text, where }); s.close(); toast(t("fbThanks")); }
+    try { await api("feedback", { session: TOKEN, text, where: ask ? "lesson" : "contact", image: img || undefined }); toast(t("fbThanks")); ctx.nav(`#/s/${SLUG}`); }
     catch (e) { go.disabled = false; toast(errText(e.code)); }
   };
+}
+// A screenshot as a JPEG data URL, at most 1600 px on the long side (keeps it well under pc-api's limit)
+async function shrinkImage(f) {
+  const bmp = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.82);
 }
 async function logOut() {
   if (!confirm(t("setLogoutQ"))) return;
