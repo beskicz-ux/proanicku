@@ -1174,9 +1174,9 @@ body.landing .app{max-width:1040px}
 .subrow b.long>span{display:inline-block}
 .subrow b.roll{animation:subfade var(--dur,12s) linear infinite}
 .subrow b.roll>span{animation:subroll var(--dur,12s) ease-in-out infinite}
-/* rest 2 s-ish, glide left, rest, glide back, rest; the left fade only shows while the text is away from its start */
-@keyframes subroll{0%,20%{transform:none} 50%,65%{transform:translateX(var(--roll))} 95%,100%{transform:none}}
-@keyframes subfade{0%,21%{--fl:0px} 27%,89%{--fl:16px} 95%,100%{--fl:0px}}
+/* starts gliding at once (the 1 s wait is in rollTitles), rest at the end, glide back, rest; the left fade only shows while the text is away from its start */
+@keyframes subroll{0%{transform:none} 30%,45%{transform:translateX(var(--roll))} 75%,100%{transform:none}}
+@keyframes subfade{0%{--fl:0px} 6%,69%{--fl:16px} 75%,100%{--fl:0px}}
 @media (prefers-reduced-motion:reduce){.subrow b.roll,.subrow b.roll>span{animation:none}}
 /* More card: plain uppercase words, no icons (Marek, 2026-11-13) */
 .more-pop{width:200px}
