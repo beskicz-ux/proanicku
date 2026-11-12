@@ -201,7 +201,11 @@ function setTabs(slug, sub) {
     const k = a.dataset.k;
     // More (like Duolingo's): settings, contact and log out live here, not on the progress page (Marek, 2026-11-12)
     a.href = k === "more" ? `#/s/${slug}/settings` : `#/s/${slug}` + { home: "", notes: "/notes", review: "/practice", progress: "/progress" }[k];
-    if (k === "more") a.onclick = e => { e.preventDefault(); moreMenu(a); };
+    if (k === "more") {
+      a.onclick = e => { e.preventDefault(); if (!$(".more-pop.hov")) moreMenu(a); else $(".more-pop").classList.remove("hov"); };
+      // a mouse opens it on hover; it closes a moment after the pointer leaves both the tab and the card (Marek, 2026-11-13)
+      a.onmouseenter = () => { if (HOVER.matches && matchMedia("(min-width:768px)").matches && !$(".more-pop")) moreMenu(a, true); };
+    }
     const label = t({ home: "navHome", notes: "navNotes", review: "navReview", progress: "navProgress", more: "navMore" }[k]);
     a.setAttribute("aria-label", label);
     a.style.setProperty("--tc", TAB_COL[k]);
@@ -212,11 +216,11 @@ function setTabs(slug, sub) {
   });
 }
 // The More menu: a small card next to the rail on wide screens, a sheet on phones.
-function moreMenu(anchor) {
+function moreMenu(anchor, hover) {
   const old = $(".more-pop"); if (old) { old.remove(); return; }
-  const items = `<a class="mm-row" href="#/s/${SLUG}/settings" data-m="set">${setIcon("gear")}<b>${t("settings")}</b></a>
-    <button class="mm-row" data-m="contact">${setIcon("mail")}<b>${t("footContact")}</b></button>
-    <button class="mm-row" data-m="out">${setIcon("out")}<b>${t("setLogout")}</b></button>`;
+  const items = `<a class="mm-row" href="#/s/${SLUG}/settings" data-m="set"><b>${t("settings")}</b></a>
+    <button class="mm-row" data-m="contact"><b>${t("footContact")}</b></button>
+    <button class="mm-row" data-m="out"><b>${t("setLogout")}</b></button>`;
   const wire = (root, close) => {
     root.querySelector('[data-m="set"]').addEventListener("click", () => close());
     root.querySelector('[data-m="contact"]').onclick = () => { close(); contactUs(); };
@@ -224,11 +228,15 @@ function moreMenu(anchor) {
   };
   if (!matchMedia("(min-width:768px)").matches) { const s = sheet(`<h2 class="sh-h">${t("navMore")}</h2><div class="mm-list">${items}</div>`); return wire(s.el, () => s.close()); }
   const el = document.createElement("div");
-  el.className = "more-pop"; el.setAttribute("role", "menu"); el.innerHTML = items;
+  el.className = "more-pop" + (hover ? " hov" : ""); el.setAttribute("role", "menu"); el.innerHTML = items;
   document.body.appendChild(el);
   const r = anchor.getBoundingClientRect();
   el.style.left = r.right + 12 + "px"; el.style.top = Math.max(12, Math.min(r.top, innerHeight - el.offsetHeight - 12)) + "px";
-  const close = () => { el.remove(); removeEventListener("pointerdown", outside, true); removeEventListener("hashchange", close); };
+  let leaveT = 0;
+  const close = () => { clearTimeout(leaveT); el.remove(); removeEventListener("pointerdown", outside, true); removeEventListener("hashchange", close); anchor.removeEventListener("mouseleave", leave); el.removeEventListener("mouseleave", leave); };
+  const leave = () => { if (el.classList.contains("hov")) leaveT = setTimeout(close, 250); };
+  const stay = () => clearTimeout(leaveT);
+  if (hover) { anchor.addEventListener("mouseleave", leave); el.addEventListener("mouseleave", leave); el.addEventListener("mouseenter", stay); anchor.addEventListener("mouseenter", stay); }
   const outside = e => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
   setTimeout(() => { addEventListener("pointerdown", outside, true); addEventListener("hashchange", close); });
   wire(el, close);
@@ -261,7 +269,7 @@ const acctFetch = () => { const tk = TOKEN; return api("account", { session: tk 
 function bindTopbar() {
   const title = C.meta.subject || C.meta.title || "";
   if (ACCT?.token !== TOKEN) { ACCT = { token: TOKEN, a: null }; acctFetch().catch(() => { }); }
-  const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
+  const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b><span>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</span></b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
   const add = `<button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("subjNewSub")}</small></div></button>`;
   const me = { slug: SLUG, current: true, ready: true, paid: ACCESS.paid };
   // Before the first reply: this subject, and + New subject when signed in with an account (an e-mail is stored).
@@ -291,7 +299,16 @@ function bindTopbar() {
 }
 let subjRows = () => "";
 // The subject rows work the same in the sheet (phone) and the drop-down (mouse): pick one to switch, + to start a new one.
+// Long subject titles roll sideways (out and back) after 1 s, like a song title in a music app (Marek, 2026-11-13)
+function rollTitles(root) {
+  setTimeout(() => root.isConnected && root.querySelectorAll(".subrow b").forEach(b => {
+    const d = b.scrollWidth - b.clientWidth;
+    b.classList.toggle("roll", d > 2);
+    if (d > 2) { b.style.setProperty("--roll", -(d + 16) + "px"); b.style.setProperty("--dur", (4 + d / 25).toFixed(1) + "s"); }
+  }), 1000);
+}
 function wireSubjects(root, close) {
+  rollTitles(root);
   root.querySelectorAll("[data-slug]").forEach(x => x.onclick = async () => {
     if (x.dataset.slug === SLUG) return close();
     x.disabled = true;
@@ -942,8 +959,9 @@ function lookSheet() {
 }
 function paySheet() {
   const title = C.meta.subject || C.meta.title || "";
-  const s = sheet(`<h2 class="sh-h">${t("setSubjects")}</h2><div class="sh-list"><div class="subrow on"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b>${esc(C.meta.title || title)}</b><small>${t(ACCESS.paid ? "payPaid" : "payFree")}</small></div></div></div>
+  const s = sheet(`<h2 class="sh-h">${t("setSubjects")}</h2><div class="sh-list"><div class="subrow on"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b><span>${esc(C.meta.title || title)}</span></b><small>${t(ACCESS.paid ? "payPaid" : "payFree")}</small></div></div></div>
     ${ACCESS.paid ? "" : `<button class="btn-p" id="payGo">${t("payUnlock")}</button>`}`);
+  rollTitles(s.el);
   const b = $("#payGo"); if (b) b.onclick = () => { s.close(); ctx.nav("#/unlock"); };
 }
 

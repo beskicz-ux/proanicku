@@ -1167,3 +1167,14 @@ body.landing .app{max-width:1040px}
   .set-h h1{text-align:start; font-size:30px}
   .set-h .set-x, .set-h > span{display:none}
 }
+/* subject lists: never scroll sideways; a long title rolls out and back after 1 s (rollTitles in course.js) */
+.hc-list{grid-template-columns:minmax(0,1fr); overflow-x:hidden; overflow-y:auto}
+.subrow b.roll>span{display:inline-block}
+.subrow b.roll{text-overflow:clip; -webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent); mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 18px),transparent); padding-left:2px}
+.subrow b.roll>span{animation:subroll var(--dur,6s) ease-in-out infinite}
+@keyframes subroll{0%,12%{transform:none} 50%,62%{transform:translateX(var(--roll))} 100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.subrow b.roll>span{animation:none} .subrow b.roll{text-overflow:ellipsis; -webkit-mask-image:none; mask-image:none}}
+/* More card: plain uppercase words, no icons (Marek, 2026-11-13) */
+.more-pop{width:200px}
+.more-pop .mm-row{padding:12px 14px; font:800 14px var(--head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.more-pop .mm-row:hover{color:var(--text)}
