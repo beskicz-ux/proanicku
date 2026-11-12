@@ -861,7 +861,7 @@ function nodePop(b) {
   else if (key[0] === "u") { const ui = +key.slice(1), u = C.units[ui], uq = S.uq?.[ui]; h = `<b>Kvíz: ${esc(u.title)}</b><p>${uq != null ? `Nejlépe ${uq} % · zkus 90 % a víc` : "12 otázek z celé jednotky"}</p><a class="btn block" href="#/kviz?u=${ui}&n=12">${uq != null ? "Znovu" : "Start"}</a>`; }
   else {
     const l = LEC[key]; const rd = sectionsRead(key), ns = l.sections.length; const r = Math.round(readiness(key).score * 100);
-    h = lectureRead(key) ? `<b>${esc(l.title)}</b><p>${r >= 85 ? "Zlatá úroveň! " : ""}Připravenost ${r} %</p><a class="btn block" href="#/karty?l=${key}">${r >= 85 ? "Udržet zlato" : "Opakovat"}</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`
+    h = lectureRead(key) ? `<b>${esc(l.title)}</b><p>${r >= 85 ? "Zlatá úroveň! " : ""}Připravenost ${r} %</p><div class="grid2"><a class="btn block" href="#/kviz?l=${key}&n=12">Kvíz</a><a class="btn block" href="#/karty?l=${key}">Kartičky</a></div><a class="btn-text" href="#/uc/${key}">Projít lekci znovu</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`
       : `<b>${esc(l.title)}</b><p>Část ${rd + 1} z ${ns}</p><a class="btn block" href="#/uc/${key}">${rd ? "Pokračovat" : "Start"}</a><a class="btn-text" href="#/lekce/${key}">Průvodce</a>`;
   }
   b.insertAdjacentHTML("afterend", `<div class="pop">${h}</div>`);
@@ -995,7 +995,7 @@ function viewLecture(parts, q) {
   const ui = C.units.findIndex(u => u.ids.includes(id)); const [uc, ul] = UNIT_C[ui] || UNIT_C[0];
   const due = lecCards(id).filter(c => !S.cards[c] || isDue(c)).length;
   const cta = !lectureRead(id) ? `<a class="btn block big" href="#/uc/${id}">${rd ? "Pokračovat" : "Start"}</a>`
-    : `<div class="grid2"><a class="btn big nowrap" href="#/karty?l=${id}">Kartičky${due ? ` <span class="cnt">${due}</span>` : ""}</a><a class="btn blue big" href="#/kviz?l=${id}&n=12">Kvíz</a></div>`;
+    : `<div class="grid2"><a class="btn big nowrap" href="#/karty?l=${id}">Kartičky${due ? ` <span class="cnt">${due}</span>` : ""}</a><a class="btn blue big" href="#/kviz?l=${id}&n=12">Kvíz</a></div><a class="btn-text" href="#/uc/${id}">Projít lekci znovu</a>`;
   view().innerHTML = `${topbar("#/")}
     <div class="guide-head" style="--uc:${uc};--ul:${ul}"><div class="t"><span class="cap">Přednáška ${id} · ${rd}/${ns}</span><h1>${esc(l.title)}</h1></div><div class="ring big" style="--p:${r}"><span>${r}%</span></div></div>
     ${cta}
