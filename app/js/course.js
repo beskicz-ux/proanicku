@@ -241,9 +241,23 @@ function moreMenu(anchor, hover) {
   setTimeout(() => { addEventListener("pointerdown", outside, true); addEventListener("hashchange", close); });
   wire(el, close);
 }
-async function contactUs() {
-  const op = (await fetch("store.config.json").then(r => r.json()).catch(() => ({}))).operator || {};
-  if (op.email) location.href = "mailto:" + op.email; else toast(t("contactSoon"));
+// Contact us and the one-time question after the first finished lesson: a short message that reaches Marek through pc-api
+// (it becomes an alert the cloud worker shows, and GitHub emails him). No mail app needed, no address in the page (2026-11-13).
+function contactUs() { feedbackForm("contact"); }
+function feedbackForm(where) {
+  const ask = where === "lesson";
+  const s = sheet(`<h2 class="sh-h">${t(ask ? "fbAskH" : "fbH")}</h2><p class="sh-note">${t(ask ? "fbAskSub" : "fbSub")}</p>
+    <textarea class="fb-ta" id="fbText" rows="5" maxlength="2000" placeholder="${esc(t("fbPh"))}"></textarea>
+    <button class="btn-p" id="fbSend">${t("fbSend")}</button>${ask ? `<button class="btn-t" id="fbSkip">${t("fbSkip")}</button>` : ""}`);
+  const ta = s.el.querySelector("#fbText"), go = s.el.querySelector("#fbSend");
+  setTimeout(() => ta.focus(), 250);
+  const k = s.el.querySelector("#fbSkip"); if (k) k.onclick = () => s.close();
+  go.onclick = async () => {
+    const text = ta.value.trim(); if (text.length < 2) return ta.focus();
+    go.disabled = true;
+    try { await api("feedback", { session: TOKEN, text, where }); s.close(); toast(t("fbThanks")); }
+    catch (e) { go.disabled = false; toast(errText(e.code)); }
+  };
 }
 async function logOut() {
   if (!confirm(t("setLogoutQ"))) return;
@@ -824,6 +838,8 @@ function finish(st) {
   save(); SYNC.push();
   const more = l && lessonPct(l) < 1;
   sfx.done(); if (!st.gold || won) confetti();
+  // once, after the first lesson finished all the way: ask the tester what was confusing
+  if (l && !more && !st.gold && !store.get("fbAsked")) setTimeout(() => { if (location.hash.includes("/lesson/") && !store.get("fbAsked")) { store.set("fbAsked", 1); feedbackForm("lesson"); } }, 1800);
   const boxes = [[t("xp"), st.xp, "y"], [t("correct"), pct + " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), "b"]];
   view().innerHTML = `<div class="done-screen">${tutorArt(curTutor(), "jump", "happy")}<div class="title">${st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle")}</div>${l || st.test != null || st.gold ? `<p class="sub">${esc(st.title)}</p>` : ""}
     <div class="statboxes">${boxes.map(([h, v, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></div>
