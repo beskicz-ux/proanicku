@@ -110,7 +110,7 @@ function viewCodeLogin() {
 
 /* ---------- step 1: slides ---------- */
 const uploading = new Map();
-const fileKind = name => /\.pptx$/i.test(name) ? "pptx" : "pdf";
+const fileKind = name => /\.pptx?$/i.test(name) ? "pptx" : "pdf";
 function fileRows(d) {
   const rows = d.files.map(f => `<div class="ob-file"><span class="ob-fk ${fileKind(f.name)}">${fileKind(f.name).toUpperCase()}</span><div class="t"><b>${esc(f.name)}</b><span>${pagesTxt(f.pages)}${f.estimated ? ` (${t("filesEst")})` : ""}</span></div><button class="ob-x" data-rm="${esc(f.path)}" aria-label="${t("filesRemove")}">${ic.x}</button></div>`).join("");
   const up = [...uploading.values()].map(u => `<div class="ob-file busy"><span class="ob-fk ${fileKind(u.name)}">${fileKind(u.name).toUpperCase()}</span><div class="t"><b>${esc(u.name)}</b><div class="ob-bar"><i style="width:${u.pct}%"></i></div></div></div>`).join("");
@@ -119,7 +119,7 @@ function fileRows(d) {
 function viewFiles() {
   view().innerHTML = frame("files", { title: t("filesTitle"), sub: t("filesSub"), btn: t("next"),
     body: `<div id="list"></div>
-      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden></label>
+      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx,.ppt,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden></label>
       <p class="ob-err" id="err" hidden role="alert"></p><div class="ob-sum" id="total" hidden></div><p class="ob-note">${t("filesNote")}</p>` });
   bindStepBack("files");
   const refresh = () => {
@@ -211,7 +211,38 @@ export function bindRuler(startDays, onChange) {
   let last = -1;
   const upd = () => { const n = at(); if (n === last) return; last = n; rs.setAttribute("aria-valuenow", n); onChange(n, addDays(today(), n)); };
   rs.addEventListener("scroll", upd, { passive: true });
-  rs.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1, PageUp: 7, PageDown: -7 }[e.key]; if (k) { e.preventDefault(); rs.scrollLeft = (at() + k - RULER.MIN) * RULER.STEP; } };
+  const go = n => { rs.scrollLeft = (Math.min(RULER.MAX, Math.max(RULER.MIN, n)) - RULER.MIN) * RULER.STEP; };
+  rs.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1, PageUp: 7, PageDown: -7 }[e.key]; if (k) { e.preventDefault(); go(at() + k); } };
+  // Desktop: a mouse wheel scrolls up/down, so turn that into days (sideways trackpad swipes stay native).
+  let acc = 0;
+  rs.addEventListener("wheel", e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    acc += e.deltaMode ? e.deltaY * 33 : e.deltaY;
+    const k = Math.trunc(acc / 33);
+    if (k) { acc -= k * 33; go(at() + k); }
+  }, { passive: false });
+  // Desktop: drag with the mouse, or click a day to jump to it.
+  let drag = null;
+  rs.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    drag = { x: e.clientX, left: rs.scrollLeft, moved: false };
+    rs.setPointerCapture(e.pointerId); rs.classList.add("drag");
+  });
+  rs.addEventListener("pointermove", e => {
+    if (!drag) return;
+    if (Math.abs(e.clientX - drag.x) > 4) drag.moved = true;
+    if (drag.moved) rs.scrollLeft = drag.left - (e.clientX - drag.x);
+  });
+  const end = e => {
+    if (!drag) return;
+    const d = drag; drag = null; rs.classList.remove("drag");
+    if (d.moved) { go(at()); return; }
+    if (e.type !== "pointerup") return;
+    const r = rs.getBoundingClientRect(); // the needle sits in the middle
+    go(at() + Math.round((e.clientX - (r.left + r.width / 2)) / RULER.STEP));
+  };
+  rs.addEventListener("pointerup", end); rs.addEventListener("pointercancel", end);
   requestAnimationFrame(() => { rs.scrollLeft = (Math.min(RULER.MAX, Math.max(RULER.MIN, startDays)) - RULER.MIN) * RULER.STEP; upd(); });
   return { get: () => addDays(today(), at()) };
 }

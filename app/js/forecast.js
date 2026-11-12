@@ -45,5 +45,5 @@ export async function countPages(file) {
 export const validFile = (name, head) => {
   const ext = name.split(".").pop().toLowerCase();
   const h = String.fromCharCode(...head.slice(0, 4));
-  return (ext === "pdf" && h === "%PDF") || (ext === "pptx" && h.startsWith("PK"));
+  return (ext === "pdf" && h === "%PDF") || (ext === "pptx" && h.startsWith("PK")) || (ext === "ppt" && h === "\xD0\xCF\x11\xE0"); // .ppt: old PowerPoint (OLE file)
 };

@@ -120,6 +120,7 @@ body.plain .app{padding-bottom:0}
 .ruler{position:relative; height:96px; margin:0 calc(-1 * var(--gutter))}
 .rscroll{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; height:100%; padding:0 calc(50% - 6px); box-sizing:border-box; outline:none}
 .rscroll::-webkit-scrollbar{display:none}
+@media (pointer:fine){.rscroll{cursor:grab}.rscroll.drag{cursor:grabbing; scroll-snap-type:none; user-select:none}}
 .rd{flex:0 0 12px; height:100%; scroll-snap-align:center; position:relative}
 .rd:before{content:""; position:absolute; left:5px; top:30px; width:2px; height:16px; border-radius:2px; background:var(--line)}
 .rd.wk:before{height:28px; top:24px; background:color-mix(in srgb, var(--muted) 45%, var(--line))}
