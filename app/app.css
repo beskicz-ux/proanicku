@@ -1182,3 +1182,6 @@ body.landing .app{max-width:1040px}
 .more-pop{width:200px}
 .more-pop .mm-row{padding:12px 14px; font:800 14px var(--head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
 .more-pop .mm-row:hover{color:var(--text)}
+/* "New course" row: same size as a course row, one-line subtitle (Marek, 2026-11-13) */
+.hc-list .subrow.add{border-top:none; border-radius:12px; margin-top:0; padding:10px 12px}
+.subrow small{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
