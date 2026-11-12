@@ -120,7 +120,12 @@ export async function storeInfo(slug) {
   const ls = allLessons(), free = ls.filter(l => !l.locked), tap = TAPPED && LESSON[TAPPED]?.locked ? LESSON[TAPPED].title : "";
   return { tutor: curTutor(), exam: examDate(), left: daysToExam(), done: free.filter(l => lessonPct(l) >= 1).length, free: free.length,
     locked: ls.length - free.length, tapped: tap,
-    units: C.units.map((u, ci) => ({ ci, title: u.title, n: u.lessons.filter(l => l.locked).length })).filter(u => u.n) };
+    units: C.units.map((u, ci) => ({ ci, title: u.title, n: u.lessons.filter(l => l.locked).length, titles: u.lessons.filter(l => l.locked).map(l => l.title) })).filter(u => u.n),
+    pages: coursePages(ls) };
+}
+// Slide pages the whole course covers, from each lesson's page ranges (locked stubs carry them too). 0 if the course has none.
+function coursePages(ls) {
+  return ls.reduce((n, l) => n + (Array.isArray(l.pages) ? l.pages.reduce((m, r) => m + (r && r.to >= r.from ? r.to - r.from + 1 : 0), 0) : 0), 0);
 }
 
 /* ---------- presentation tags (1A, 1B, 2A…) ---------- */

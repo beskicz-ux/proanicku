@@ -356,7 +356,10 @@ async function viewUnlock() {
   // A little calendar page with the exam's day, then "Zkouška za 5 dní" and the full date
   const urg = info?.exam ? `<p class="st-urg"><i class="st-cal" aria-hidden="true">${+String(info.exam).slice(8, 10) || ""}</i><span><b>${esc(t("stTlExam"))}${left > 0 ? " " + esc(inDays(left)) : ""}</b><small>${esc(fmtDay(info.exam))}</small></span></p>` : "";
   const tap = info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`;
-  const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2><ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><b>${esc(u.title)}</b><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
+  // Every locked lesson by title, and a rough size from the slide pages (~3 practice items and ~0.25 exam questions per page,
+  // measured on Anna's 458-page course). Shown as an estimate only.
+  const est = n => Math.max(10, Math.round(n / 10) * 10);
+  const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2>${info.pages ? `<p class="st-est">${esc(t("unlockEst", { items: est(info.pages * 3), exam: est(info.pages * .25) }))}</p>` : ""}<ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><span class="st-u"><b>${esc(u.title)}</b>${u.titles?.length ? `<span class="st-ul">${esc(u.titles.join(" · "))}</span>` : ""}</span><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
   const tl = info ? `<ol class="st-tl">
       <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
       <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
