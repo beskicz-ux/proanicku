@@ -4,6 +4,7 @@ import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, le
 import { ham } from "./art.js";
 import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween, ACCEPT } from "./forecast.js";
+import { phaseOf, QUEUED, stepsHtml, barTarget, phaseStart, clock, stageText } from "./build.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
@@ -40,7 +41,10 @@ function frame(step, { title, body, btn, btnId = "nextBtn", sub = "" }) {
     <div class="ob-body">${body}</div>
     <div class="ob-foot"><button class="btn-p" id="${btnId}">${btn}</button></div></div>`;
 }
-function bindStepBack(step) { const i = STEPS.indexOf(step); $("#stepBack").onclick = () => nav(i ? "#/new/" + STEPS[i - 1] : "#/"); }
+// X on the first step: a signed-in student (another subject) goes straight back to their course, not via #/ and #/wait,
+// which flashed the setup, then a blank wait page, then the map.
+const homeOf = () => { const s = session(); return s ? (store.get("readySeen") === s.slug ? "#/s/" + s.slug : "#/wait") : "#/"; };
+function bindStepBack(step) { const i = STEPS.indexOf(step); $("#stepBack").onclick = () => nav(i ? "#/new/" + STEPS[i - 1] : homeOf()); }
 
 /* ---------- landing: one big drop box ---------- */
 let handoff = null; // files dropped or picked on the landing page, uploaded by the files step as soon as it opens
@@ -49,7 +53,7 @@ const SPIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 function viewWelcome() {
   hideNav(); plain(); document.body.classList.add("landing");
   const s = session(), d = draft();
-  if (s) return nav("#/wait");
+  if (s) return nav(homeOf());
   const locked = !!d?.slug; // the free lessons are already building: the files can't change, so offer to finish the account
   view().innerHTML = `<div class="ld" id="ld">
     <header class="ld-top"><span class="ld-logo">${ham("happy", "ld-mini")}<b>${t("brand")}</b></span><span class="ld-gap"></span>${langBtn()}<a class="ld-in" href="#/login">${t("landLogin")}</a></header>
@@ -540,34 +544,10 @@ async function viewPrivacy() {
 }
 
 /* ---------- wait page ---------- */
-// Shows the real build as it happens: a builder starting, reading the files, planning, each lesson as it's written.
-// The bar is honest but never stalls: it creeps toward the next real milestone (never past it) and jumps when one is reached.
+// Shows the real build as it happens (see build.js): a builder starting, reading the files, planning, each lesson as it's written.
 let waitTimer = null, waitTick = null;
 const buildMinutesOf = pages => Math.max(3, Math.round(pages / 12) + 2); // same formula as scripts/gen/cost.mjs
-const QUEUED = ["free_queued", "paid_test"];
-// Share of the bar each phase covers, and how long it usually takes (s); lessons are split by done/total.
-const STAGE_SPAN = { queued: [0, .06, 60], boot: [.03, .1, 25], reading: [.1, .16, 10], outline: [.16, .34, 45], lessons: [.34, .95, 60], checking: [.34, .95, 30], publishing: [.95, .99, 8] };
-const STEP_OF = { queued: 2, boot: 2, reading: 3, outline: 3, lessons: 4, checking: 4, publishing: 4, done: 6 };
-// Where the build really is. "reading" also counts while still queued: the builder reports it before it changes the status.
-function phaseOf(status, r) {
-  const b = r.build, p = b?.progress;
-  if (["ready", "free_ready"].includes(status)) return "done";
-  if (status === "failed") return "failed";
-  if (status === "building") return p && p.stage !== "reading" && STAGE_SPAN[p.stage] ? p.stage : "reading";
-  if (QUEUED.includes(status) && p?.stage === "reading" && b.progressAge != null && b.progressAge < 120) return "reading";
-  const w = r.worker;
-  if (w && ((w.kicked != null && w.kicked < 180) || (w.seen != null && w.seen < 60))) return "boot"; // a cloud run was started, or a builder is up
-  return "queued";
-}
-function stepsHtml(phase, p) {
-  const ls = p?.lessons || [], now = STEP_OF[phase] || 2, n = ls.length && now === 4 ? ` <small>${ls.filter(l => l.done).length}/${ls.length}</small>` : "";
-  return `<ol class="pc-steps">${["waitS1", "waitSBoot", "waitS2", "waitS3", "waitS4"].map((k, i) => {
-    const step = i + 1, cls = step < now ? "done" : step === now && phase !== "queued" ? "now" : "";
-    return `<li class="${cls}"><i>${step < now ? ic.check : step}</i><span>${t(k)}${step === 4 ? n : ""}</span></li>`;
-  }).join("")}</ol>`;
-}
-const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-function buildHtml(phase, build, free, offline) {
+function buildHtml(phase, build, free, offline, bar = 0, seenN = 0) { // bar: width shown so far; seenN: lessons already shown (only new ones fade in)
   if (!build || ["done", "failed"].includes(phase)) return "";
   const p = ["reading", "queued", "boot"].includes(phase) ? null : build.progress, pages = p?.pages || build.pages || 0;
   const stale = p && build.progressAge > 180;
@@ -575,7 +555,7 @@ function buildHtml(phase, build, free, offline) {
   const time = offline && phase === "queued" ? t("buildOffline") : stale ? t("buildStale")
     : p ? (p.etaSeconds > 0 ? `<span id="pcEta">${minutesLeft(p.etaSeconds)}</span>` : t("buildAlmost"))
     : (phase === "queued" ? t("buildQueued") : t("buildTotal")).replace("%", mins);
-  const now = phase === "boot" ? t("buildBooting") : phase === "reading" ? `<span id="pcRead">${t("buildStage_reading")}</span>` : phase === "queued" ? "" : t("buildStage_" + phase);
+  const now = phase === "reading" ? `<span id="pcRead">${stageText(phase)}</span>` : stageText(phase);
   const lessons = p?.lessons || [], writing = ["lessons", "checking"].includes(phase);
   const files = build.files.length ? `<ul class="pc-build-files">${build.files.slice(0, 3).map(f => `<li>${esc(f)}</li>`).join("")}${build.files.length > 3 ? `<li>+${build.files.length - 3}</li>` : ""}</ul>` : "";
   return `<div class="pc-build"><span>${t("buildWhat")}<em id="pcClock" aria-hidden="true"></em></span>
@@ -583,30 +563,17 @@ function buildHtml(phase, build, free, offline) {
     <p>${[build.files.length ? fileCount(build.files.length) : "", pages ? pagesTxt(pages) : "", lessons.length ? lessonCount(lessons.length) : ""].filter(Boolean).join(" · ")}</p>
     ${lessons.length ? "" : files}
     <p class="pc-build-time">${time}</p>
-    ${offline && phase === "queued" ? "" : `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="pcBar"></i></div>`}
+    ${offline && phase === "queued" ? "" : `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="pcBar" style="width:${(bar * 100).toFixed(1)}%"></i></div>`}
     ${now ? `<p class="pc-build-stage">${now}</p>` : ""}
-    ${lessons.length ? `<p class="pc-build-plan">${t("buildPlan")}</p><ul class="pc-build-lessons">${lessons.map((l, i) => `<li class="${l.done ? "done" : writing ? "now" : ""}" style="--d:${i * 70}ms" data-l="${i}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
+    ${lessons.length ? `<p class="pc-build-plan">${t("buildPlan")}</p><ul class="pc-build-lessons">${lessons.map((l, i) => `<li class="${l.done ? "done" : writing ? "now" : ""}${i >= seenN ? " new" : ""}" style="--d:${(i - seenN) * 70}ms" data-l="${i}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
   </div>`;
 }
 const tipsHtml = () => `<div class="pc-tips"><span>${t("waitTipH")}</span><p id="pcTip">${t("waitTip1")}</p></div>`;
 async function viewWait() {
   hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
-  let painted = null, last = null, gotAt = 0, phaseKey = "", phaseAt = 0, shown = 0, doneSeen = null, tip = 1, tipAt = Date.now();
-  // The bar target: inside the current phase, ease from its start toward its end (never reaching it) over its usual time.
-  const target = () => {
-    if (!last) return 0;
-    const { phase, r } = last, p = r.build?.progress;
-    if (phase === "done") return 1;
-    let [a, b, secs] = STAGE_SPAN[phase] || STAGE_SPAN.queued;
-    if ((phase === "lessons" || phase === "checking") && p?.total > 1) {
-      const step = (b - a) / p.total;
-      a += step * Math.max(0, p.done || 0); b = Math.min(b, a + step);
-      secs = p.etaSeconds > 0 ? Math.max(8, p.etaSeconds / Math.max(1, p.total - p.done)) : 30;
-    }
-    const t0 = (Date.now() - phaseAt) / 1000;
-    return a + (b - a) * (1 - Math.exp(-t0 / (secs / 1.6)));
-  };
+  let painted = null, last = null, gotAt = 0, phaseKey = "", phaseAt = 0, shown = 0, doneSeen = null, tip = 1, tipAt = Date.now(), stepsFor = null;
+  const target = () => last ? barTarget(last.phase, last.r.build?.progress, phaseAt) : 0;
   const tick = () => {
     const bar = $("#pcBar");
     if (bar) { shown = Math.max(shown, target()); bar.style.width = (shown * 100).toFixed(1) + "%"; bar.parentNode.setAttribute("aria-valuenow", Math.round(shown * 100)); }
@@ -625,7 +592,7 @@ async function viewWait() {
     const offline = r.workerOnline === false && QUEUED.includes(status); // nothing started a builder and none checked in lately
     const shownStatus = ready ? (free ? "free_ready" : "ready") : status, phase = phaseOf(shownStatus, r);
     const p = build?.progress, pk = phase + ":" + (p?.done ?? "");
-    if (pk !== phaseKey) { phaseKey = pk; phaseAt = Date.now() - (["outline", "lessons", "checking", "publishing"].includes(phase) ? Math.min(60, build?.progressAge || 0) * 1000 : 0); }
+    if (pk !== phaseKey) { phaseKey = pk; phaseAt = phaseStart(phase, build); }
     last = { phase, r }; gotAt = Date.now();
     // small wins: each lesson that turned done since the last poll pops and ticks
     const doneNow = (phase === "lessons" || phase === "checking" || phase === "publishing" ? p?.lessons || [] : []).map(l => !!l.done);
@@ -633,15 +600,21 @@ async function viewWait() {
     doneSeen = doneNow;
     const waiting = phase === "queued"; // the heading says "in the queue" only until a builder has it
     const tutor = student ? student.tutor || "penny" : null, key = [status, waiting, tutor, ready, free, lang(), offline].join();
-    if (painted === key && $("#pcLive")) $("#pcLive").innerHTML = stepsHtml(phase, p) + buildHtml(phase, build, free, offline); // keeps the mascot animation running
-    else {
+    // The steps are redrawn only when the phase or lesson count changes, so their animations play once and aren't restarted by every poll.
+    const seenN = $$(".pc-build-lessons li").length;
+    const sk = phase + ":" + (p?.lessons || []).filter(l => l.done).length + "/" + (p?.lessons || []).length;
+    const steps = () => { const prev = stepsFor?.split(":")[0]; stepsFor = sk; return stepsHtml(phase, p, prev); };
+    if (painted === key && $("#pcLive")) { // keeps the mascot animation running
+      if (sk !== stepsFor) $("#pcSteps").innerHTML = steps();
+      $("#pcCard").innerHTML = buildHtml(phase, build, free, offline, shown, seenN);
+    } else {
       painted = key;
       const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (waiting ? "waitFreeQueued" : "waitFreeTitle") : waiting ? "waitQueued" : "waitTitle";
       const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
       view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${langBtn()}</div>
         <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
         <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
-        ${failed ? "" : `<div id="pcLive">${stepsHtml(phase, p) + buildHtml(phase, build, free, offline)}</div>`}
+        ${failed ? "" : `<div id="pcLive"><div id="pcSteps">${steps()}</div><div id="pcCard">${buildHtml(phase, build, free, offline, shown, seenN)}</div></div>`}
         ${ready || failed ? "" : tipsHtml()}
         ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
       bindLang();
@@ -666,6 +639,7 @@ async function viewWait() {
   clearInterval(waitTick);
   waitTick = setInterval(() => (location.hash.startsWith("#/wait") ? tick() : clearInterval(waitTick)), 250);
   if (store.get("readySeen") !== s.slug) paint({ status: "free_queued", paid: false });
+  else view().innerHTML = `<div class="loading" role="status" aria-label="…"><i></i></div>`; // only passing through to the course: never leave the old page up
   poll();
 }
 

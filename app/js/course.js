@@ -6,6 +6,7 @@ import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
 import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
+import { phaseOf, iconFor, barTarget, phaseStart, stageText } from "./build.js";
 import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel, startNewSubject } from "./app.js";
 
 const DAY = 86400000;
@@ -31,7 +32,7 @@ let ACCESS = { paid: true, building: false, status: "ready" }, restTimer = null;
 let TAPPED = null; // the locked lesson the student tapped, so the store can name it
 let C = null, SLUG = null, STUDENT = null, S = defaults(), ITEM = {}, LESSON = {}, TOKEN = null;
 const lsKey = () => "progress." + SLUG;
-export function resetCourse() { C = null; SLUG = null; clearTimeout(restTimer); }
+export function resetCourse() { C = null; SLUG = null; clearTimeout(restTimer); clearInterval(restTick); }
 const SYNC = {
   timer: null, state: "ok",
   later() { clearTimeout(this.timer); this.timer = setTimeout(() => this.push(), 1500); this.state = "saving"; },
@@ -585,20 +586,51 @@ function unlockCard(locked) {
   if (!locked) return "";
   if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock"><i class="ul-ic">${ic.lock}</i><div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div><i class="ul-go">${CHEV}</i></a>`;
   if (ACCESS.status === "failed") return `<div class="pc-unlock off" role="status"><div><b>${t("restFailed")}</b></div></div>`;
-  return `<div class="pc-unlock off" role="status"><div><b>${t("restBuilding")}</b><span>${t("restBuildingSub")}</span></div></div>`;
+  return `<div class="pc-unlock pc-rest" role="status">${restInner()}</div>`;
 }
-// While the rest of a paid course is written, checks every 20 s and reloads the map when it's there. Progress stays: lesson IDs don't change.
-function watchRest() {
+// The rest of a paid course being written, live: the step's animated icon, what the builder is doing, a bar that keeps
+// moving (build.js), lessons written so far, and the latest finished lesson popping in.
+let REST = null, restTick = null;
+function restInner() {
+  const r = REST?.r, phase = REST?.phase || "queued", p = r?.build?.progress, live = phase !== "queued" && phase !== "boot";
+  const ls = live ? p?.lessons || [] : [], done = ls.filter(l => l.done), win = done.at(-1);
+  const what = [stageText(phase) || t("restBuildingSub"), ls.length ? `${done.length}/${ls.length}` : ""].filter(Boolean).join(" · ");
+  return `<i class="ul-ic rest-ic">${iconFor(phase)}</i><div><b>${t("restBuilding")}</b><span>${esc(what)}</span>
+    <div class="rest-bar"><i style="width:${((REST?.shown || 0) * 100).toFixed(1)}%"></i></div>
+    ${win ? `<em class="rest-win" data-w="${esc(win.title)}">${ic.check}${esc(win.title)}</em>` : ""}</div>`;
+}
+function paintRest(r) {
+  const phase = phaseOf(r.status, r), p = r.build?.progress, key = phase + ":" + (p?.done ?? "");
+  const before = REST?.r?.build?.progress?.lessons?.filter(l => l.done).length ?? null;
+  if (!REST || REST.key !== key) REST = { ...(REST || { shown: 0 }), key, at: phaseStart(phase, r.build) };
+  Object.assign(REST, { r, phase });
+  const after = p?.lessons?.filter(l => l.done).length ?? 0;
+  $$(".pc-rest").forEach(el => { el.innerHTML = restInner(); if (before != null && after > before) el.querySelector(".rest-win")?.classList.add("pop"); });
+  if (before != null && after > before) sfx.flip();
+}
+// While the rest of a paid course is written, checks every 3 s and reloads the map when it's there. Progress stays: lesson IDs don't change.
+function startRestTick() {
+  clearInterval(restTick);
+  restTick = setInterval(() => {
+    const bars = $$(".pc-rest .rest-bar i");
+    if (!bars.length) return clearInterval(restTick);
+    if (REST?.r) { REST.shown = Math.max(REST.shown, barTarget(REST.phase, REST.r.build?.progress, REST.at)); bars.forEach(b => b.style.width = (REST.shown * 100).toFixed(1) + "%"); }
+  }, 250);
+}
+function watchRest(first = true) {
   clearTimeout(restTimer);
   const slug = SLUG;
+  if (first) startRestTick();
   restTimer = setTimeout(async () => {
     if (location.hash !== "#/s/" + slug || SLUG !== slug) return;
     try {
       const r = await api("status", { session: TOKEN });
-      if (r.building) return watchRest();
-      resetCourse(); toast(t(r.status === "failed" ? "restFailed" : "restReady")); ctx.render();
-    } catch (e) { watchRest(); }
-  }, 20000);
+      if (r.building) { paintRest(r); return watchRest(false); }
+      REST = null; resetCourse();
+      if (r.status !== "failed") { confetti(); sfx.done(); }
+      toast(t(r.status === "failed" ? "restFailed" : "restReady")); ctx.render();
+    } catch (e) { watchRest(false); }
+  }, first ? 300 : 3000);
 }
 
 /* ---------- notes: the reading sections, chapter by chapter ---------- */

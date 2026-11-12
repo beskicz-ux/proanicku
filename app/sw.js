@@ -1,6 +1,6 @@
 // Scope is /app/ only. This never touches Penny's cache: only caches named pc-* are ever deleted.
-const CACHE = "pc-05911fa-mwe73kgt"; // scripts/deploy-web.mjs stamps a new name here on every deploy, so the new worker replaces the old cache
-const CORE = ["./", "index.html", "base.css", "pc.css", "app.css", "js/app.js", "js/ui.js", "js/course.js", "js/i18n.js", "js/art.js", "js/merge.js", "js/forecast.js", "js/images.js", "js/util.js", "js/voice.js", "vendor/marked.min.js", "vendor/katex.min.js", "vendor/katex.min.css", "store.config.json"];
+const CACHE = "pc-d22ad1c-mwe7h5na"; // scripts/deploy-web.mjs stamps a new name here on every deploy, so the new worker replaces the old cache
+const CORE = ["./", "index.html", "base.css", "pc.css", "app.css", "js/app.js", "js/ui.js", "js/course.js", "js/i18n.js", "js/art.js", "js/merge.js", "js/forecast.js", "js/images.js", "js/util.js", "js/voice.js", "js/build.js", "vendor/marked.min.js", "vendor/katex.min.js", "vendor/katex.min.css", "store.config.json"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(p => new Request(p, { cache: "no-cache" })))).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("pc-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

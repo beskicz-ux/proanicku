@@ -135,7 +135,7 @@ body{background:var(--bg)}
 .pc-build .bar i#pcBar{width:0; transition:width .3s linear; background:linear-gradient(90deg,var(--green) 0 40%,#89e219 50%,var(--green) 60% 100%) 0 0/250% 100%; animation:pcshine 1.8s linear infinite}
 @keyframes pcshine{from{background-position:100% 0} to{background-position:-150% 0}}
 .pc-build .pc-build-plan{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--wolf); margin-top:var(--s1)}
-.pc-build-lessons li{animation:pcin .35s ease-out var(--d,0ms) both}
+.pc-build-lessons li.new{animation:pcin .35s ease-out var(--d,0ms) both}
 @keyframes pcin{from{opacity:0; transform:translateY(6px)}}
 .pc-build-lessons li.now i{background:none; border:3px solid var(--line); border-top-color:var(--blue); animation:spin .9s linear infinite}
 .pc-build-lessons li.pop i{animation:pcpop .45s cubic-bezier(.3,1.6,.5,1)}
@@ -144,6 +144,36 @@ body{background:var(--bg)}
 .pc-tips span{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-ink)}
 .pc-tips p{margin:4px 0 0; font-size:15px; font-weight:700; color:var(--ink-strong); min-height:2.6em}
 .pc-tips p.in{animation:pcin .4s ease-out}
+/* every step animates: a connector fills down to the running step, a finished step pops and draws its tick,
+   the running step plays its own little picture (a gear turning, a page being scanned, a pencil writing) */
+.pc-steps li{position:relative}
+.pc-steps li + li:before{content:""; position:absolute; left:15px; top:-12px; width:2px; height:12px; background:var(--line); border-radius:2px}
+.pc-steps li.done + li:before{background:var(--green); transform-origin:top; animation:pcgrow .4s ease-out both}
+.pc-steps li.just i{animation:pcpop .5s cubic-bezier(.3,1.6,.5,1) var(--d,0ms) both}
+.pc-steps li.just i svg path{stroke-dasharray:24; stroke-dashoffset:24; animation:pcdraw .4s ease-out calc(var(--d,0ms) + .2s) forwards}
+.pc-steps li.just span{animation:pcflash .9s ease-out var(--d,0ms)}
+.pc-steps li.now i{animation:none; box-shadow:0 0 0 0 var(--blue); animation:pcring 1.6s ease-out infinite}
+.pc-steps li.now i svg{width:20px; height:20px}
+@keyframes pcgrow{from{transform:scaleY(0)}}
+@keyframes pcdraw{to{stroke-dashoffset:0}}
+@keyframes pcflash{30%{color:var(--green)}}
+@keyframes pcring{0%{box-shadow:0 0 0 0 #1cb0f666} 100%{box-shadow:0 0 0 10px #1cb0f600}}
+.si-gear{transform-origin:12px 12px; animation:spin 2.4s linear infinite}
+.si-scan{animation:pcscan 1.3s ease-in-out infinite alternate}
+@keyframes pcscan{from{transform:translateY(-4px)} to{transform:translateY(9px)}}
+.si-pen{transform-origin:5px 19px; animation:pcpen .5s ease-in-out infinite alternate}
+@keyframes pcpen{from{transform:rotate(-6deg) translateX(-1px)} to{transform:rotate(5deg) translateX(1px)}}
+.si-line{stroke-dasharray:6; animation:pcwrite 1s linear infinite}
+@keyframes pcwrite{from{stroke-dashoffset:6} to{stroke-dashoffset:-6}}
+.si-star{transform-origin:12px 12px; animation:pcpop .6s cubic-bezier(.3,1.6,.5,1)}
+/* the rest of a paid course, live on the map */
+.pc-rest .rest-ic svg{width:24px; height:24px}
+body .pc-rest .rest-bar{flex:none; display:block; width:100%; height:8px; border-radius:6px; background:#ffffff33; overflow:hidden; margin-top:8px}
+.pc-rest .rest-bar i{display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,#fff 0 40%,#FFE08A 50%,#fff 60% 100%) 0 0/250% 100%; transition:width .3s linear; animation:pcshine 1.8s linear infinite}
+.pc-rest .rest-win{display:flex; gap:6px; align-items:center; margin-top:8px; font-style:normal; font-size:14px; font-weight:800; color:#fff; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+body .pc-rest .rest-win svg, body .side .pc-rest .rest-win svg{width:16px; height:16px; flex:none; padding:2px; border-radius:50%; background:var(--green); color:#fff}
+.pc-rest .rest-win.pop{animation:pcin .45s ease-out}
+.pc-rest .rest-win.pop svg{animation:pcpop .5s cubic-bezier(.3,1.6,.5,1)}
 .pc-voice{display:flex; flex-direction:column; align-items:center; gap:var(--s3); text-align:center; padding:var(--s4) 0}
 .pc-voice .pc-voice-left{font-size:28px; font-weight:900; color:var(--ink-strong); margin:0}
 .pc-voice .small{font-size:14px}
@@ -185,7 +215,7 @@ body{background:var(--bg)}
 .pc-unitbar .bar{margin-top:4px; height:12px}
 .pc-set > div{display:flex; justify-content:space-between; align-items:center; min-height:48px; font-weight:700; color:var(--ink)}
 .pc-set > div + div{border-top:2px solid var(--line)}
-@media (prefers-reduced-motion:reduce){.bob,.pc-steps li.now i,.pc-build .bar i#pcBar,.pc-build-lessons li,.pc-build-lessons li.pop i,.pc-tips p.in{animation:none}}
+@media (prefers-reduced-motion:reduce){.pc-steps li.just i svg path{stroke-dashoffset:0} .bob,.pc-steps li.now i,.pc-steps li.just i,.pc-steps li.just span,.pc-steps li.done + li:before,.si-gear,.si-scan,.si-pen,.si-line,.si-star,.pc-rest .rest-bar i,.pc-rest .rest-win.pop,.pc-rest .rest-win.pop svg,.pc-build .bar i#pcBar,.pc-build-lessons li,.pc-build-lessons li.pop i,.pc-tips p.in{animation:none}}
 /* Screens without the menu: base.css reserves its space on desktop, so give it back and keep them centred. */
 @media (min-width:1000px){body:has(#nav[hidden]){padding-left:0}}
 @media (min-width:700px){.pc-wait{max-width:480px; margin-inline:auto} .pc-steps{width:fit-content; margin-inline:auto}}
