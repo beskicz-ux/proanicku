@@ -1061,3 +1061,78 @@ body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px;
   .hc{transition:opacity .12s}
   .hc.in *, .hc.in .flask{animation:none !important}
 }
+
+/* ---------- landing (logged-out first page): one big drop box ---------- */
+body.landing .app{max-width:1040px}
+.ld{display:flex; flex-direction:column; min-height:100dvh; padding-top:max(10px, env(safe-area-inset-top)); box-sizing:border-box; overflow-x:clip}
+.ld-top{display:flex; align-items:center; gap:10px; min-height:52px}
+.ld-logo{display:flex; align-items:center; gap:8px; font:800 22px var(--head); letter-spacing:-.01em}
+.ld-logo .ham{width:38px; height:38px}
+.ld-gap{flex:1}
+.ld-in{display:flex; align-items:center; min-height:40px; padding:0 16px; border-radius:999px; border:2px solid var(--line); border-bottom-width:4px; background:var(--surface);
+  color:var(--accent-ink); font:800 15px var(--font); text-decoration:none; box-sizing:border-box; white-space:nowrap}
+.ld-in:active{border-bottom-width:2px; transform:translateY(2px)}
+.ld-main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px 0 18px}
+.ld-h{font:800 clamp(36px, 9vw, 64px)/1.02 var(--head); letter-spacing:-.025em; margin:0; max-width:15ch; text-wrap:balance}
+.ld-h em{font-style:normal; color:var(--accent); background:linear-gradient(transparent 68%, var(--accent-soft) 68% 92%, transparent 92%)}
+.ld-sub{color:var(--muted); font-size:17px; line-height:1.45; margin:14px 0 0; max-width:38ch; text-wrap:balance}
+.ld-box{position:relative; width:min(100%, 600px); margin-top:64px}
+.ld-peek{position:absolute; top:-62px; right:44px; width:96px; height:96px; z-index:0}
+.ld-peek .ham{width:96px; height:96px; display:block}
+.ld-drop{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; min-height:270px; padding:28px 20px;
+  border:3px dashed color-mix(in srgb, var(--accent) 55%, var(--line)); border-radius:32px; background:var(--surface); color:var(--text);
+  box-shadow:0 8px 0 color-mix(in srgb, var(--accent) 22%, var(--line)); cursor:pointer; font-family:var(--font); box-sizing:border-box;
+  transition:transform .15s var(--ease), box-shadow .15s var(--ease), background .15s, border-color .15s}
+.ld-drop:hover{transform:translateY(-3px); box-shadow:0 11px 0 color-mix(in srgb, var(--accent) 22%, var(--line)); border-color:var(--accent)}
+.ld-drop:active{transform:translateY(5px); box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 22%, var(--line))}
+.ld-drop:focus-visible{outline:4px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:5px}
+.ld-plus{display:grid; place-items:center; width:96px; height:96px; border-radius:50%; background:var(--accent); color:#fff; box-shadow:0 6px 0 var(--accent-ink); margin-bottom:12px;
+  transition:transform .25s var(--ease)}
+.ld-plus svg{width:48px; height:48px}
+.ld-drop b{font:800 22px var(--head); letter-spacing:-.01em}
+.ld-drag{color:var(--text); font-weight:600; font-size:15px; display:none}
+.ld-types{color:var(--muted); font-size:14px}
+.ld.over .ld-drop{background:var(--accent-soft); border-style:solid; border-color:var(--accent); transform:scale(1.02)}
+.ld.over .ld-plus{transform:rotate(90deg) scale(1.08)}
+.ld-drop.busy{pointer-events:none}
+.ld-drop.busy .ld-plus svg{animation:ld-spin .8s linear infinite}
+@keyframes ld-spin{to{transform:rotate(360deg)}}
+.ld-tag{position:absolute; z-index:2; padding:8px 14px; border-radius:999px; font:800 14px var(--font); box-shadow:0 3px 0 #0000001a; pointer-events:none; white-space:nowrap}
+.ld-tag.t1{left:-34px; top:34px; transform:rotate(-8deg); background:var(--blue-soft); color:var(--blue-ink)}
+.ld-tag.t2{right:-30px; bottom:74px; transform:rotate(7deg); background:var(--green-soft); color:var(--green-ink)}
+.ld-tag.t3{left:-14px; bottom:-16px; transform:rotate(4deg); background:var(--purple-soft); color:var(--purple-lip)}
+.ld .ob-err{max-width:600px}
+.ld-resume{display:flex; flex-direction:column; align-items:center; gap:14px; width:min(100%, 420px); margin-top:28px}
+.ld-resume .ham{width:120px; height:120px}
+.ld-steps{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 18px; list-style:none; padding:0; margin:40px 0 0; font:700 15px var(--font)}
+.ld-steps li{display:flex; align-items:center; gap:8px}
+.ld-steps i{display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink); font:800 14px var(--head); font-style:normal}
+.ld-price{margin:16px 0 0; padding:9px 16px; border-radius:999px; background:var(--surface); border:2px solid var(--line); font:700 15px var(--font)}
+.ld-foot{padding:6px 0 calc(16px + env(safe-area-inset-bottom))}
+@media (hover:hover) and (pointer:fine){ .ld-drag{display:block} }
+@media (max-width:520px){
+  .ld-main{padding-top:18px}
+  .ld-box{margin-top:58px}
+  .ld-drop{min-height:230px; border-radius:28px}
+  .ld-plus{width:84px; height:84px}
+  .ld-plus svg{width:42px; height:42px}
+  .ld-tag{font-size:13px; padding:6px 11px}
+  .ld-tag.t1{left:-6px; top:-14px}
+  .ld-tag.t2{right:-6px; bottom:50px}
+  .ld-tag.t3{left:10px; bottom:-14px}
+  .ld-peek{right:26px; top:-56px; width:84px; height:84px}
+  .ld-peek .ham{width:84px; height:84px}
+  .ld-steps{flex-direction:column; align-items:flex-start; margin-top:32px}
+  .ld-in{padding:0 12px; font-size:14px}
+}
+@media (min-width:900px){
+  .ld-drop{min-height:310px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .ld-tag{animation:ld-bob 4s ease-in-out infinite}
+  .ld-tag.t2{animation-delay:-1.3s} .ld-tag.t3{animation-delay:-2.6s}
+  .ld-peek{animation:ld-peek .7s var(--ease) .2s both}
+}
+@keyframes ld-bob{50%{translate:0 -6px}}
+@keyframes ld-peek{from{translate:0 50px}}
+@media (prefers-reduced-motion:reduce){ .ld-drop, .ld-plus{transition:none} .ld-drop.busy .ld-plus svg{animation-duration:2.4s} }

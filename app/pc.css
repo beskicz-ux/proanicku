@@ -16,7 +16,6 @@ body{background:var(--bg)}
 .pc-land,.pc-wait{padding:var(--s3) 0 var(--s6); display:flex; flex-direction:column; align-items:center; text-align:center}
 .pc-wait{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 .pc-land-top{width:100%; display:flex; justify-content:space-between; align-items:center; min-height:44px}
-.pc-badge{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--orange); border:2px solid var(--line); border-radius:var(--r-sm); padding:6px 10px}
 .pc-lang{display:inline-flex; border:2px solid var(--line); border-radius:var(--r-sm); overflow:hidden}
 .pc-lang button{min-width:44px; min-height:40px; border:0; background:none; color:var(--wolf); font:800 14px var(--font); cursor:pointer}
 .pc-lang button.on{background:var(--blue-soft); color:var(--blue-ink)}

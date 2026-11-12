@@ -3,7 +3,7 @@ import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx 
 import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
 import { isImage, imagesToPdfs } from "./images.js";
-import { countPages, validFile, daysBetween } from "./forecast.js";
+import { countPages, validFile, daysBetween, ACCEPT } from "./forecast.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
@@ -17,8 +17,6 @@ const fail = (el, e) => { el.textContent = errText(e.code || e.message); el.hidd
 const hideNav = () => { $("#nav").hidden = true; document.body.classList.remove("has-tabs"); };
 let cfgP = null;
 const storeConfig = () => cfgP ||= fetch("store.config.json").then(r => r.json()).catch(e => { cfgP = null; throw e; });
-const testBadge = () => `<span class="pc-badge" data-testbadge style="display:none">${t("testBadge")}</span>`;
-const showBadge = () => storeConfig().then(c => { if (c.testMode) $$("[data-testbadge]").forEach(b => b.style.display = ""); }).catch(() => { });
 const legalLinks = () => `<p class="ob-legal"><a href="#/terms">${t("termsTitle")}</a> · <a href="#/privacy">${t("privTitle")}</a></p>`;
 const plain = () => document.body.classList.add("plain"); // screens without the tab bar: centred on desktop
 const globe = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-3 3.2-3 13.8 0 17M12 3.5c3 3.2 3 13.8 0 17"/></svg>`;
@@ -42,30 +40,61 @@ function frame(step, { title, body, btn, btnId = "nextBtn", sub = "" }) {
 }
 function bindStepBack(step) { const i = STEPS.indexOf(step); $("#stepBack").onclick = () => nav(i ? "#/new/" + STEPS[i - 1] : "#/"); }
 
-/* ---------- welcome ---------- */
+/* ---------- landing: one big drop box ---------- */
+let handoff = null; // files dropped or picked on the landing page, uploaded by the files step as soon as it opens
+const PLUS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
+const SPIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4a8 8 0 1 0 8 8"/></svg>`;
 function viewWelcome() {
-  hideNav(); plain();
+  hideNav(); plain(); document.body.classList.add("landing");
   const s = session(), d = draft();
   if (s) return nav("#/wait");
-  view().innerHTML = `<div class="ob ob-welcome"><div class="ob-top">${testBadge()}${langBtn()}</div>
-    <div class="ob-wbody"><div class="ob-hero">${ham("happy", "bob")}</div>
-    <h1 class="ob-display">${t("welcomeTitle1")} <em>${t("welcomeTitle2")}</em></h1>
-    <p class="ob-sub">${t("welcomeSub")}</p>
-    <div class="ob-chips"><span>${t("chipFiles")}</span><i>→</i><span>${t("chipLevels")}</span><i>→</i><span>${t("chipExam")}</span></div>
-    <p class="ob-note c" id="priceNote" hidden></p></div>
-    <div class="ob-foot">${d ? `<a class="btn-p" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : `<button class="btn-p" id="goStart">${t("welcomeStart")}</button>`}
-      <a class="btn-t" href="#/login">${t("welcomeHave")}</a>${legalLinks()}</div></div>`;
-  bindLang(); showBadge();
+  const locked = !!d?.slug; // the free lessons are already building: the files can't change, so offer to finish the account
+  view().innerHTML = `<div class="ld" id="ld">
+    <header class="ld-top"><span class="ld-logo">${ham("happy", "ld-mini")}<b>${t("brand")}</b></span><span class="ld-gap"></span>${langBtn()}<a class="ld-in" href="#/login">${t("landLogin")}</a></header>
+    <section class="ld-main">
+      <h1 class="ld-h">${t("landTitle1")} <em>${t("landTitle2")}</em></h1>
+      <p class="ld-sub">${t("landSub")}</p>
+      ${locked ? `<div class="ld-resume">${ham("happy", "bob")}<a class="btn-p" href="#/new/account">${t("welcomeResume")}</a></div>` : `
+      <div class="ld-box">
+        <span class="ld-tag t1" aria-hidden="true">${t("landTag1")}</span><span class="ld-tag t2" aria-hidden="true">${t("landTag2")}</span><span class="ld-tag t3" aria-hidden="true">${t("landTag3")}</span>
+        <div class="ld-peek" aria-hidden="true">${ham("happy")}</div>
+        <button class="ld-drop" id="drop" type="button" aria-describedby="dropHint"><span class="ld-plus" id="plus">${PLUS}</span><b id="dropTxt">${t("landDrop")}</b><span class="ld-drag">${t("landDrag")}</span><span class="ld-types" id="dropHint">${t("landTypes")}</span></button>
+        <input type="file" id="pick" accept="${ACCEPT}" multiple hidden>
+      </div>
+      <p class="ob-err c" id="err" hidden role="alert"></p>
+      ${d ? `<a class="btn-t" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : ""}`}
+      <ol class="ld-steps"><li><i>1</i>${t("landS1")}</li><li><i>2</i>${t("landS2")}</li><li><i>3</i>${t("landS3")}</li></ol>
+      <p class="ld-price" id="priceNote" hidden></p>
+    </section>
+    <footer class="ld-foot">${legalLinks()}</footer></div>`;
+  bindLang();
   storeConfig().then(c => { const p = c.plans?.[0], el = $("#priceNote"); if (p && el) { el.textContent = t("welcomePrice", { price: `${p.price} ${c.currency}` }); el.hidden = false; } }).catch(() => { });
-  const go = $("#goStart");
-  if (go) go.onclick = async () => {
-    go.disabled = true;
+  if (locked) return;
+  const drop = $("#drop"), pick = $("#pick"), ld = $("#ld");
+  let busy = false;
+  const start = async list => {
+    const files = [...list]; if (!files.length || busy) return;
+    busy = true; drop.classList.add("busy"); drop.setAttribute("aria-busy", "true"); $("#plus").innerHTML = SPIN; $("#dropTxt").textContent = t("landBusy"); $("#err").hidden = true;
     try {
-      const { orderToken } = await api("start", { lang: courseLang() });
-      saveDraft({ orderToken, step: "files", files: [], days: 7 });
+      if (!draft()) {
+        const { orderToken } = await api("start", { lang: courseLang() });
+        saveDraft({ orderToken, step: "files", files: [], days: 7 });
+      }
+      handoff = files;
       nav("#/new/files");
-    } catch (e) { go.disabled = false; toast(errText(e.code)); }
+    } catch (e) {
+      busy = false; drop.classList.remove("busy"); drop.removeAttribute("aria-busy"); $("#plus").innerHTML = PLUS; $("#dropTxt").textContent = t("landDrop");
+      fail($("#err"), e);
+    }
   };
+  drop.onclick = () => pick.click(); // a real button: Enter and Space open the picker too
+  pick.onchange = e => { start(e.target.files); e.target.value = ""; };
+  // Files dropped anywhere on the page count, so a near miss doesn't make the browser open the PDF instead.
+  let depth = 0;
+  ld.ondragenter = e => { e.preventDefault(); depth++; ld.classList.add("over"); };
+  ld.ondragleave = () => { if (--depth <= 0) { depth = 0; ld.classList.remove("over"); } };
+  ld.ondragover = e => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"; };
+  ld.ondrop = e => { e.preventDefault(); depth = 0; ld.classList.remove("over"); start(e.dataTransfer?.files || []); };
 }
 
 /* ---------- login ---------- */
@@ -119,7 +148,7 @@ function fileRows(d) {
 function viewFiles() {
   view().innerHTML = frame("files", { title: t("filesTitle"), sub: t("filesSub"), btn: t("next"),
     body: `<div id="list"></div>
-      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept=".pdf,.pptx,.ppt,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden></label>
+      <label class="ob-drop" id="drop">${ic.upload}<b id="dropTxt"></b><input type="file" id="pick" accept="${ACCEPT}" multiple hidden></label>
       <p class="ob-err" id="err" hidden role="alert"></p><div class="ob-sum" id="total" hidden></div><p class="ob-note">${t("filesNote")}</p>` });
   bindStepBack("files");
   const refresh = () => {
@@ -187,6 +216,7 @@ function viewFiles() {
     nav("#/new/date");
   };
   refresh();
+  if (handoff) { const f = handoff; handoff = null; addAll(f); } // dropped on the landing page: upload them here, no second pick
 }
 
 /* ---------- step 2: exam date, a timeline under a fixed needle ---------- */
@@ -552,13 +582,13 @@ async function viewWait() {
     const code = store.get("code");
     const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (status === "free_queued" ? "waitFreeQueued" : "waitFreeTitle") : status === "paid_test" ? "waitQueued" : "waitTitle";
     const sub = ready ? (free ? "waitFreeReadySub" : "waitReadySub") : failed ? "waitFailedSub" : offline ? "waitOfflineSub" : free ? "waitFreeSub" : "waitSub";
-    view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${testBadge()}${langBtn()}</div>
+    view().innerHTML = `<div class="ob ob-wait"><div class="ob-top">${langBtn()}</div>
       <div class="pc-hero ${ready ? "" : "working"}">${tutor ? tutorArt(tutor, "bob") : ""}</div>
       <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
       ${failed ? "" : `<div id="pcLive">${stepsHtml(shown, build) + buildHtml(shown, build, free, offline)}</div>`}
       ${code ? `<div class="pc-code"><span>${t("codeTitle")}</span><b id="codeV">${esc(code)}</b><button class="btn-t sm" id="copy">${ic.copy} ${t("codeCopy")}</button><small>${t("codeSave")}</small></div>` : ""}
       ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
-    bindLang(); showBadge();
+    bindLang();
     const c = $("#copy");
     if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(code); toast(t("codeCopied")); } catch (e) { } };
   };
@@ -604,7 +634,7 @@ async function newSubject() {
 export function render() {
   clearTimeout(waitTimer); clearTimeout(paidTimer);
   document.querySelectorAll(".feedback,.confetti,#sh,#shDim,.hc").forEach(e => e.remove());
-  document.body.classList.remove("plain", "map-page", "framed", "store");
+  document.body.classList.remove("plain", "map-page", "framed", "store", "landing");
   window.onkeydown = null; window.onscroll = null;
   try { Promise.resolve(route()).catch(viewError); } catch (e) { viewError(e); }
 }

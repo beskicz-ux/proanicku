@@ -35,13 +35,40 @@ export async function countPages(file) {
     if (names.size) return { pages: names.size, estimated: false };
   }
   if (ext === "pdf") {
-    const pages = (text.match(/\/Type\s*\/Page\b(?!s)/g) || []).length;
+    const pageObjs = s => (s.match(/\/Type\s*\/Page\b(?!s)/g) || []).length;
+    let pages = pageObjs(text);
     if (pages) return { pages, estimated: false };
-    const counts = [...text.matchAll(/\/Count\s+(\d+)/g)].map(m => +m[1]);
+    // Newer exporters pack the page objects into compressed object streams: unpack those and look again.
+    const packed = await objectStreams(buf, text);
+    pages = pageObjs(packed);
+    if (pages) return { pages, estimated: false };
+    const counts = [...(text + packed).matchAll(/\/Count\s+(\d+)/g)].map(m => +m[1]);
     if (counts.length) return { pages: Math.max(...counts), estimated: false };
   }
   return { pages: Math.max(1, Math.round(file.size / (1024 * 1024) * PAGES_PER_MB_GUESS)), estimated: true };
 }
+// The text of every Flate-compressed object stream (/Type /ObjStm) in a PDF, joined. A stream that won't inflate is skipped.
+async function objectStreams(buf, text) {
+  if (typeof DecompressionStream === "undefined") return "";
+  let out = "";
+  for (const m of text.matchAll(/\/Type\s*\/ObjStm\b/g)) {
+    const objStart = text.lastIndexOf(" obj", m.index), kw = text.indexOf("stream", m.index);
+    if (objStart < 0 || kw < 0 || !/\/FlateDecode/.test(text.slice(objStart, kw))) continue;
+    let start = kw + 6;
+    if (text[start] === "\r") start++;
+    if (text[start] === "\n") start++;
+    let end = text.indexOf("endstream", start);
+    if (end < 0) continue;
+    while (end > start && (text[end - 1] === "\n" || text[end - 1] === "\r")) end--;
+    try {
+      const s = new Blob([buf.subarray(start, end)]).stream().pipeThrough(new DecompressionStream("deflate"));
+      out += new TextDecoder("latin1").decode(await new Response(s).arrayBuffer()) + "\n";
+    } catch (e) { }
+  }
+  return out;
+}
+// What the upload picker offers: PDF, PowerPoint (old .ppt too) and slide pictures (joined into one PDF in the browser).
+export const ACCEPT = ".pdf,.pptx,.ppt,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
 export const validFile = (name, head) => {
   const ext = name.split(".").pop().toLowerCase();
   const h = String.fromCharCode(...head.slice(0, 4));
