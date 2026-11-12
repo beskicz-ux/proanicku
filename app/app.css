@@ -106,6 +106,7 @@ body.plain .app{padding-bottom:0}
 .ob-sum{display:flex; gap:10px; align-items:center; margin-top:14px; color:var(--muted); font-size:15px}
 .ob-sum svg{width:22px; height:22px; color:var(--accent); flex:none}
 .ob-sum b{color:var(--text)}
+.ob-sum.over{color:var(--wrong)} .ob-sum.over svg, .ob-sum.over b{color:var(--wrong)}
 
 /* date */
 .dbig{text-align:center}

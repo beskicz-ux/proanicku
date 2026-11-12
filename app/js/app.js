@@ -140,7 +140,11 @@ function viewCodeLogin() {
 }
 
 /* ---------- step 1: slides ---------- */
+// One course holds at most 250 slide pages (Marek, 2026-11-12): a 458-slide semester cost ~300 Kč to build, more than PRO's 299 Kč.
+// Same number in pc-api (upload_url) and the worker (keeps the first 250 pages).
+export const MAX_PAGES = 250;
 const uploading = new Map();
+const tooMany = () => Object.assign(new Error("too_many_pages"), { code: "too_many_pages" });
 const fileKind = name => /\.pptx?$/i.test(name) ? "pptx" : "pdf";
 function fileRows(d) {
   const rows = d.files.map(f => `<div class="ob-file"><span class="ob-fk ${fileKind(f.name)}">${fileKind(f.name).toUpperCase()}</span><div class="t"><b>${esc(f.name)}</b><span>${pagesTxt(f.pages)}${f.estimated ? ` (${t("filesEst")})` : ""}</span></div><button class="ob-x" data-rm="${esc(f.path)}" aria-label="${t("filesRemove")}">${ic.x}</button></div>`).join("");
@@ -158,10 +162,11 @@ function viewFiles() {
     $("#list").innerHTML = fileRows(cur);
     $("#dropTxt").textContent = cur.files.length || uploading.size ? t("filesAdd") : t("filesDrop");
     $("#drop").classList.toggle("more", !!(cur.files.length || uploading.size));
-    const n = cur.files.reduce((a, f) => a + f.pages, 0);
+    const n = cur.files.reduce((a, f) => a + f.pages, 0), over = n > MAX_PAGES;
     $("#total").hidden = !cur.files.length;
-    $("#total").innerHTML = `${ic.book}<span>${t("filesSummary", { pages: `<b>${pagesTxt(n)}</b>` })}</span>`;
-    $("#nextBtn").disabled = !cur.files.length || uploading.size > 0;
+    $("#total").classList.toggle("over", over);
+    $("#total").innerHTML = `${ic.book}<span>${t(over ? "filesOver" : "filesSummary", { pages: `<b>${pagesTxt(n)}</b>`, max: MAX_PAGES })}</span>`;
+    $("#nextBtn").disabled = !cur.files.length || uploading.size > 0 || over;
     $$("[data-rm]").forEach(b => b.onclick = async () => {
       const x = draft(); x.files = x.files.filter(f => f.path !== b.dataset.rm); saveDraft(x); refresh();
       api("remove_file", { orderToken: x.orderToken, path: b.dataset.rm }).catch(() => { });
@@ -174,7 +179,10 @@ function viewFiles() {
       if (!validFile(file.name, head)) { const e = new Error("fake"); e.code = "fake"; throw e; }
       if (file.size > 50 * 1024 * 1024) { const e = new Error("too_big"); e.code = "too_big"; throw e; }
       const { pages, estimated } = await countPages(file);
-      uploading.set(key, { name: file.name, pct: 0 }); refresh();
+      // counts files still uploading too, so several picked at once can't pass the cap together
+      const have = draft().files.reduce((a, f) => a + f.pages, 0) + [...uploading.values()].reduce((a, u) => a + (u.pages || 0), 0);
+      if (have + pages > MAX_PAGES) throw tooMany();
+      uploading.set(key, { name: file.name, pct: 0, pages }); refresh();
       const { url, path, mime } = await api("upload_url", { orderToken: draft().orderToken, name: file.name, size: file.size, pages });
       await new Promise((res, rej) => {
         const x = new XMLHttpRequest(); x.open("PUT", url); x.setRequestHeader("Content-Type", mime);
@@ -213,7 +221,9 @@ function viewFiles() {
   $("#nextBtn").onclick = () => {
     const cur = draft();
     if (!cur.files.length || uploading.size) return;
-    cur.pages = cur.files.reduce((a, f) => a + f.pages, 0); cur.step = "date"; saveDraft(cur);
+    cur.pages = cur.files.reduce((a, f) => a + f.pages, 0);
+    if (cur.pages > MAX_PAGES) return fail($("#err"), tooMany());
+    cur.step = "date"; saveDraft(cur);
     api("update_order", { orderToken: cur.orderToken, pages: cur.pages }).catch(() => { });
     nav("#/new/date");
   };
