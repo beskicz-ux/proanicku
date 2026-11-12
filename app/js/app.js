@@ -10,6 +10,8 @@ import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
 const saveDraft = d => store.set("draft", d);
 const session = () => store.get("session", null);
+// "How did you hear about Penny": on the account step, so it adds no screen. Same list in pc-api's accountFields.
+const SOURCES = ["tiktok", "instagram", "youtube", "google", "friend", "other"];
 const STEPS = ["files", "date", "tutor", "account"], COUNTED = 3; // the account step isn't counted in the progress bar
 const MIN_AGE = 15; // same as pc-api
 const nav = h => { if (location.hash === h) render(); else location.hash = h; };
@@ -381,6 +383,7 @@ function viewAccount() {
       <div class="ob-two"><div><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
       <div><label class="ob-lbl" for="aYear">${t("accYear")}</label><input class="ob-in" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" placeholder="2004" value="${esc(a.year || "")}"></div></div>
       <label class="ob-lbl" for="aPhone">${t("accPhone")} <span>${t("accOptional")}</span></label><input class="ob-in" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
+      <p class="ob-lbl" id="aSrcL">${t("accSrc")} <span>${t("accOptional")}</span></p><div class="ob-src" id="aSrc" role="radiogroup" aria-labelledby="aSrcL">${SOURCES.map(s => `<button type="button" role="radio" aria-checked="${a.source === s}" data-s="${s}">${t("src_" + s)}</button>`).join("")}</div>
       <label class="ob-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
       <label class="ob-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
@@ -390,11 +393,14 @@ function viewAccount() {
   const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); err.scrollIntoView({ block: "center" }); };
   if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail(err, e));
   // Remembers what's typed on this device, except the password and phone, so a reload doesn't lose it.
-  const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value }; saveDraft(x); } };
+  let source = SOURCES.includes(a.source) ? a.source : "";
+  const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value, source }; saveDraft(x); } };
   ["#aName", "#aEmail", "#aYear"].forEach(s => $(s).oninput = keep);
+  // One tap; tapping the picked chip again clears it.
+  $("#aSrc").onclick = e => { const b = e.target.closest("button"); if (!b) return; source = source === b.dataset.s ? "" : b.dataset.s; $("#aSrc").querySelectorAll("button").forEach(x => x.setAttribute("aria-checked", x.dataset.s === source)); sfx.flip(); keep(); };
   $("#f").onsubmit = async e => {
     e.preventDefault(); err.hidden = true;
-    const v = { name: $("#aName").value.trim(), email: $("#aEmail").value.trim(), password: $("#aPass").value, birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked };
+    const v = { name: $("#aName").value.trim(), email: $("#aEmail").value.trim(), password: $("#aPass").value, birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
     if (!v.name) return show("bad_name");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) return show("bad_email");
     if (v.password.length < 8) return show("bad_password");
@@ -415,6 +421,7 @@ function viewAccount() {
 }
 
 /* ---------- unlock: the store, after the free lessons ---------- */
+const UNITS_SHOWN = 3; // chapters listed before "show all", so the page fits one screen (Marek, 2026-11-12: "too long")
 async function viewUnlock() {
   hideNav(); plain();
   const s = session(); if (!s) return nav("#/login");
@@ -438,11 +445,7 @@ async function viewUnlock() {
   // Every locked lesson by title, and a rough size from the slide pages (~3 practice items and ~0.25 exam questions per page,
   // measured on Anna's 458-page course). Shown as an estimate only.
   const est = n => Math.max(10, Math.round(n / 10) * 10);
-  const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2>${info.pages ? `<p class="st-est">${esc(t("unlockEst", { items: est(info.pages * 3), exam: est(info.pages * .25) }))}</p>` : ""}<ul class="st-units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><span class="st-u"><b>${esc(u.title)}</b>${u.titles?.length ? `<span class="st-ul">${esc(u.titles.join(" · "))}</span>` : ""}</span><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>` : "";
-  const tl = info ? `<ol class="st-tl">
-      <li class="${info.done ? "done" : ""}"><i>${info.done ? ic.check : ""}</i><div><small>${t("stTlDone")}</small><b>${esc(t("doneOf", { x: info.done, y: info.free }))}</b></div></li>
-      <li class="now"><i></i><div><small>${t("stTlNow")}</small><b>${esc(t("stUnlockN").replace("%", lessonCount(info.locked)))}</b></div></li>
-      ${info.exam ? `<li class="ex"><i></i><div><small>${t("stTlExam")}</small><b>${esc(fmtDay(info.exam))}${left > 0 ? " · " + esc(inDays(left)) : ""}</b></div></li>` : ""}</ol>` : "";
+  const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2>${info.pages ? `<p class="st-est">${esc(t("unlockEst", { items: est(info.pages * 3), exam: est(info.pages * .25) }))}</p>` : ""}<ul class="st-units${info.units.length > UNITS_SHOWN + 1 ? " cut" : ""}" id="units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><span class="st-u"><b>${esc(u.title)}</b>${u.titles?.length ? `<span class="st-ul">${esc(u.titles.join(" · "))}</span>` : ""}</span><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>${info.units.length > UNITS_SHOWN + 1 ? `<button class="st-all" id="unitsAll" type="button">${esc(t("stAll", { n: info.units.length }))}</button>` : ""}` : "";
   const opt = p => `<label class="st-opt pl-${esc(p.id)}" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot">${ic.check}</i>
       <span class="st-o-t">${L(p.badge) ? `<em>${esc(L(p.badge))}</em>` : ""}<b>${esc(L(p.name) || "")}</b><small>${esc(L(p.pitch) || "")}</small></span>
       <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? "/ " + t("stMonthShort") : t("stOnceShort"))}</small></span></label>`;
@@ -465,9 +468,10 @@ async function viewUnlock() {
         ${tap}
       </div>
       <section class="st-pay" aria-label="${esc(t("storeBuy"))}">${pay}<a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a></section>
-      <div class="st-more"><div id="feats">${proOpen ? "" : feats()}</div>${what}${tl}</div>
+      <div class="st-more"><div id="feats">${proOpen ? "" : feats()}</div>${what}</div>
     </div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
+  const all = $("#unitsAll"); if (all) all.onclick = () => { $("#units").classList.remove("cut"); all.remove(); };
   const proBtn = $("[data-pro]");
   if (proBtn) proBtn.onclick = async () => {
     $("#err").hidden = true; proBtn.disabled = true;
