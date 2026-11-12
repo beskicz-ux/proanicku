@@ -911,6 +911,17 @@ body .pc-unlock{position:relative; overflow:hidden; isolation:isolate; gap:14px;
 .pc-unlock:active{transform:translateY(5px); box-shadow:0 1px 0 #4234B8; filter:none}
 .pc-unlock .ul-go{transition:transform .15s ease}
 @media (prefers-reduced-motion:reduce){ .pc-unlock, .pc-unlock .ul-go{transition:none} .pc-unlock:hover{transform:none} }
+/* The rest of a paid course being written: a status, not a button, so a quiet card like the side cards (.sc),
+   with a blue coin like the running step on the wait page and a slim green bar. Never lifts or presses. */
+body .pc-unlock.pc-rest, body .side .pc-unlock.pc-rest{background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:20px; box-shadow:0 3px 0 var(--line); transform:none; filter:none; transition:none; padding:16px 18px}
+body .pc-unlock.pc-rest:before{display:none}
+body .pc-rest .ul-ic{width:44px; height:44px; background:var(--blue-soft); color:var(--blue-ink); box-shadow:none}
+body .pc-rest b{color:var(--ink-strong); font:800 17px var(--head)}
+body .side .pc-rest b{font-size:18px}
+body .pc-rest span{color:var(--wolf); font-size:14px; font-weight:700}
+body .pc-rest .rest-bar{background:var(--line); height:6px; margin-top:10px}
+body .pc-rest .rest-bar i{background:linear-gradient(90deg,var(--green) 0 40%,#89e219 50%,var(--green) 60% 100%) 0 0/250% 100%}
+body .pc-rest .rest-win{color:var(--ink); font-weight:700}
 
 /* gold sheet: a gold coin on top, the gold button in gold */
 .gold-ic{width:76px; height:64px; margin:4px auto 10px; border-radius:50%; display:grid; place-items:center; color:#7A4F00;
