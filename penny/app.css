@@ -288,6 +288,20 @@ body.focus .app{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 .opt.wrong{background:var(--red-soft); border-color:var(--red); box-shadow:0 4px 0 var(--red); color:var(--red-ink); animation:shake .35s}
 .opt.wrong .k{border-color:var(--red); color:var(--red-ink)}
 .opt[disabled]{cursor:default}
+/* přehled chyb po zkoušce: moje odpověď ✗ vs. správná ✓ */
+.rev-opts{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.rev-opt{display:flex; gap:10px; align-items:center; padding:8px 10px; border:2px solid var(--line); border-radius:var(--r-sm); font-size:15px; font-weight:600; line-height:1.35; color:var(--ink)}
+.rev-opt .k{flex:none; width:26px; height:26px; border-radius:8px; border:2px solid var(--line); display:grid; place-items:center; font-size:13px; font-weight:800; color:var(--hare)}
+.rev-opt em{font-style:normal; font-size:13px; font-weight:800; opacity:.85}
+.rev-opt.right{background:var(--green-soft); border-color:var(--green); color:var(--green-ink); font-weight:800}
+.rev-opt.right .k{border-color:var(--green); color:var(--green-ink)}
+.rev-opt.wrong{background:var(--red-soft); border-color:var(--red); color:var(--red-ink); font-weight:800}
+.rev-opt.wrong .k{border-color:var(--red); color:var(--red-ink)}
+.essay-ai{margin:16px 0 4px}
+.essay-ai .head{display:flex; gap:10px; align-items:center; margin-bottom:8px}
+.essay-ai .head .ham{width:44px; height:44px; flex:none}
+.essay-ai .grade{margin-left:auto; font-size:22px; font-weight:800; color:var(--blue-ink)}
+.essay-ai .dots{display:inline-flex; gap:4px} .essay-ai .dots i{width:7px; height:7px; border-radius:50%; background:var(--hare); animation:dots 1.1s ease-in-out infinite} .essay-ai .dots i:nth-child(2){animation-delay:.15s} .essay-ai .dots i:nth-child(3){animation-delay:.3s}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .tf{display:grid; grid-template-columns:1fr 1fr; gap:var(--s3)}
 

@@ -1305,12 +1305,23 @@ function examDone(st) {
   clearInterval(window._clk); clearInterval(window._etimer);
   const ok = st.ans.filter(a => a.ok).length; const pct = Math.round(ok / Math.max(1, st.ans.length) * 100);
   if (!st.saved) { S.exams.push({ ts: Date.now(), pct, essay: st.essayScore ?? null }); doneToday().exam = 1; save(); st.saved = 1; }
-  const wrong = st.ans.filter(a => !a.ok).map(a => QZ[a.id]);
+  const wrong = st.ans.filter(a => !a.ok).map(a => ({ w: QZ[a.id], v: a.v })).filter(x => x.w);
   const r0 = st.r0; SESSION = null;
   endScreen({ mood: pct >= 60 ? "happy" : "open", r0, title: pct >= 70 ? "Zkouška zvládnutá!" : "Zkouška hotová!",
     boxes: [["Část A", pct, "g", "", " %"], ["Esej", st.essayScore == null ? 0 : Math.round(st.essayScore * 100), "b", "", " %"]],
-    extra: wrong.length ? `<div class="list"><div class="sec-title"><h2>Chyby (${wrong.length})</h2></div>${wrong.map(w => `<div class="card"><span class="cap">${w.lec}</span><b style="display:block;margin-top:4px">${mdi(w.q)}</b>
-      <p style="margin-top:8px;color:var(--green-ink);font-weight:800">✓ ${mdi(w.options[w.correct])}</p><div class="md small" style="margin-top:8px">${md(w.explain || "")}</div></div>`).join("")}</div>` : "" });
+    extra: wrong.length ? `<div class="list"><div class="sec-title"><h2>Chyby (${wrong.length})</h2><span class="small muted"><b style="color:var(--red-ink)">✗</b> tvoje odpověď · <b style="color:var(--green-ink)">✓</b> správně</span></div>${wrong.map(({ w, v }) => `<div class="card"><span class="cap">${w.lec}</span><b style="display:block;margin-top:4px">${mdi(w.q)}</b>
+      ${reviewOpts(w, v)}<div class="md small" style="margin-top:8px">${md(w.explain || "")}</div></div>`).join("")}</div>` : "" });
+}
+// u chyby ukáže všechny možnosti: co jsem zaklikla (červeně ✗) a co bylo správně (zeleně ✓)
+function reviewOpts(w, v) {
+  if (w.t === "tf") {
+    const right = w.true ? 1 : 0;
+    return `<div class="rev-opts">${[1, 0].map(o => `<div class="rev-opt ${o === right ? "right" : o === v ? "wrong" : ""}"><span class="k">${o === right ? "✓" : o === v ? "✗" : ""}</span><span>${o ? "Pravda" : "Nepravda"}${o === v ? ` <em>· tvoje odpověď</em>` : o === right ? ` <em>· správně</em>` : ""}</span></div>`).join("")}</div>`;
+  }
+  const L = ["A", "B", "C", "D", "E"];
+  const order = w._order || w.options.map((_, i) => i);
+  return `<div class="rev-opts">${order.map((oi, k) => { const right = oi === w.correct, mine = oi === v;
+    return `<div class="rev-opt ${right ? "right" : mine ? "wrong" : ""}"><span class="k">${right ? "✓" : mine ? "✗" : L[k]}</span><span>${mdi(w.options[oi])}${mine ? ` <em>· tvoje odpověď</em>` : right ? ` <em>· správně</em>` : ""}</span></div>`; }).join("")}</div>`;
 }
 /* =================================================================== */
 /* ESEJ — psaní na čas, osnova, klíčové body, vzor, hodnocení Penny   */
@@ -1348,24 +1359,90 @@ function renderEssay(box, e, opts = {}) {
     clearInterval(window._etimer); if (REC) REC.stop();
     const a = ta.value.trim(); const kp = e.keyPoints || [];
     $("#edone", box).remove(); ta.readOnly = true;
-    $("#eres", box).innerHTML = `<div class="sec-title"><h2>Klíčové body</h2><span class="small muted">odškrtni, co v eseji máš</span></div>
+    const useAI = !!(a && AGENT_ID);
+    $("#eres", box).innerHTML = `${useAI ? `<div class="card essay-ai" id="eai"><div class="head">${ham("open")}<b>Penny hodnotí tvou esej</b><span class="dots"><i></i><i></i><i></i></span></div><p class="small muted">Chvilku, čte ji jako zkoušející…</p></div>` : ""}
+      <div class="sec-title"><h2>Klíčové body</h2><span class="small muted">${useAI ? "Penny odškrtne, co v eseji máš" : "odškrtni, co v eseji máš"}</span></div>
       ${kp.map(p => `<label class="check ${a && keyMatch(a, p) ? "on" : ""}"><input type="checkbox" ${a && keyMatch(a, p) ? "checked" : ""}><span class="md">${mdi(p)}</span></label>`).join("")}
       ${(e.graphs || []).length ? `<p class="cap" style="margin:16px 0 8px">Grafy, které tam patří</p>` + e.graphs.map(g => `<label class="check"><input type="checkbox"><span class="md">${mdi(g)}</span></label>`).join("") : ""}
       <details class="card dark" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Vzorová esej</summary><div class="md" style="margin-top:8px">${md(e.modelAnswer)}</div></details>
       <div class="stack" style="margin-top:16px"><button class="btn" id="esave">${opts.exam ? "Pokračovat na výsledky" : "Uložit výsledek"}</button>
-      ${a && AGENT_ID ? `<button class="btn ghost" id="egrade">${ham("open")} Ať esej ohodnotí Penny</button>` : ""}</div>`;
+      ${useAI ? `<button class="btn ghost" id="egrade">${ham("open")} Probrat esej s Penny</button>` : ""}</div>`;
     $$(".check input", box).forEach(c => c.onchange = () => c.closest(".check").classList.toggle("on", c.checked));
-    $("#esave", box).onclick = () => {
+    let ai = null; // { points, score 0–1, text } od Penny
+    const saveBtn = $("#esave", box), saveLabel = saveBtn.textContent;
+    if (useAI) {
+      saveBtn.disabled = true; saveBtn.classList.add("off"); saveBtn.textContent = "Penny hodnotí…";
+      const unlock = () => { saveBtn.disabled = false; saveBtn.classList.remove("off"); saveBtn.textContent = ai ? `${saveLabel} · ${Math.round(ai.score * 100)} %` : saveLabel; };
+      const late = setTimeout(unlock, 25000); // když Penny mlčí, nečekej věčně
+      aiGradeEssay(e, a).then(r => {
+        clearTimeout(late); const card = $("#eai", box); if (!card) return;
+        if (!r) { card.innerHTML = `<p class="small muted">Penny se teď nepřipojila, takže esej neohodnotila. Odškrtni body sama, nebo to zkus přes „Probrat esej s Penny“.</p>`; unlock(); return; }
+        ai = r;
+        card.innerHTML = `<div class="head">${ham("happy")}<b>Hodnocení od Penny</b><span class="grade">${r.points}/10</span></div><div class="md small">${aiMd(r.text)}</div>`;
+        if (r.covered) $$("#eres .check input", box).slice(0, kp.length).forEach((c, i) => { c.checked = r.covered.includes(i + 1); c.closest(".check").classList.toggle("on", c.checked); });
+        unlock();
+      });
+    }
+    saveBtn.onclick = () => {
       const got = $$("#eres .check input:checked", box).length, tot = $$("#eres .check input", box).length;
-      const score = tot ? got / tot : 1;
+      const score = ai ? ai.score : tot ? got / tot : 1;
       S.essays = S.essays || {}; S.essays[e.id] = { score, ts: Date.now() }; const dt = doneToday(); dt.essay = (dt.essay || 0) + 1;
       if (!opts.exam) delete S.essayDraft[e.id];
       addXP(40); save(); sfx.done(); if (score >= .7) confetti();
       if (opts.onDone) opts.onDone(score); else { toast(`Uloženo: ${Math.round(score * 100)} %`); setTimeout(() => nav("#/esej"), 700); }
     };
     const g = $("#egrade", box);
-    if (g) g.onclick = () => openDrawer("Esej: " + e.title, `Ohodnoť mou esej jako zkoušející. Zadání: „${e.prompt}“. Řekni, co je dobře, co chybí (mechanismy, grafy, příklady) a co bych měla doplnit, a dej známku. Moje esej: ${a}`);
+    if (g) g.onclick = () => openDrawer("Esej: " + e.title, ai ? `Ohodnotila jsi mou esej na ${ai.points}/10. Zadání: „${e.prompt}“. Moje esej: ${a}\n\nVysvětli mi, jak ji vylepšit na plný počet.` : `Ohodnoť mou esej jako zkoušející. Zadání: „${e.prompt}“. Řekni, co je dobře, co chybí (mechanismy, grafy, příklady) a co bych měla doplnit, a dej známku. Moje esej: ${a}`);
   };
+}
+// Penny (stejný agent jako chat) ohodnotí esej sama: vlastní textové spojení, ať se nemíchá do chatu
+async function aiGradeEssay(e, text) {
+  const kp = e.keyPoints || [];
+  const ask = `Jsi přísný, ale férový zkoušející z Měnové teorie a politiky. Ohodnoť tuhle esej ze zkoušky.
+Zadání: „${e.prompt}“
+Klíčové body, které má dobrá esej obsahovat:
+${kp.map((p, i) => `${i + 1}. ${p}`).join("\n")}${(e.graphs || []).length ? `\nGrafy, které tam patří: ${e.graphs.join("; ")}` : ""}
+
+Esej studentky:
+"""
+${text}
+"""
+
+Odpověz česky, stručně, bez pozdravu a bez otázek na konci:
+**Dobře:** 1–3 věci, které má správně.
+**Chybí:** konkrétně, co chybí nebo je špatně (mechanismy, grafy, příklady).
+**Na plný počet:** jedna věta, co doplnit.
+Úplně na konec dej přesně tyhle dva řádky:
+BODY: X/10
+POKRYTO: čísla klíčových bodů, které esej opravdu obsahuje, oddělená čárkou (nebo 0)`;
+  let conv = null;
+  try {
+    const { Conversation } = await (window._elMod ||= import("./vendor/elevenlabs.mjs?v=28"));
+    let sent = false, got = "", done;
+    const fin = new Promise(r => { done = r; });
+    const t = setTimeout(() => done(), 60000);
+    conv = await Conversation.startSession({
+      agentId: AGENT_ID, connectionType: "websocket", textOnly: true,
+      dynamicVariables: { tema: "Esej: " + e.title, jmeno: "Anička", rezim: "hodnocení eseje" },
+      onMessage: m => {
+        if (!sent || !(m.role === "agent" || m.source === "ai")) return;
+        got += (got ? "\n\n" : "") + cleanAI(m.message);
+        if (/BODY:\s*\d/i.test(got)) { clearTimeout(t); setTimeout(done, 400); }
+      },
+      onDisconnect: () => done(),
+    });
+    await new Promise(r => setTimeout(r, 600)); // ať první pozdrav agenta proběhne dřív
+    sent = true; conv.sendUserMessage(ask);
+    await fin;
+    const m = got.match(/BODY:\s*(\d+(?:[.,]\d+)?)\s*\/\s*10/i);
+    if (!m) return null;
+    const points = Math.max(0, Math.min(10, parseFloat(m[1].replace(",", "."))));
+    const cov = got.match(/POKRYTO:\s*([\d,\s]+)/i);
+    const covered = cov ? cov[1].split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= kp.length) : null;
+    const body = got.replace(/^.*BODY:.*$/im, "").replace(/^.*POKRYTO:.*$/im, "").trim();
+    return { points: Math.round(points * 2) / 2, score: points / 10, covered, text: body };
+  } catch (err) { console.warn("essay grade", err); return null; }
+  finally { if (conv) try { await conv.endSession(); } catch (x) { } }
 }
 function viewEssays(parts) {
   if (parts[1]) {
