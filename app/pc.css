@@ -122,12 +122,20 @@ body{background:var(--bg)}
 .pc-build .bar i{display:block; height:100%; border-radius:6px; background:var(--green); transition:width .4s ease}
 .pc-build-files{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:var(--s1) var(--s2)}
 .pc-build-files li{font-size:13px; font-weight:700; color:var(--wolf); background:var(--fill); border-radius:8px; padding:2px var(--s2); overflow-wrap:anywhere}
-.pc-build-lessons{list-style:none; margin:var(--s1) 0 0; padding:0; display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto}
-.pc-build-lessons li{display:flex; gap:var(--s2); align-items:flex-start; font-size:15px; font-weight:700; color:var(--wolf); overflow-wrap:anywhere}
+/* compact rows; a long list scrolls inside a thin, quiet scrollbar that sits in its own gutter, never over the text,
+   and fades out at the bottom so it's clear there is more */
+.pc-build-lessons{list-style:none; margin:6px 0 0; padding:0 6px 0 0; display:flex; flex-direction:column; gap:3px; max-height:196px; overflow-y:auto;
+  overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent; scrollbar-gutter:stable}
+.pc-build-lessons:has(li:nth-child(8)){-webkit-mask-image:linear-gradient(#000 calc(100% - 22px), transparent); mask-image:linear-gradient(#000 calc(100% - 22px), transparent); padding-bottom:14px}
+.pc-build-lessons::-webkit-scrollbar{width:6px}
+.pc-build-lessons::-webkit-scrollbar-track{background:transparent}
+.pc-build-lessons::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px}
+.pc-build-lessons::-webkit-scrollbar-button{display:none; height:0}
+.pc-build-lessons li{display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:20px; font-weight:700; color:var(--wolf); overflow-wrap:anywhere}
 .pc-build-lessons li.done{color:var(--ink-strong)}
-.pc-build-lessons i{flex:none; width:20px; height:20px; border-radius:50%; background:var(--line); display:grid; place-items:center; color:#fff; margin-top:1px}
+.pc-build-lessons i{flex:none; width:18px; height:18px; box-sizing:border-box; border-radius:50%; background:var(--line); display:grid; place-items:center; color:#fff; margin-top:1px}
 .pc-build-lessons li.done i{background:var(--green)}
-.pc-build-lessons i svg{width:13px; height:13px}
+.pc-build-lessons i svg{width:12px; height:12px}
 /* the live build: a running clock, a bar that keeps moving, lessons that pop in as they're planned and written */
 .pc-build>span{display:flex; justify-content:space-between; gap:var(--s2)}
 .pc-build>span em{font-style:normal; font-variant-numeric:tabular-nums; letter-spacing:0; color:var(--hare)}

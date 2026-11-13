@@ -606,7 +606,10 @@ async function viewWait() {
     const steps = () => { const prev = stepsFor?.split(":")[0]; stepsFor = sk; return stepsHtml(phase, p, prev); };
     if (painted === key && $("#pcLive")) { // keeps the mascot animation running
       if (sk !== stepsFor) $("#pcSteps").innerHTML = steps();
+      // the card is redrawn every poll: keep the lesson list where the student scrolled it, or it jumps back to the top
+      const top = $(".pc-build-lessons")?.scrollTop || 0;
       $("#pcCard").innerHTML = buildHtml(phase, build, free, offline, shown, seenN);
+      const ul = $(".pc-build-lessons"); if (ul) ul.scrollTop = top;
     } else {
       painted = key;
       const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (waiting ? "waitFreeQueued" : "waitFreeTitle") : waiting ? "waitQueued" : "waitTitle";
