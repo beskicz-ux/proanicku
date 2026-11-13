@@ -70,10 +70,10 @@ export const sfx = {
   flip: () => { buzz(8); tone([[520, .06, "sine", .06]]); },
   done: () => { buzz([20, 40, 20, 40, 60]); tone([[523, .12], [659, .12], [784, .12], [1046, .3]]); },
 };
-export function confetti() {
+export function confetti(n = 70) {
   const box = document.createElement("div"); box.className = "confetti";
   const cols = ["#58cc02", "#1cb0f6", "#ffc800", "#ff4b4b", "#ce82ff", "#ff9600"];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < n; i++) {
     const p = document.createElement("i");
     p.style.left = Math.random() * 100 + "vw"; p.style.background = pick(cols);
     p.style.animationDuration = (1.6 + Math.random() * 1.8) + "s"; p.style.animationDelay = (Math.random() * .4) + "s";

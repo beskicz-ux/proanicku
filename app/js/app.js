@@ -6,7 +6,7 @@ import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween, ACCEPT, slidesOf } from "./forecast.js";
 import { phaseOf, QUEUED, stepsHtml, barTarget, phaseStart, clock, stageText } from "./build.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal, money } from "./course.js";
-import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
+import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme, sheet } from "./ui.js";
 
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
 const saveDraft = d => store.set("draft", d);
@@ -16,7 +16,17 @@ const SOURCES = ["tiktok", "instagram", "youtube", "google", "friend", "other"];
 const STEPS = ["files", "date", "tutor", "account"], COUNTED = 3; // the account step isn't counted in the progress bar
 const MIN_AGE = 15; // same as pc-api
 const nav = h => { if (location.hash === h) render(); else location.hash = h; };
-const fail = (el, e) => { el.textContent = errText(e.code || e.message); el.hidden = false; sfx.wrong(); };
+// el can be gone: an upload that fails after the student moved on to the next step still has to say so.
+const fail = (el, e) => { const msg = errText(e.code || e.message); sfx.wrong(); if (!el) return toast(msg); el.textContent = msg; el.hidden = false; };
+// "Write to us" outside the course (the wait page, a failed build): the same feedback the course's menu sends.
+function writeUs(token, where) {
+  const sh = sheet(`<h2 class="sh-h">${esc(t("fbH"))}</h2><p class="sh-p">${esc(t("fbSub"))}</p><textarea class="ob-in" id="wuText" rows="5" maxlength="2000" placeholder="${esc(t("fbPh"))}"></textarea><button class="btn-p" id="wuSend">${esc(t("fbSend"))}</button>`);
+  $("#wuSend").onclick = async () => {
+    const text = $("#wuText").value.trim(); if (text.length < 2) return $("#wuText").focus();
+    $("#wuSend").disabled = true;
+    try { await api("feedback", { session: token, text, where }); sh.close(); toast(t("fbThanks")); } catch (e) { $("#wuSend").disabled = false; toast(errText(e.code)); }
+  };
+}
 const hideNav = () => { $("#nav").hidden = true; document.body.classList.remove("has-tabs"); };
 let cfgP = null;
 const storeConfig = () => cfgP ||= fetch("store.config.json").then(r => r.json()).catch(e => { cfgP = null; throw e; });
@@ -117,14 +127,16 @@ function loginFrame(title, form) {
 function viewLogin() {
   loginFrame(t("signinTitle"), `<form id="f" class="ob-form"><input class="ob-in" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
     <input class="ob-in" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
-    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button></form>`);
+    <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button><p class="ob-legal" id="forgot" hidden></p></form>`);
   $("#email").focus();
+  // No reset e-mail yet: the student writes in and gets a new password by hand (pc password <email>). Shown once the contact address is set.
+  storeConfig().then(c => { const el = $("#forgot"), m = c.operator?.email; if (el && m) { el.textContent = t("signinForgot", { email: m }); el.hidden = false; } }).catch(() => { });
   $("#f").onsubmit = async e => {
     e.preventDefault();
     const email = $("#email").value.trim(), password = $("#pass").value;
     if (!email || !password) return;
     $("#go").disabled = true; $("#err").hidden = true;
-    try { signedIn(await api("login", { email, password }), email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
+    try { const r = await api("login", { email, password }); store.set("session", { token: r.session, slug: r.student.slug }); await useInvite(); signedIn(r, email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
   };
 }
 
@@ -222,7 +234,7 @@ function viewFiles() {
 
 /* ---------- step 2: exam date, a timeline under a fixed needle ---------- */
 // PRE: dimmed, unpickable days drawn before MIN, so near the start the ruler still fills both sides of the needle.
-export const RULER = { MIN: 3, MAX: 150, STEP: 12, PRE: 24 };
+export const RULER = { MIN: 1, MAX: 150, STEP: 12, PRE: 24 };
 const paceOf = n => n < 14 ? "sprint" : n < 35 ? "tempo" : "chill";
 // Minutes a day: one pass plus three repeats of every page (3 min a page), spread over the days before the last two.
 // The plan's daily minutes, snapped to the goals the settings offer (10/15/20/30/60).
@@ -416,7 +428,9 @@ function viewAccount() {
     if (!v.privacy) return show("no_privacy");
     const btn = $("#nextBtn"); btn.disabled = true; btn.textContent = t("storeBuying");
     try {
-      const r = await api("signup", { orderToken: draft().orderToken, ...v });
+      const r = await api("signup", { orderToken: draft().orderToken, ...v, invite: store.get("invite") || undefined });
+      store.del("invite");
+      if (r.gift === "ok") toast(t("giftOk"));
       store.set("session", { token: r.session, slug: r.slug });
       store.set("email", v.email); store.set("name", v.name);
       store.del("draft");
@@ -671,8 +685,14 @@ async function viewWait() {
         <h1 class="ob-h">${t(title)}</h1><p class="ob-sub">${t(sub)}</p>
         ${failed ? "" : `<div id="pcLive"><div id="pcSteps">${steps()}</div><div id="pcCard">${buildHtml(phase, build, free, offline, shown, seenN)}</div></div>`}
         ${ready || failed ? "" : tipsHtml()}
+        ${failed ? `<div class="ob-foot pc-failed"><button class="btn-p" id="wfWrite">${t("fbH")}</button><button class="btn-s" id="wfNew">${t("waitFailedNew")}</button><button class="btn-t" id="wfOut">${t("waitFailedOut")}</button></div>` : ready ? "" : `<p class="ob-legal"><a href="#/wait" id="wfWrite">${t("fbH")}</a></p>`}
         ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
       bindLang();
+      // a failed build must not be a dead end: write to us, start over with other files, or sign out
+      const w = $("#wfWrite"), n = $("#wfNew"), o = $("#wfOut");
+      if (w) w.onclick = e => { e.preventDefault(); writeUs(s.token, failed ? "failed" : "wait"); };
+      if (n) n.onclick = async () => { n.disabled = true; try { nav(await startNewSubject()); } catch (e) { n.disabled = false; toast(errText(e.code)); } };
+      if (o) o.onclick = () => { store.del("session"); store.del("readySeen"); nav("#/"); };
     }
     fresh.forEach((f, i) => f && $(`.pc-build-lessons [data-l="${i}"]`)?.classList.add("pc-pop")); // not "pop": that's the map popover in base.css
     if (fresh.some(Boolean)) sfx.flip();
@@ -733,12 +753,27 @@ function viewError(e) {
   view().innerHTML = `<div class="ob ob-center">${ham("sad")}<h1 class="ob-h">${esc(errText(e?.code || (e instanceof TypeError ? "offline" : "server")))}</h1><div class="ob-foot"><button class="btn-p" id="again">${t("retry")}</button></div></div>`;
   $("#again").onclick = render;
 }
+// A tester link (#/t/<code>): the code waits on this device until the account is made, where it gives the plan for free.
+// Someone already signed in gets the plan at once. A wrong or used-up code changes nothing: the free start works as for anyone.
+async function testerLink(code) {
+  code = String(code || "").slice(0, 20);
+  if (code) store.set("invite", code);
+  await useInvite();
+  nav("#/");
+}
+// Puts a waiting tester code on the signed-in account (after the link, or after signing in). Kept if the call fails, to try again.
+async function useInvite() {
+  const code = store.get("invite"), s = store.get("session");
+  if (!code || !s?.token) return;
+  try { const r = await api("redeem", { session: s.token, invite: code }); store.del("invite"); if (r.gift === "ok") toast(t("giftOk")); } catch { /* the app works without it */ }
+}
 function route() {
   const h = location.hash.replace(/^#/, "").split("?")[0] || "/"; // ?r= only forces a fresh render of the same lesson
   const parts = h.split("/").filter(Boolean);
   window.scrollTo({ top: 0, behavior: "instant" });
   if (!parts.length) return viewWelcome();
   if (parts[0] === "start") return nav("#/"); // the old invite page
+  if (parts[0] === "t") return testerLink(parts[1]);
   if (parts[0] === "login") return viewLogin();
   if (parts[0] === "wait") return viewWait();
   if (parts[0] === "unlock") return viewUnlock();
@@ -759,10 +794,12 @@ function route() {
   if (parts[0] === "s") return courseRoute(parts.slice(1), nav, render);
   nav("#/");
 }
-addEventListener("hashchange", render);
+// index.html loads this file as app.js?v=…, and course.js imports it as app.js: the browser runs two copies of the module.
+// Only the first one may run the page, or every view is drawn twice and the wait page polls twice.
+const first = !window.pcBooted; window.pcBooted = true;
+if (first) addEventListener("hashchange", render);
 // Safari (and Chrome) restore a page from the back-forward cache as it was left: after Back from Stripe the buy
 // button would still say "One moment…" and be disabled. Draw the view afresh instead.
-addEventListener("pageshow", e => { if (e.persisted) render(); });
-applyTheme();
-setLang(lang()).then(render);
+if (first) addEventListener("pageshow", e => { if (e.persisted) render(); });
+if (first) { applyTheme(); setLang(lang()).then(render); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { });

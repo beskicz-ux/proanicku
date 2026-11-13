@@ -5,8 +5,10 @@ import { store } from "./util.js";
 export const LANG_CODES = ["cs", "en", "es", "zh", "hi", "ar", "pt", "fr", "de", "ru", "ja", "bn", "id", "tr", "ko", "vi", "it", "pl", "uk", "sk"];
 const RTL = ["ar"];
 const D = { cs: null, en: null };
-export const lang = () => { const l = store.get("lang", "cs"); return LANG_CODES.includes(l) ? l : "cs"; };
-// The course language for the build: only cs and en exist server-side; other UI languages leave it to the slides.
+// A first visit with no choice saved: Czech if the browser lists Czech or Slovak anywhere, otherwise English (about a third of buyers are in the USA).
+const guess = () => { try { if (typeof window === "undefined") return "cs"; const ls = navigator.languages?.length ? navigator.languages : [navigator.language || "cs"]; return ls.some(l => /^(cs|sk)\b/i.test(l)) ? "cs" : "en"; } catch (e) { return "cs"; } };
+export const lang = () => { const l = store.get("lang", null) || guess(); return LANG_CODES.includes(l) ? l : "cs"; };
+// The app language, sent with the order as a fallback only: the builder writes the course in the uploaded material's language and uses this just for wordless or third-language slides (Marek, 2026-11-13: never asked).
 export const courseLang = () => (lang() === "en" ? "en" : "cs");
 export async function loadLang(l = lang()) {
   if (!D[l]) { try { D[l] = (await import(`./lang/${l}.js`)).default; } catch (e) { D[l] = {}; } }
@@ -108,7 +110,8 @@ D.cs = {
     waitReadySub: "Můžeš začít.",
     waitStart: "Začít kurz",
     waitFailed: "Něco se zadrhlo",
-    waitFailedSub: "Podíváme se na to. Tvůj kód platí dál.",
+    waitFailedSub: "Dostali jsme o tom zprávu a opravíme to. Napiš nám, nebo to zkus znovu s jinými soubory.",
+    waitFailedNew: "Zkusit to znovu", waitFailedOut: "Odhlásit se",
     waitS1: "Soubory přijaté",
     waitS2: "Čtení slidů",
     waitS3: "Stavba lekcí",
@@ -118,7 +121,7 @@ D.cs = {
     codeCopy: "Zkopírovat",
     codeCopied: "Zkopírováno",
     signinTitle: "Přihlášení",
-    signinForgot: "Zapomenuté heslo? Přihlas se přístupovým kódem z registrace.",
+    signinForgot: "Zapomenuté heslo? Napiš na {email} z e-mailu svého účtu a pošleme ti nové.",
     signinCode: "Mám přístupový kód",
     accBuilding: "Mezitím ti chystám první lekce. Než to vyplníš, budou skoro hotové.",
     accName: "Jméno",
@@ -265,6 +268,13 @@ D.cs = {
     say2: "Přesně tak!",
     say3: "Výborně!",
     say4: "Skvěle!",
+    cheer1: "{n} v řadě!",
+    cheer2: "Jedeš! {n} v řadě",
+    cheer3: "{n} správně za sebou!",
+    cheer4: "Nic tě nezastaví! {n} v řadě",
+    cheerMiss: "Chybami se učíš nejvíc. Jen tak dál.",
+    donePerfect: "Bez jediné chyby!",
+    doneGreat: "Skvělá práce!",
     mistakeMatch: "Spojeno, ale s chybou.",
     source: "Zdroj",
     srcPage: "str.",
@@ -361,6 +371,9 @@ D.cs = {
     setPro: "Předplatné",
     proRenews: "Obnoví se {date}",
     proEnds: "Skončí {date}",
+    giftOk: "Jako tester máš plný přístup zdarma. Díky, že to zkoušíš!",
+    giftForever: "Zdarma pro testery",
+    giftNote: "Zdarma pro testery. Nic neplatíš a nic se samo neobnoví.",
     proOff: "Neaktivní",
     proLeft: "Slidy tento měsíc: zbývá {n} z {x}",
     proCancel: "Zrušit předplatné",
@@ -550,7 +563,8 @@ D.en = {
     waitReadySub: "You can start now.",
     waitStart: "Start the course",
     waitFailed: "Something got stuck",
-    waitFailedSub: "We will take a look. Your code still works.",
+    waitFailedSub: "We got an alert and will fix it. Write to us, or try again with other files.",
+    waitFailedNew: "Try again", waitFailedOut: "Sign out",
     waitS1: "Files received",
     waitS2: "Reading slides",
     waitS3: "Building lessons",
@@ -560,7 +574,7 @@ D.en = {
     codeCopy: "Copy",
     codeCopied: "Copied",
     signinTitle: "Sign in",
-    signinForgot: "Forgot your password? Sign in with the access code you got when you signed up.",
+    signinForgot: "Forgot your password? Write to {email} from your account's email and we'll send you a new one.",
     signinCode: "I have an access code",
     accBuilding: "Meanwhile I'm writing your first lessons. They'll be almost done by the time you finish this.",
     accName: "Name",
@@ -707,6 +721,13 @@ D.en = {
     say2: "Exactly!",
     say3: "Great!",
     say4: "Well done!",
+    cheer1: "{n} in a row!",
+    cheer2: "You're on fire! {n} in a row",
+    cheer3: "{n} right in a row!",
+    cheer4: "Unstoppable! {n} in a row",
+    cheerMiss: "Mistakes are how it sticks. Keep going.",
+    donePerfect: "Not a single mistake!",
+    doneGreat: "Great work!",
     mistakeMatch: "Matched, with a mistake.",
     source: "Source",
     srcPage: "p.",
@@ -803,6 +824,9 @@ D.en = {
     setPro: "Subscription",
     proRenews: "Renews {date}",
     proEnds: "Ends {date}",
+    giftOk: "You're a tester: full access is free. Thanks for trying it!",
+    giftForever: "Free for testers",
+    giftNote: "Free for testers. You pay nothing and nothing renews by itself.",
     proOff: "Not active",
     proLeft: "Slides this month: {n} of {x} left",
     proCancel: "Cancel subscription",

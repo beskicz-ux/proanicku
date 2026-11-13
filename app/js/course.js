@@ -748,7 +748,7 @@ function sessionTop(st) {
   return `<div class="session-top"><button class="x" id="quit" aria-label="${t("close")}">${ic.x}</button><div class="bar"><i style="width:${Math.max(3, done / Math.max(1, st.total) * 100)}%"></i></div></div>`;
 }
 function runSession(cfg) {
-  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, started: Date.now(), tick: Date.now() };
+  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, run: 0, miss: 0, started: Date.now(), tick: Date.now() };
   step(st);
 }
 function step(st) {
@@ -759,6 +759,7 @@ function step(st) {
   if (!st.queue.length) return finish(st);
   const it = st.queue[0];
   ({ flashcard: playCard, mc: playMc, tf: playTf, fill: playFill, match: playMatch })[it.type](st, it);
+  cheerSit();
   $("#quit").onclick = () => { SYNC.push(); ctx.nav(st.back); };
 }
 function dock(html) { return `<div class="dock" id="qdock"><div class="dock-in">${html}</div></div>`; }
@@ -780,6 +781,7 @@ function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } =
     ${ok ? "" : `${answerHtml}<div class="md">${md(it.explanation || "")}</div>${srcLine(it)}`}
     <div class="row"><button class="btn ${ok ? "ok" : "bad"} big" style="flex:1" id="fbNext">${t("cont")}</button></div></div>`;
   document.body.appendChild(fb);
+  streak(st, ok);
   const go = () => {
     fb.remove(); window.onkeydown = null;
     st.queue.shift();
@@ -790,6 +792,36 @@ function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } =
   setTimeout(() => window.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }, 200);
 }
 const correctBox = html => `<div class="ans">${html}</div>`;
+
+/* cheers: the tutor pops up for a moment on a streak. It lives on <body>, fixed and click-through, so the question never moves and no tap is lost. */
+let cheerEl = null, cheerT = 0;
+const clearCheer = () => { clearTimeout(cheerT); cheerEl?.remove(); cheerEl = null; };
+// stands on whatever bar is at the bottom right now: the verdict, or the next question's dock if the student has already moved on
+function cheerSit() { const bar = $(".feedback") || $("#qdock"); if (cheerEl) cheerEl.style.bottom = (bar?.offsetHeight || 0) + "px"; }
+function cheer(text, soft) {
+  clearCheer(); // one at a time
+  const el = cheerEl = document.createElement("div");
+  el.className = "cheer" + (soft ? " soft" : ""); el.setAttribute("role", "status");
+  el.innerHTML = `<div class="cheer-b">${esc(text)}</div>${tutorArt(curTutor(), "", soft ? "open" : "happy")}`;
+  document.body.appendChild(el); cheerSit();
+  cheerT = setTimeout(() => { if (cheerEl === el) clearCheer(); }, soft ? 2600 : 1600); // the CSS has slid it away by then; with reduced motion it simply stands and goes
+}
+// 3 in a row, then 5, 10, 15…; a wrong answer starts over. After two misses in a row one calm line, once a round, so it never nags.
+function streak(st, ok) {
+  if (ok) { st.miss = 0; const n = ++st.run; if (n === 3 || n % 5 === 0) cheer(t(pick(["cheer1", "cheer2", "cheer3", "cheer4"]), { n })); }
+  else { st.run = 0; if (++st.miss === 2 && !st.soothed) { st.soothed = true; cheer(t("cheerMiss"), true); } }
+}
+const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+// the result's numbers run up from 0 while their boxes pop in; with reduced motion they already stand at the final value
+function countStats(root) {
+  if (calm()) return;
+  $$(".sbox .v[data-to]", root).forEach((n, i) => {
+    const to = +n.dataset.to, suf = n.dataset.suf, t0 = performance.now() + 450 + i * 120;
+    n.textContent = 0 + suf;
+    const tick = now => { const k = Math.min(1, Math.max(0, (now - t0) / 900)), e = 1 - Math.pow(1 - k, 3); n.textContent = Math.round(to * e) + suf; if (k < 1 && n.isConnected) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
 
 /* flashcard */
 function playCard(st, it) {
@@ -803,6 +835,7 @@ function playCard(st, it) {
     window.onkeydown = null;
     const ns = grade(it.id, g);
     st.answered++; if (g >= 2) { st.right++; sfx.right(); }
+    streak(st, g >= 2);
     addXP(g >= 2 ? 5 : 2); st.xp += g >= 2 ? 5 : 2;
     st.queue.shift();
     if (ns.due <= Date.now() + 15 * 60e3) { st.queue.splice(Math.min(st.queue.length, 3), 0, it); st.total++; }
@@ -916,13 +949,21 @@ function finish(st) {
   if (won) S.lessons["gold:" + st.gold.id] = { ts: Date.now(), best: pct / 100 };
   save(); SYNC.push();
   const more = l && lessonPct(l) < 1;
-  sfx.done(); if (!st.gold || won) confetti();
-  // once, after the first lesson finished all the way: ask the tester what was confusing
-  if (l && !more && !st.gold && !store.get("fbAsked")) setTimeout(() => { if (location.hash.includes("/lesson/") && !store.get("fbAsked")) { store.set("fbAsked", 1); feedbackForm("lesson"); } }, 1800);
-  const boxes = [[t("xp"), st.xp, "y"], [t("correct"), pct + " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), "b"]];
-  view().innerHTML = `<div class="done-screen">${tutorArt(curTutor(), "jump", "happy")}<div class="title">${st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle")}</div>${l || st.test != null || st.gold ? `<p class="sub">${esc(st.title)}</p>` : ""}
-    <div class="statboxes">${boxes.map(([h, v, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></div>
+  clearCheer();
+  // perfect / great / done: the headline, the stars and the size of the confetti all follow the score. A round with nothing to answer (reading only) gets no stars.
+  const stars = !st.answered ? 0 : pct === 100 ? 3 : pct >= 80 ? 2 : 1;
+  sfx.done(); if (!st.gold || won) confetti(stars === 3 ? 160 : 70);
+  // once, after the first lesson finished all the way: ask the tester what was confusing. Only after the celebration has played out (about 4 s), not on top of it.
+  if (l && !more && !st.gold && !store.get("fbAsked")) setTimeout(() => { if (location.hash.includes("/lesson/") && !store.get("fbAsked")) { store.set("fbAsked", 1); feedbackForm("lesson"); } }, 4500);
+  const what = t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle");
+  const head = st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : stars === 3 ? t("donePerfect") : stars === 2 ? t("doneGreat") : what;
+  const sub = [st.gold || head === what ? "" : what, l || st.test != null || st.gold ? st.title : ""].filter(Boolean).join(" · "); // what was finished still gets said when the headline praises instead
+  const boxes = [[t("xp"), st.xp, "", "y"], [t("correct"), pct, " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), null, "b"]];
+  view().innerHTML = `<div class="done-screen cel"><div class="cel-art">${tutorArt(curTutor(), "jump", "happy")}</div><div class="title">${head}</div>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
+    ${stars ? `<div class="cel-stars" role="img" aria-label="${stars} / 3">${[1, 2, 3].map(i => `<i>${STAR}${i <= stars ? `<b>${STAR}</b>` : ""}</i>`).join("")}</div>` : ""}
+    <div class="statboxes">${boxes.map(([h, v, suf, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v"${suf == null ? "" : ` data-to="${v}" data-suf="${suf}"`}>${esc(v + (suf || ""))}</div></div>`).join("")}</div></div>
     ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : st.back}" id="endNext">${t("cont")}</a>`)}`;
+  countStats(view());
 }
 
 /* ---------- review ---------- */
@@ -1016,7 +1057,7 @@ let plansP = null;
 const plans = () => plansP ||= fetch("store.config.json").then(r => r.json()).then(c => c.plans || []).catch(() => { plansP = null; return []; });
 export const money = (plan, cur) => !plan ? "" : cur === "usd" ? `$${Number(plan.price?.usd ?? 0).toFixed(2)}` : `${plan.price?.czk ?? plan.price} Kč`;
 const proDate = p => p.until ? fmtDay(new Date(Date.parse(p.until) - 86400e3).toISOString().slice(0, 10)) : ""; // pro_until carries a day of grace
-const proLine = p => !p.active ? t("proOff") : p.cancelAtEnd ? t("proEnds", { date: proDate(p) }) : p.next ? t("planNext", { date: proDate(p) }) : t("proRenews", { date: proDate(p) });
+const proLine = p => !p.active ? t("proOff") : p.forever ? t("giftForever") : p.cancelAtEnd ? t("proEnds", { date: proDate(p) }) : p.next ? t("planNext", { date: proDate(p) }) : t("proRenews", { date: proDate(p) });
 // The plan: slides used this month, a switch up or down, and cancel. Cancelling MAX offers PRO first (one tap, never in the way).
 async function proSheet(p) {
   const all = await plans(), of = id => all.find(x => x.id === id), name = p.plan.toUpperCase();
@@ -1028,7 +1069,7 @@ async function proSheet(p) {
     ${live && p.plan === "pro" ? `<button class="btn-p" data-to="max">${esc(t("planToMax", { price: price("max") }))}</button><p class="sh-note">${esc(t("planToMaxNote"))}</p>` : ""}
     ${live && p.plan === "max" && p.next ? `<button class="btn-p" data-to="max">${esc(t("planKeepMax"))}</button>` : ""}
     ${live && p.plan === "max" && !p.next ? `<button class="btn-s" data-to="pro">${esc(t("planToPro", { price: price("pro") }))}</button><p class="sh-note">${esc(t("planToProNote", { date: proDate(p) }))}</p>` : ""}
-    ${p.cancelAtEnd ? `<button class="btn-p" id="proGo">${esc(t("proResume", { plan: name }))}</button>` : live ? `<button class="btn-t" id="proGo">${esc(t("proCancel"))}</button>` : ""}`);
+    ${p.gift ? `<p class="sh-note">${esc(t("giftNote"))}</p>` : p.cancelAtEnd ? `<button class="btn-p" id="proGo">${esc(t("proResume", { plan: name }))}</button>` : live ? `<button class="btn-t" id="proGo">${esc(t("proCancel"))}</button>` : ""}`);
   const done = (r, to) => {
     s.close();
     if (r.url) { window.open(r.url, "_blank", "noopener"); toast(t("planPay")); }

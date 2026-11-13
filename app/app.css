@@ -409,6 +409,36 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 
 /* ---------- done screen ---------- */
 .done-screen .title{background:none; -webkit-text-fill-color:currentColor; color:var(--accent)}
+/* The celebration. Every resting state is the final one, so reduced motion (base.css switches all animation off) just shows the result. Transform and opacity only. */
+.cel-art{transform-origin:50% 100%; animation:celDance 1.1s ease-in-out .1s 3}
+.cel-art svg{display:block}
+.cel .jump .body,.cel .jump .tbody{animation-iteration-count:3}
+.cel .title{animation:celPop .5s cubic-bezier(.3,1.5,.5,1) .15s both}
+.cel-stars{display:flex; justify-content:center; align-items:flex-end; gap:10px; height:48px; margin-top:var(--s4)}
+.cel-stars i{position:relative; width:38px; height:38px; color:var(--line)}
+.cel-stars i:nth-child(2){width:48px; height:48px}
+.cel-stars svg{display:block; width:100%; height:100%}
+.cel-stars b{position:absolute; inset:0; color:var(--star); animation:celStar .5s cubic-bezier(.3,1.6,.5,1) .6s both}
+.cel-stars i:nth-child(2) b{animation-delay:.9s} .cel-stars i:nth-child(3) b{animation-delay:1.2s}
+.cel .statboxes{margin-top:var(--s4)}
+.cel .sbox{animation-delay:.3s} .cel .sbox:nth-child(2){animation-delay:.42s} .cel .sbox:nth-child(3){animation-delay:.54s}
+.cel .sbox .v{font-variant-numeric:tabular-nums}
+@keyframes celDance{25%{transform:translateX(-6px) rotate(-7deg)}75%{transform:translateX(6px) rotate(7deg)}}
+@keyframes celPop{from{opacity:0; transform:scale(.6)}}
+@keyframes celStar{from{opacity:0; transform:scale(0) rotate(-50deg)}}
+
+/* ---------- mid-lesson cheer ---------- */
+/* The tutor rises from behind the answer bar (z-index under .dock and .feedback), says one line and leaves. Fixed and click-through: it never moves the question or eats a tap. */
+.cheer{position:fixed; z-index:24; right:max(var(--gutter), calc(50vw - 320px + var(--gutter))); bottom:0; display:flex; align-items:flex-end; gap:8px; max-width:calc(100vw - 2 * var(--gutter)); direction:ltr; pointer-events:none; animation:cheerPop 1.6s ease-out both}
+/* the calm line after two misses sits at the top instead, over the progress bar: down there it would cover the right answer the student is reading */
+.cheer.soft{top:calc(env(safe-area-inset-top) + 6px); bottom:auto!important; align-items:center; animation:cheerSoft 2.6s ease-out both}
+.cheer.soft > svg{width:60px; height:66px}
+.cheer.soft .cheer-b{margin-bottom:0; max-width:230px} .cheer.soft .cheer-b:after{bottom:calc(50% - 6px)}
+.cheer > svg{flex:none; width:84px; height:92px; overflow:visible}
+.cheer-b{position:relative; margin-bottom:38px; max-width:200px; padding:8px 12px; border:2px solid var(--line); border-radius:16px; background:var(--surface); color:var(--text); font:800 15px/1.25 var(--head); unicode-bidi:plaintext; box-shadow:0 4px 0 #0000001a}
+.cheer-b:after{content:""; position:absolute; right:-7px; bottom:12px; width:10px; height:10px; background:inherit; border:2px solid var(--line); border-left:0; border-bottom:0; transform:rotate(45deg)}
+@keyframes cheerPop{0%{opacity:0; transform:translateY(105%)}12%{opacity:1; transform:translateY(-12px)}22%{transform:translateY(0)}34%{transform:translateY(-14px)}46%,84%{opacity:1; transform:translateY(0)}100%{opacity:0; transform:translateY(105%)}}
+@keyframes cheerSoft{0%,100%{opacity:0; transform:translateY(-24px)}10%,90%{opacity:1; transform:translateY(0)}}
 
 /* ---------- polish from the "unslop" checklist ---------- */
 /* balanced headline wrapping, no orphan words */
@@ -1241,3 +1271,6 @@ body.landing .app{max-width:1040px}
 .fb-rm{position:absolute; top:6px; right:6px; width:32px; height:32px; border-radius:50%; border:0; background:#000a; color:#fff; display:grid; place-items:center; cursor:pointer}
 .fb-rm svg{width:16px; height:16px}
 .fb-add{justify-content:flex-start; width:auto; margin-bottom:10px}
+
+/* a failed build: write to us, try again, sign out */
+.pc-failed{display:grid; gap:10px}
