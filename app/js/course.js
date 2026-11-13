@@ -498,7 +498,9 @@ function viewMap() {
   const { list, cur } = nodes(), locked = lockedCount();
   document.body.classList.add("map-page");
   TAPPED = null; // the store names the lesson tapped since the map was last shown
-  view().innerHTML = framed("map", `<div class="mtop">${topbar()}</div>${unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`);
+  // On a phone or tablet the rest being written is a slim pill floating over the map, not a big card on top of it.
+  const slim = locked && ACCESS.paid && ACCESS.building && ACCESS.status !== "failed";
+  view().innerHTML = framed("map", `<div class="mtop">${topbar()}</div>${slim ? `<div class="pc-unlock pc-rest slim" role="status">${restInner(true)}</div>` : unlockCard(locked)}<div class="mapv"><div class="mw" id="mw"></div></div>`);
   bindTopbar();
   const { STEPY, CURX, SWX } = mapSpacing();
   const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = SWX || Math.min(1.7, W / 375);
@@ -591,9 +593,11 @@ function unlockCard(locked) {
 // The rest of a paid course being written, live: the step's animated icon, what the builder is doing, a bar that keeps
 // moving (build.js), lessons written so far, and the latest finished lesson popping in.
 let REST = null, restTick = null;
-function restInner() {
+function restInner(slim = false) {
   const r = REST?.r, phase = REST?.phase || "queued", p = r?.build?.progress, live = phase !== "queued" && phase !== "boot";
   const ls = live ? p?.lessons || [] : [], done = ls.filter(l => l.done), win = done.at(-1);
+  const bar = `<div class="rest-bar"><i style="width:${((REST?.shown || 0) * 100).toFixed(1)}%"></i></div>`;
+  if (slim) return `<i class="ul-ic rest-ic">${iconFor(phase)}</i><div><b>${t("restBuilding")}${ls.length ? `<small>${done.length}/${ls.length}</small>` : ""}</b>${bar}</div>`;
   const what = [stageText(phase) || t("restBuildingSub"), ls.length ? `${done.length}/${ls.length}` : ""].filter(Boolean).join(" · ");
   return `<i class="ul-ic rest-ic">${iconFor(phase)}</i><div><b>${t("restBuilding")}</b><span>${esc(what)}</span>
     <div class="rest-bar"><i style="width:${((REST?.shown || 0) * 100).toFixed(1)}%"></i></div>
@@ -605,8 +609,16 @@ function paintRest(r) {
   if (!REST || REST.key !== key) REST = { ...(REST || { shown: 0 }), key, at: phaseStart(phase, r.build) };
   Object.assign(REST, { r, phase });
   const after = p?.lessons?.filter(l => l.done).length ?? 0;
-  $$(".pc-rest").forEach(el => { el.innerHTML = restInner(); if (before != null && after > before) el.querySelector(".rest-win")?.classList.add("pop"); });
+  placeSlim();
+  $$(".pc-rest").forEach(el => { el.innerHTML = restInner(el.classList.contains("slim")); if (before != null && after > before) el.querySelector(".rest-win")?.classList.add("pop"); });
   if (before != null && after > before) sfx.flip();
+}
+// The pill sits just above the bottom tab bar on a phone; where the menu is on the side, near the bottom edge.
+function placeSlim() {
+  const el = $(".pc-rest.slim"); if (!el) return;
+  const nav = $("#nav"), r = nav && !nav.hidden ? nav.getBoundingClientRect() : null;
+  el.style.bottom = (r && r.top > innerHeight / 2 ? innerHeight - r.top + 12 : 16) + "px";
+  const m = $(".mapv")?.getBoundingClientRect(); if (m?.width) el.style.left = (m.left + m.width / 2) + "px"; // centred on the map, not the window
 }
 // While the rest of a paid course is written, checks every 3 s and reloads the map when it's there. Progress stays: lesson IDs don't change.
 function startRestTick() {
@@ -620,7 +632,7 @@ function startRestTick() {
 function watchRest(first = true) {
   clearTimeout(restTimer);
   const slug = SLUG;
-  if (first) startRestTick();
+  if (first) { startRestTick(); placeSlim(); }
   restTimer = setTimeout(async () => {
     if (location.hash !== "#/s/" + slug || SLUG !== slug) return;
     try {
@@ -1040,6 +1052,7 @@ let resizeT = 0;
 window.addEventListener("resize", () => {
   clearTimeout(resizeT);
   resizeT = setTimeout(() => {
+    placeSlim();
     const mw = document.getElementById("mw");
     if (mw && Math.min(MAPMAX, mw.parentNode.clientWidth) !== +mw.dataset.w) viewMap();
   }, 150);

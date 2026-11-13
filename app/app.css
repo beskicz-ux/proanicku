@@ -921,6 +921,18 @@ body .pc-rest span, body .side .pc-rest span{color:var(--muted); font-size:15px;
 body .pc-rest .rest-bar{background:var(--fill); height:6px; margin-top:10px}
 body .pc-rest .rest-bar i{background:linear-gradient(90deg,var(--green) 0 40%,#89e219 50%,var(--green) 60% 100%) 0 0/250% 100%}
 body .pc-rest .rest-win{color:var(--text); font-weight:700}
+/* phone and tablet: a slim pill floating over the map (placeSlim() puts it just above the tab bar) */
+body.map-page .pc-unlock.pc-rest.slim{position:fixed; left:50%; transform:translateX(-50%); bottom:84px; z-index:15; margin:0;
+  width:min(calc(100% - 32px), 420px); box-sizing:border-box; padding:10px 14px; gap:12px; border-radius:999px;
+  box-shadow:0 10px 28px -10px #161a2d40, 0 2px 0 var(--edge, var(--line)); animation:pcslim .4s cubic-bezier(.2,.9,.3,1.2) both}
+body.map-page:has(.pc-rest.slim) .mapv{padding-bottom:84px} /* the last lessons scroll clear of the pill */
+@keyframes pcslim{from{opacity:0; transform:translate(-50%,16px)}}
+body .pc-rest.slim .ul-ic{width:34px; height:34px}
+body .pc-rest.slim .ul-ic svg{width:18px; height:18px}
+body .pc-rest.slim b{display:flex; justify-content:space-between; gap:8px; font-size:15px; white-space:nowrap}
+body .pc-rest.slim b small{font:700 13px var(--body, inherit); color:var(--muted); font-variant-numeric:tabular-nums}
+body .pc-rest.slim .rest-bar{height:5px; margin-top:6px}
+@media (prefers-reduced-motion:reduce){ body.map-page .pc-unlock.pc-rest.slim{animation:none} }
 
 /* gold sheet: a gold coin on top, the gold button in gold */
 .gold-ic{width:76px; height:64px; margin:4px auto 10px; border-radius:50%; display:grid; place-items:center; color:#7A4F00;
