@@ -221,28 +221,35 @@ function viewFiles() {
 }
 
 /* ---------- step 2: exam date, a timeline under a fixed needle ---------- */
-export const RULER = { MIN: 3, MAX: 150, STEP: 12 };
+// PRE: dimmed, unpickable days drawn before MIN, so near the start the ruler still fills both sides of the needle.
+export const RULER = { MIN: 3, MAX: 150, STEP: 12, PRE: 24 };
 const paceOf = n => n < 14 ? "sprint" : n < 35 ? "tempo" : "chill";
 // Minutes a day: one pass plus three repeats of every page (3 min a page), spread over the days before the last two.
 // The plan's daily minutes, snapped to the goals the settings offer (10/15/20/30/60).
 export const minutesFor = (pages, n) => snapGoal(Math.max(10, Math.min(90, Math.round((pages || 20) * 3 / Math.max(1, n - 2) / 5) * 5)));
 export function rulerHtml() {
+  // Classes are rd-mo / rd-wk, never bare .mo / .wk: app.css has a global .wk (the week-streak grid) that once
+  // turned every Monday into a 36 px grid, so ticks were uneven and the needle sat on the wrong day.
   let html = "";
-  for (let n = RULER.MIN; n <= RULER.MAX; n++) {
+  for (let n = RULER.MIN - RULER.PRE; n <= RULER.MAX; n++) {
     const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n);
-    const mo = d.getDate() === 1, wk = d.getDay() === 1;
-    html += `<div class="rd ${mo ? "mo" : wk ? "wk" : ""}">${mo ? `<small>${esc(fmtShortMonth(d))}</small>` : wk ? `<small>${d.getDate()}.</small>` : ""}</div>`;
+    const day = d.getDate(), mo = day === 1, wk = d.getDay() === 1;
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    // a Monday within 3 days of a month label keeps its tick but drops its number, so "30." and "Dec" never collide
+    const crowded = wk && (day <= 4 || day >= last - 2);
+    html += `<div class="rd${n < RULER.MIN ? " rd-off" : ""}${mo ? " rd-mo" : wk ? " rd-wk" : ""}">${mo ? `<small>${esc(fmtShortMonth(d))}</small>` : wk && !crowded ? `<small>${day}.</small>` : ""}</div>`;
   }
   return `<div class="ruler" dir="ltr"><div class="rscroll" id="rs" tabindex="0" role="slider" aria-valuemin="${RULER.MIN}" aria-valuemax="${RULER.MAX}">${html}</div><div class="needle" aria-hidden="true"></div></div>`;
 }
 // Binds a ruler; onChange(n, iso) on every snap. Arrow keys move a day.
 export function bindRuler(startDays, onChange) {
   const rs = $("#rs");
-  const at = () => Math.min(RULER.MAX, Math.max(RULER.MIN, RULER.MIN + Math.round(rs.scrollLeft / RULER.STEP)));
+  const x0 = RULER.PRE * RULER.STEP; // scrollLeft that puts day MIN under the needle
+  const at = () => Math.min(RULER.MAX, Math.max(RULER.MIN, RULER.MIN + Math.round((rs.scrollLeft - x0) / RULER.STEP)));
   let last = -1;
   const upd = () => { const n = at(); if (n === last) return; last = n; rs.setAttribute("aria-valuenow", n); onChange(n, addDays(today(), n)); };
   rs.addEventListener("scroll", upd, { passive: true });
-  const go = n => { rs.scrollLeft = (Math.min(RULER.MAX, Math.max(RULER.MIN, n)) - RULER.MIN) * RULER.STEP; };
+  const go = n => { rs.scrollLeft = x0 + (Math.min(RULER.MAX, Math.max(RULER.MIN, n)) - RULER.MIN) * RULER.STEP; };
   rs.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1, PageUp: 7, PageDown: -7 }[e.key]; if (k) { e.preventDefault(); go(at() + k); } };
   // Desktop: a mouse wheel scrolls up/down, so turn that into days (sideways trackpad swipes stay native).
   let acc = 0;
@@ -274,7 +281,7 @@ export function bindRuler(startDays, onChange) {
     go(at() + Math.round((e.clientX - (r.left + r.width / 2)) / RULER.STEP));
   };
   rs.addEventListener("pointerup", end); rs.addEventListener("pointercancel", end);
-  requestAnimationFrame(() => { rs.scrollLeft = (Math.min(RULER.MAX, Math.max(RULER.MIN, startDays)) - RULER.MIN) * RULER.STEP; upd(); });
+  requestAnimationFrame(() => { go(startDays); upd(); });
   return { get: () => addDays(today(), at()) };
 }
 export function datePanel(n, iso, pages) {

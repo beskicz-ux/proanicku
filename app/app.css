@@ -110,7 +110,7 @@ body.plain .app{padding-bottom:0}
 
 /* date */
 .dbig{text-align:center}
-.dbig b{display:block; font:800 40px/1.1 var(--head); letter-spacing:-.01em}
+.dbig b{display:block; font:800 clamp(26px, 7.4vw, 40px)/1.1 var(--head); letter-spacing:-.01em; text-wrap:balance}
 .dbig span{display:block; color:var(--muted); font-size:17px; margin-top:6px}
 .dbadge{text-align:center; margin:18px 0 22px; min-height:40px}
 .badge{display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font:800 16px var(--head)}
@@ -122,15 +122,18 @@ body.plain .app{padding-bottom:0}
 .rscroll{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; height:100%; padding:0 calc(50% - 6px); box-sizing:border-box; outline:none}
 .rscroll::-webkit-scrollbar{display:none}
 @media (pointer:fine){.rscroll{cursor:grab}.rscroll.drag{cursor:grabbing; scroll-snap-type:none; user-select:none}}
-.rd{flex:0 0 12px; height:100%; scroll-snap-align:center; position:relative}
-.rd:before{content:""; position:absolute; left:5px; top:30px; width:2px; height:16px; border-radius:2px; background:var(--line)}
-.rd.wk:before{height:28px; top:24px; background:color-mix(in srgb, var(--muted) 45%, var(--line))}
-.rd.mo:before{height:40px; top:18px; background:var(--muted)}
-.rd small{position:absolute; left:6px; top:64px; transform:translateX(-50%); font:600 13px var(--font); color:var(--muted); white-space:nowrap}
-.needle{position:absolute; left:50%; top:10px; width:6px; height:52px; margin-left:-3px; border-radius:4px; background:var(--accent); pointer-events:none}
-.needle:before{content:""; position:absolute; left:50%; top:-8px; margin-left:-7px; border:7px solid transparent; border-top-color:var(--accent)}
-.ruler:after{content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg, var(--bg), transparent 18%, transparent 82%, var(--bg))}
-.sh .ruler:after{background:linear-gradient(90deg, var(--surface), transparent 18%, transparent 82%, var(--surface))}
+/* every day is exactly 12 px wide (bindRuler's scroll math depends on it); ticks hang from one baseline at 52px */
+.rd{flex:0 0 12px; width:12px; min-width:0; height:100%; scroll-snap-align:center; position:relative; display:block}
+.rd:before{content:""; position:absolute; left:5px; bottom:44px; width:2px; height:12px; border-radius:2px; background:var(--line)}
+.rd.rd-wk:before{height:22px; background:color-mix(in srgb, var(--muted) 55%, var(--line))}
+.rd.rd-mo:before{height:30px; background:var(--muted)}
+.rd small{position:absolute; left:6px; top:60px; transform:translateX(-50%); font:600 13px/1 var(--font); color:var(--muted); white-space:nowrap}
+.rd.rd-mo small{font-weight:800; color:var(--text)}
+.rd.rd-off{scroll-snap-align:none; opacity:.35}
+.needle{position:absolute; left:50%; top:10px; width:4px; height:42px; margin-left:-2px; border-radius:4px; background:var(--accent); pointer-events:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
+.needle:before{content:""; position:absolute; left:50%; top:-9px; margin-left:-6px; border:6px solid transparent; border-top-color:var(--accent)}
+/* fade the edges with a mask, not a painted gradient: a painted var(--bg) never quite matches the page behind it */
+.rscroll{-webkit-mask-image:linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); mask-image:linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)}
 
 /* tutor carousel */
 .car{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:10px 0 0; margin:0 calc(-1 * var(--gutter)); outline:none}
