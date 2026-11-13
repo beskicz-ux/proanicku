@@ -5,7 +5,7 @@ import { ham } from "./art.js";
 import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween, ACCEPT } from "./forecast.js";
 import { phaseOf, QUEUED, stepsHtml, barTarget, phaseStart, clock, stageText } from "./build.js";
-import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal } from "./course.js";
+import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal, money } from "./course.js";
 import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme } from "./ui.js";
 
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
@@ -433,14 +433,18 @@ async function viewUnlock() {
   // The server's payment mode wins, so the page can never say "buy" while a click is free (or "test" while Stripe charges).
   // store.config.json's testMode is only the fallback for an older pc-api that doesn't report it.
   const testMode = st.payments ? st.payments === "test" : !!cfg.testMode;
-  const L = o => o?.[lang()] || o?.en || o?.cs, cur = esc(cfg.currency), left = info?.left;
+  const L = o => o?.[lang()] || o?.en || o?.cs, left = info?.left;
   // Reasons on the left (above on a phone) and one buy panel: pick a plan, tick the consent, one button.
-  // Kurz is pre-picked: most buyers are days before one exam (research 2026-11-11). The only urgency is the student's own exam date.
-  const pro = st.pro, proOpen = pro?.active && pro.newLeft > 0;
-  const plans = cfg.plans.filter(p => !(pro?.active && p.id === "pro"));
-  let pick = (plans.find(p => p.default) || plans[0])?.id;
+  // PRO is pre-picked: most buyers are days before one exam (research 2026-11-11). The only urgency is the student's own exam date.
+  // Czech courses pay in Kč, every other language in $; a running subscription keeps its own currency.
+  const pro = st.pro?.active ? st.pro : null, need = info?.pages || 0, cur = pro?.currency || st.currency || "czk";
+  const proOpen = !!pro && pro.slidesLeft >= need;
+  const upsell = !!pro && !proOpen && pro.plan === "pro"; // contextual: this subject is what doesn't fit, MAX is what fits it
+  const plans = cfg.plans;
+  let pick = upsell ? "max" : (plans.find(p => p.default) || plans[0])?.id;
   const planOf = id => plans.find(p => p.id === id);
-  const amount = p => `${p.price} ${cur}${p.interval === "month" ? " / " + t("stMonthShort") : ""}`;
+  const amount = p => `${money(p, cur)} / ${t("stMonthShort")}`;
+  const proName = pro ? pro.plan.toUpperCase() : "";
   // A little calendar page with the exam's day, then "Zkouška za 5 dní" and the full date
   const urg = info?.exam ? `<p class="st-urg"><i class="st-cal" aria-hidden="true">${+String(info.exam).slice(8, 10) || ""}</i><span><b>${esc(t("stTlExam"))}${left > 0 ? " " + esc(inDays(left)) : ""}</b><small>${esc(fmtDay(info.exam))}</small></span></p>` : "";
   const tap = info?.tapped ? `<p class="st-tap">${ic.lock}<span>${esc(t("stTapped").replace("%", info.tapped))}</span></p>` : `<p class="ob-sub">${t("unlockSub")}</p>`;
@@ -450,13 +454,18 @@ async function viewUnlock() {
   const what = info?.units.length ? `<h2 class="st-h">${t("stWhat")}</h2>${info.pages ? `<p class="st-est">${esc(t("unlockEst", { items: est(info.pages * 3), exam: est(info.pages * .25) }))}</p>` : ""}<ul class="st-units${info.units.length > UNITS_SHOWN + 1 ? " cut" : ""}" id="units">${info.units.map(u => `<li style="--chc:var(--ch${u.ci % 6 + 1})"><i>${ic.lock}</i><span class="st-u"><b>${esc(u.title)}</b>${u.titles?.length ? `<span class="st-ul">${esc(u.titles.join(" · "))}</span>` : ""}</span><small>${esc(lessonCount(u.n))}</small></li>`).join("")}</ul>${info.units.length > UNITS_SHOWN + 1 ? `<button class="st-all" id="unitsAll" type="button">${esc(t("stAll", { n: info.units.length }))}</button>` : ""}` : "";
   const opt = p => `<label class="st-opt pl-${esc(p.id)}" data-plan="${esc(p.id)}"><input type="radio" name="plan" value="${esc(p.id)}"${p.id === pick ? " checked" : ""}><i class="st-dot">${ic.check}</i>
       <span class="st-o-t">${L(p.badge) ? `<em>${esc(L(p.badge))}</em>` : ""}<b>${esc(L(p.name) || "")}</b><small>${esc(L(p.pitch) || "")}</small></span>
-      <span class="st-o-p"><b>${p.price} ${cur}</b><small>${esc(p.interval === "month" ? "/ " + t("stMonthShort") : t("stOnceShort"))}</small></span></label>`;
+      <span class="st-o-p"><b>${esc(money(p, cur))}</b><small>${esc("/ " + t("stMonthShort"))}</small></span></label>`;
   const feats = () => { const p = planOf(pick); return p ? `<h2 class="st-h">${esc(t("stGet").replace("%", L(p.name) || ""))}</h2><ul class="st-feats">${L(p.features).map(x => `<li>${ic.check}<span>${esc(x)}</span></li>`).join("")}</ul>` : ""; };
-  // Already Pro: this subject opens from the month's allowance. Allowance used up: only the one-off course is sold.
-  const pay = proOpen ? `<div class="st-proon"><h3 class="st-pname">MAX</h3><p>${esc(t("stProOn"))}</p><p class="st-perday">${esc(t("stProLeft", { n: pro.newLeft, x: pro.newPerWindow }))}</p></div>
-      <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p st-buy" data-pro>${t("stProOpen")}</button>`
-    : `${pro?.active ? `<p class="ob-note">${esc(errText("pro_cap"))}</p>` : ""}
-      <fieldset class="st-opts"><legend class="sr">${esc(t("stTitle"))}</legend>${plans.map(opt).join("")}</fieldset>
+  // Subscribed: this subject opens from the month's slides. PRO without room: MAX, priced, in one tap. MAX without room: the date.
+  const slidesLine = pro ? `<p class="st-perday">${esc(t("stProLeft", { need, n: pro.slidesLeft, x: pro.slides }))}</p>` : "";
+  const renew = pro?.until ? fmtDay(new Date(Date.parse(pro.until) - 86400e3).toISOString().slice(0, 10)) : "";
+  const pay = proOpen ? `<div class="st-proon"><h3 class="st-pname">${proName}</h3><p>${esc(t("stProOn", { plan: proName }))}</p>${slidesLine}</div>
+      <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p st-buy" data-pro>${esc(t("stProOpen", { plan: proName }))}</button>`
+    : upsell ? `<div class="st-proon st-up"><h3 class="st-pname">${esc(t("stUpTitle"))}</h3><p>${esc(t("stUpSub", { need, n: pro.slidesLeft }))}</p>
+        <p class="st-perday">${esc(t("stUpNote", { price: amount(planOf("max")) }))}</p></div>
+      <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p st-buy" data-up>${esc(t("stUpBtn", { price: amount(planOf("max")) }))}</button>`
+    : pro ? `<div class="st-proon"><h3 class="st-pname">${proName}</h3><p>${esc(t("stCapMax", { date: renew }))}</p>${slidesLine}</div>`
+    : `<fieldset class="st-opts"><legend class="sr">${esc(t("stTitle"))}</legend>${plans.map(opt).join("")}</fieldset>
       <label class="ob-check st-consent"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
       <button class="btn-p st-buy" id="buy"></button>
@@ -470,7 +479,7 @@ async function viewUnlock() {
         ${tap}
       </div>
       <section class="st-pay" aria-label="${esc(t("storeBuy"))}">${pay}<a class="st-free" href="#/s/${esc(s.slug)}">${t("stFree")}</a></section>
-      <div class="st-more"><div id="feats">${proOpen ? "" : feats()}</div>${what}</div>
+      <div class="st-more"><div id="feats">${pro && !upsell ? "" : feats()}</div>${what}</div>
     </div></div>`;
   $("#stepBack").onclick = () => nav("#/s/" + s.slug);
   const all = $("#unitsAll"); if (all) all.onclick = () => { $("#units").classList.remove("cut"); all.remove(); };
@@ -479,6 +488,15 @@ async function viewUnlock() {
     $("#err").hidden = true; proBtn.disabled = true;
     try { await api("pro_unlock", { session: s.token }); resetCourse(); confetti(); sfx.done(); toast(t("unlockDone")); nav("#/s/" + s.slug); }
     catch (e) { fail($("#err"), e); proBtn.disabled = false; }
+  };
+  const upBtn = $("[data-up]");
+  if (upBtn) upBtn.onclick = async () => {
+    $("#err").hidden = true; upBtn.disabled = true;
+    try {
+      const r = await api("checkout", { session: s.token, plan: "max", terms: true });
+      if (r.url) { location.href = r.url; return; } // the card needs the student (3-D Secure): Stripe's invoice page
+      resetCourse(); confetti(); sfx.done(); toast(t("planMaxOn")); nav("#/s/" + s.slug);
+    } catch (e) { fail($("#err"), e); upBtn.disabled = false; }
   };
   const buy = $("#buy");
   if (!buy) return;
@@ -533,11 +551,11 @@ function legalFrame(html) {
   $("#stepBack").onclick = () => history.length > 1 ? history.back() : nav("#/");
 }
 async function viewTerms() {
-  const cfg = await storeConfig().catch(() => ({})), plan = (cfg.plans || [])[0];
-  const price = plan ? `${plan.price} ${cfg.currency}` : "";
+  const cfg = await storeConfig().catch(() => ({})), planOf = id => (cfg.plans || []).find(p => p.id === id);
+  const both = p => p ? `${money(p, "czk")} (${money(p, "usd")})` : "";
   legalFrame(`<h1 class="ob-h">${t("termsTitle")}</h1><p class="ob-note">${t("termsVersion")}</p>
     <h2>${t("termsSeller")}</h2><p>${operatorHtml(cfg.operator || {})}</p>
-    ${[1, 2, 3, 4, 5, 6, 7].map(n => `<h2>${t("termsH" + n)}</h2><p>${t("termsP" + n).replace("%", price)}</p>`).join("")}`);
+    ${[1, 2, 3, 4, 5, 6, 7].map(n => `<h2>${t("termsH" + n)}</h2><p>${t("termsP" + n, { pro: both(planOf("pro")), max: both(planOf("max")) })}</p>`).join("")}`);
 }
 async function viewPrivacy() {
   const who = operatorHtml((await storeConfig().catch(() => ({}))).operator || {});

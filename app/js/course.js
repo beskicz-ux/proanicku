@@ -1004,23 +1004,63 @@ function viewSettings() {
   api("account", { session: TOKEN }).then(a => {
     const el = $("#proRow"); if (!el) return;
     const sv = $('[data-s="pay"] .sv'); if (sv) sv.textContent = String(a.courses.length || 1);
-    if (a.pro?.status) { el.outerHTML = row("pro", "pay", t("setPro"), esc(proLine(a.pro))); $('[data-s="pro"]').onclick = () => proSheet(a.pro); }
+    // The plan row is always there for an account, so upgrading is one tap from Settings even before the first purchase.
+    if (!a.account) return;
+    const p = a.pro?.active ? a.pro : null;
+    el.outerHTML = row("pro", "pay", t("setPro"), p ? esc(`${p.plan.toUpperCase()} · ${proLine(p)}`) : `<span class="soon">${esc(t("planGet"))}</span>`);
+    $('[data-s="pro"]').onclick = () => p ? proSheet(p) : ctx.nav("#/unlock");
   }).catch(() => { });
 }
+// Prices of the plans, from the same store.config.json the store reads. $ for USD, Kč for CZK.
+let plansP = null;
+const plans = () => plansP ||= fetch("store.config.json").then(r => r.json()).then(c => c.plans || []).catch(() => { plansP = null; return []; });
+export const money = (plan, cur) => !plan ? "" : cur === "usd" ? `$${Number(plan.price?.usd ?? 0).toFixed(2)}` : `${plan.price?.czk ?? plan.price} Kč`;
 const proDate = p => p.until ? fmtDay(new Date(Date.parse(p.until) - 86400e3).toISOString().slice(0, 10)) : ""; // pro_until carries a day of grace
-const proLine = p => !p.active ? t("proOff") : p.cancelAtEnd ? t("proEnds", { date: proDate(p) }) : t("proRenews", { date: proDate(p) });
-function proSheet(p) {
-  const s = sheet(`<h2 class="sh-h">${t("setPro")}</h2><p class="sh-p">${esc(proLine(p))}</p>
-    ${p.active ? `<p class="sh-p">${esc(t("proLeft", { n: p.newLeft, x: p.newPerWindow, m: Math.floor(p.voiceLeftSeconds / 60) }))}</p>` : ""}
-    ${p.active ? `<button class="${p.cancelAtEnd ? "btn-p" : "btn-s"}" id="proGo">${t(p.cancelAtEnd ? "proResume" : "proCancel")}</button>` : ""}`);
-  const b = $("#proGo"); if (!b) return;
-  b.onclick = async () => {
-    if (!p.cancelAtEnd && !confirm(t("proCancelQ", { date: proDate(p) }))) return;
+const proLine = p => !p.active ? t("proOff") : p.cancelAtEnd ? t("proEnds", { date: proDate(p) }) : p.next ? t("planNext", { date: proDate(p) }) : t("proRenews", { date: proDate(p) });
+// The plan: slides used this month, a switch up or down, and cancel. Cancelling MAX offers PRO first (one tap, never in the way).
+async function proSheet(p) {
+  const all = await plans(), of = id => all.find(x => x.id === id), name = p.plan.toUpperCase();
+  const price = id => `${money(of(id), p.currency)} / ${t("stMonthShort")}`;
+  const pct = p.slides ? Math.min(100, Math.round(p.slidesUsed / p.slides * 100)) : 0;
+  const live = p.active && !p.cancelAtEnd;
+  const s = sheet(`<h2 class="sh-h">${name}</h2><p class="sh-p">${esc(proLine(p))}</p>
+    <div class="pl-meter"><div class="bar"><i style="width:${pct}%"></i></div><small>${esc(t("planUsed", { used: p.slidesUsed, x: p.slides }))}</small></div>
+    ${live && p.plan === "pro" ? `<button class="btn-p" data-to="max">${esc(t("planToMax", { price: price("max") }))}</button><p class="sh-note">${esc(t("planToMaxNote"))}</p>` : ""}
+    ${live && p.plan === "max" && p.next ? `<button class="btn-p" data-to="max">${esc(t("planKeepMax"))}</button>` : ""}
+    ${live && p.plan === "max" && !p.next ? `<button class="btn-s" data-to="pro">${esc(t("planToPro", { price: price("pro") }))}</button><p class="sh-note">${esc(t("planToProNote", { date: proDate(p) }))}</p>` : ""}
+    ${p.cancelAtEnd ? `<button class="btn-p" id="proGo">${esc(t("proResume", { plan: name }))}</button>` : live ? `<button class="btn-t" id="proGo">${esc(t("proCancel"))}</button>` : ""}`);
+  const done = (r, to) => {
+    s.close();
+    if (r.url) { window.open(r.url, "_blank", "noopener"); toast(t("planPay")); }
+    else toast(to === "max" ? (p.next ? t("planKept") : t("planMaxOn")) : t("planDown", { date: proDate(p) }));
+    viewSettings();
+  };
+  const go = async (b, to) => {
     b.disabled = true;
+    try { done(await api("pro_switch", { session: TOKEN, plan: to }), to); }
+    catch (e) { b.disabled = false; toast(errText(e.code)); }
+  };
+  $$("[data-to]", s.el).forEach(b => b.onclick = () => go(b, b.dataset.to));
+  const b = $("#proGo"); if (!b) return;
+  const cancel = async (btn, resume) => {
+    btn.disabled = true;
     try {
-      const r = await api("pro_cancel", { session: TOKEN, resume: p.cancelAtEnd });
-      s.close(); toast(r.pro.cancelAtEnd ? t("proCanceled", { date: proDate(r.pro) }) : t("proResumed")); viewSettings();
-    } catch (e) { b.disabled = false; toast(errText(e.code)); }
+      const r = await api("pro_cancel", { session: TOKEN, resume });
+      toast(r.pro.cancelAtEnd ? t("proCanceled", { plan: name, date: proDate(r.pro) }) : t("proResumed", { plan: name })); viewSettings();
+      return true;
+    } catch (e) { btn.disabled = false; toast(errText(e.code)); return false; }
+  };
+  if (p.cancelAtEnd) { b.onclick = async () => { if (await cancel(b, true)) s.close(); }; return; }
+  b.onclick = () => { // the cancel sheet replaces this one in place (sheet() swaps at once, no fade over it)
+    const down = p.plan === "max" && !p.next;
+    const c = sheet(`<h2 class="sh-h">${esc(t("cancelH"))}</h2>
+      ${down ? `<p class="sh-p">${esc(t("cancelDown", { price: price("pro"), now: price("max") }))}</p><button class="btn-p" data-to="pro">${esc(t("cancelDownBtn"))}</button>` : ""}
+      <p class="sh-p">${esc(t("cancelLose", { date: proDate(p) }))}</p>
+      ${down ? "" : `<button class="btn-p" id="cKeep">${esc(t("cancelKeep", { plan: name }))}</button>`}
+      <button class="btn-t" id="cYes">${esc(t("cancelYes"))}</button>`);
+    const d = $("[data-to]", c.el); if (d) d.onclick = async () => { d.disabled = true; try { c.close(); done(await api("pro_switch", { session: TOKEN, plan: "pro" }), "pro"); } catch (e) { d.disabled = false; toast(errText(e.code)); } };
+    const k = $("#cKeep"); if (k) k.onclick = () => c.close();
+    $("#cYes").onclick = async () => { if (await cancel($("#cYes"), false)) c.close(); };
   };
 }
 async function saveStudent(fields) {
