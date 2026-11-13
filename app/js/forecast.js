@@ -71,6 +71,10 @@ async function objectStreams(buf, text) {
 // What the upload picker offers: PDF, PowerPoint (old .ppt too), Word (.docx, .doc), RTF, text (.txt, .md) and slide pictures
 // (joined into one PDF in the browser). The builder turns Word, RTF and text into a PDF with LibreOffice.
 export const DOC_TYPES = ["docx", "doc", "rtf", "txt", "md"];
+// One Word or text page counts as 3 slides toward the 250 cap, the free start and PRO's allowance (Marek, 2026-11-13):
+// a Word page holds ~3,000 characters against a few hundred on a slide. Same rule in pc-api and the builder.
+export const SLIDES_PER_DOC_PAGE = 3;
+export const slidesOf = (name, pages) => pages * (DOC_TYPES.includes(String(name).split(".").pop().toLowerCase()) ? SLIDES_PER_DOC_PAGE : 1);
 export const ACCEPT = ".pdf,.pptx,.ppt,.docx,.doc,.rtf,.txt,.md,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
 export const validFile = (name, head) => {
   const ext = name.split(".").pop().toLowerCase();

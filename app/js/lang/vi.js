@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Mình đã có tài khoản",
  "welcomeResume": "Tiếp tục thiết lập",
  "filesTitle": "Tải slide của một môn lên",
- "filesSub": "Mỗi môn là một khóa học riêng. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), văn bản (TXT, MD, RTF) hoặc ảnh slide (PNG, JPG), tối đa 50 MB mỗi tệp và 250 slide hoặc trang mỗi khóa học. Ảnh được ghép thành một PDF theo thứ tự tên tệp.",
+ "filesSub": "Mỗi môn là một khóa học riêng. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), văn bản (TXT, MD, RTF) hoặc ảnh slide (PNG, JPG), tối đa 50 MB mỗi tệp và 250 slide mỗi khóa học (một trang Word hoặc văn bản được tính là 3). Ảnh được ghép thành một PDF theo thứ tự tên tệp.",
  "filesAdd": "Thêm tệp",
  "filesSummary": "Tổng cộng {pages}. Càng nhiều slide, khóa học càng dài.",
  "dateTitle": "Khi nào bạn thi?",

@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Ich habe ein Konto",
  "welcomeResume": "Einrichtung fortsetzen",
  "filesTitle": "Lade Folien aus einem Fach hoch",
- "filesSub": "Jedes Fach ist ein eigener Kurs. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), Text (TXT, MD, RTF) oder Folienbilder (PNG, JPG), bis zu 50 MB pro Datei und 250 Folien oder Seiten pro Kurs. Bilder werden in der Reihenfolge der Dateinamen zu einem PDF zusammengefügt.",
+ "filesSub": "Jedes Fach ist ein eigener Kurs. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), Text (TXT, MD, RTF) oder Folienbilder (PNG, JPG), bis zu 50 MB pro Datei und 250 Folien pro Kurs (eine Word- oder Textseite zählt als 3). Bilder werden in der Reihenfolge der Dateinamen zu einem PDF zusammengefügt.",
  "filesAdd": "Weitere Dateien hinzufügen",
  "filesSummary": "Insgesamt {pages}. Mehr Folien ergeben einen längeren Kurs.",
  "dateTitle": "Wann ist deine Prüfung?",

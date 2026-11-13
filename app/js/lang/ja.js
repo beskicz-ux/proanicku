@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "アカウントを持っている",
  "welcomeResume": "設定を続ける",
  "filesTitle": "1科目分のスライドをアップロード",
- "filesSub": "科目ごとに別々のコースになります。PDF、PowerPoint（PPTX、PPT）、Word（DOCX、DOC）、テキスト（TXT、MD、RTF）、スライド画像（PNG、JPG）に対応。1ファイル50 MBまで、1コースにつき250スライドまたはページまで。画像はファイル名順に1つのPDFにまとめられます。",
+ "filesSub": "科目ごとに別々のコースになります。PDF、PowerPoint（PPTX、PPT）、Word（DOCX、DOC）、テキスト（TXT、MD、RTF）、スライド画像（PNG、JPG）に対応。1ファイル50 MBまで、1コースにつき250スライドまで（Wordやテキストのページ1枚を3スライドとして数えます）。画像はファイル名順に1つのPDFにまとめられます。",
  "filesAdd": "ファイルを追加",
  "filesSummary": "合計{pages}。スライドが多いほどコースも長くなります。",
  "dateTitle": "試験はいつ？",

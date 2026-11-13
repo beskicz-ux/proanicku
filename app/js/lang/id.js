@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Aku sudah punya akun",
  "welcomeResume": "Lanjutkan pengaturan",
  "filesTitle": "Unggah slide dari satu mata kuliah",
- "filesSub": "Setiap mata kuliah jadi satu kursus sendiri. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), teks (TXT, MD, RTF), atau gambar slide (PNG, JPG), maksimal 50 MB per file dan 250 slide atau halaman per kursus. Gambar digabung jadi satu PDF sesuai urutan nama file.",
+ "filesSub": "Setiap mata kuliah jadi satu kursus sendiri. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), teks (TXT, MD, RTF), atau gambar slide (PNG, JPG), maksimal 50 MB per file dan 250 slide per kursus (satu halaman Word atau teks dihitung 3). Gambar digabung jadi satu PDF sesuai urutan nama file.",
  "filesAdd": "Tambah file lagi",
  "filesSummary": "Total {pages}. Semakin banyak slide, semakin panjang kursusnya.",
  "dateTitle": "Kapan ujianmu?",

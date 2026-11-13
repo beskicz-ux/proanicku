@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Mám účet",
  "welcomeResume": "Pokračovať v nastavení",
  "filesTitle": "Nahraj slajdy z jedného predmetu",
- "filesSub": "Každý predmet je samostatný kurz. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), text (TXT, MD, RTF) alebo obrázky slajdov (PNG, JPG), do 50 MB na súbor a 250 slajdov alebo strán na kurz. Obrázky sa spoja do jedného PDF podľa poradia názvov súborov.",
+ "filesSub": "Každý predmet je samostatný kurz. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), text (TXT, MD, RTF) alebo obrázky slajdov (PNG, JPG), do 50 MB na súbor a 250 slajdov na kurz (strana Wordu alebo textu sa počíta ako 3). Obrázky sa spoja do jedného PDF podľa poradia názvov súborov.",
  "filesAdd": "Pridať ďalšie súbory",
  "filesSummary": "Spolu {pages}. Čím viac slajdov, tým dlhší kurz.",
  "dateTitle": "Kedy máš skúšku?",

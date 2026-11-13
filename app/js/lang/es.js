@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Ya tengo cuenta",
  "welcomeResume": "Continuar la configuración",
  "filesTitle": "Sube diapositivas de una asignatura",
- "filesSub": "Cada asignatura es un curso aparte. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texto (TXT, MD, RTF) o imágenes de diapositivas (PNG, JPG), hasta 50 MB por archivo y 250 diapositivas o páginas por curso. Las imágenes se unen en un solo PDF según el orden de los nombres de archivo.",
+ "filesSub": "Cada asignatura es un curso aparte. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texto (TXT, MD, RTF) o imágenes de diapositivas (PNG, JPG), hasta 50 MB por archivo y 250 diapositivas por curso (una página de Word o de texto cuenta como 3). Las imágenes se unen en un solo PDF según el orden de los nombres de archivo.",
  "filesAdd": "Añadir más archivos",
  "filesSummary": "{pages} en total. Cuantas más diapositivas, más largo el curso.",
  "dateTitle": "¿Cuándo es tu examen?",

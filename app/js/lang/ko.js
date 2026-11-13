@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "이미 계정이 있어요",
  "welcomeResume": "설정 이어서 하기",
  "filesTitle": "한 과목의 슬라이드를 올리세요",
- "filesSub": "과목마다 각각 하나의 코스가 돼요. PDF, PowerPoint(PPTX, PPT), Word(DOCX, DOC), 텍스트(TXT, MD, RTF) 또는 슬라이드 이미지(PNG, JPG), 파일당 최대 50 MB, 코스당 최대 250장의 슬라이드 또는 페이지. 이미지는 파일 이름 순서대로 하나의 PDF로 합쳐져요.",
+ "filesSub": "과목마다 각각 하나의 코스가 돼요. PDF, PowerPoint(PPTX, PPT), Word(DOCX, DOC), 텍스트(TXT, MD, RTF) 또는 슬라이드 이미지(PNG, JPG), 파일당 최대 50 MB, 코스당 최대 250장의 슬라이드(Word나 텍스트 1페이지는 3장으로 계산). 이미지는 파일 이름 순서대로 하나의 PDF로 합쳐져요.",
  "filesAdd": "파일 더 추가",
  "filesSummary": "총 {pages}. 슬라이드가 많을수록 코스도 길어져요.",
  "dateTitle": "시험이 언제예요?",

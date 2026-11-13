@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "J'ai un compte",
  "welcomeResume": "Reprendre la configuration",
  "filesTitle": "Envoie les slides d'une seule matière",
- "filesSub": "Chaque matière a son propre cours. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texte (TXT, MD, RTF) ou images de diapos (PNG, JPG), jusqu'à 50 Mo par fichier et 250 diapos ou pages par cours. Les images sont réunies en un seul PDF dans l'ordre des noms de fichiers.",
+ "filesSub": "Chaque matière a son propre cours. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texte (TXT, MD, RTF) ou images de diapos (PNG, JPG), jusqu'à 50 Mo par fichier et 250 diapos par cours (une page Word ou texte compte pour 3). Les images sont réunies en un seul PDF dans l'ordre des noms de fichiers.",
  "filesAdd": "Ajouter d'autres fichiers",
  "filesSummary": "{pages} au total. Plus de slides, un cours plus long.",
  "dateTitle": "Quand est ton examen ?",

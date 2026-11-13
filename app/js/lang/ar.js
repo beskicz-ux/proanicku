@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "لدي حساب",
  "welcomeResume": "تابع الإعداد",
  "filesTitle": "ارفع شرائح مادة واحدة",
- "filesSub": "لكل مادة كورس خاص بها. PDF أو PowerPoint (PPTX, PPT) أو Word (DOCX, DOC) أو نص (TXT, MD, RTF) أو صور الشرائح (PNG, JPG)، حتى 50 MB للملف الواحد و250 شريحة أو صفحة لكل كورس. تُدمج الصور في ملف PDF واحد بترتيب أسماء الملفات.",
+ "filesSub": "لكل مادة كورس خاص بها. PDF أو PowerPoint (PPTX, PPT) أو Word (DOCX, DOC) أو نص (TXT, MD, RTF) أو صور الشرائح (PNG, JPG)، حتى 50 MB للملف الواحد و250 شريحة لكل كورس (تُحتسب صفحة Word أو النص بـ 3 شرائح). تُدمج الصور في ملف PDF واحد بترتيب أسماء الملفات.",
  "filesAdd": "أضف ملفات أخرى",
  "filesSummary": "{pages} في المجموع. كلما زادت الشرائح طال الكورس.",
  "dateTitle": "متى امتحانك؟",

@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Mam konto",
  "welcomeResume": "Kontynuuj konfigurację",
  "filesTitle": "Wgraj slajdy z jednego przedmiotu",
- "filesSub": "Każdy przedmiot to osobny kurs. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), tekst (TXT, MD, RTF) lub obrazy slajdów (PNG, JPG), do 50 MB na plik i 250 slajdów lub stron na kurs. Obrazy są łączone w jeden PDF według kolejności nazw plików.",
+ "filesSub": "Każdy przedmiot to osobny kurs. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), tekst (TXT, MD, RTF) lub obrazy slajdów (PNG, JPG), do 50 MB na plik i 250 slajdów na kurs (strona Worda lub tekstu liczy się jako 3). Obrazy są łączone w jeden PDF według kolejności nazw plików.",
  "filesAdd": "Dodaj więcej plików",
  "filesSummary": "Razem {pages}. Więcej slajdów to dłuższy kurs.",
  "dateTitle": "Kiedy masz egzamin?",

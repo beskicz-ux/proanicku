@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Hesabım var",
  "welcomeResume": "Kuruluma devam et",
  "filesTitle": "Tek bir dersin slaytlarını yükle",
- "filesSub": "Her ders ayrı bir kurs olur. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), metin (TXT, MD, RTF) veya slayt görselleri (PNG, JPG), dosya başına en fazla 50 MB ve kurs başına en fazla 250 slayt ya da sayfa. Görseller dosya adı sırasına göre tek bir PDF'te birleştirilir.",
+ "filesSub": "Her ders ayrı bir kurs olur. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), metin (TXT, MD, RTF) veya slayt görselleri (PNG, JPG), dosya başına en fazla 50 MB ve kurs başına en fazla 250 slayt (bir Word veya metin sayfası 3 slayt sayılır). Görseller dosya adı sırasına göre tek bir PDF'te birleştirilir.",
  "filesAdd": "Daha fazla dosya ekle",
  "filesSummary": "Toplam {pages}. Slayt ne kadar çoksa kurs o kadar uzun olur.",
  "dateTitle": "Sınavın ne zaman?",

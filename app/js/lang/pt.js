@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "Já tenho uma conta",
  "welcomeResume": "Continuar a configuração",
  "filesTitle": "Envie slides de uma matéria",
- "filesSub": "Cada matéria é um curso separado. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texto (TXT, MD, RTF) ou imagens de slides (PNG, JPG), até 50 MB por arquivo e 250 slides ou páginas por curso. As imagens são unidas em um só PDF na ordem dos nomes dos arquivos.",
+ "filesSub": "Cada matéria é um curso separado. PDF, PowerPoint (PPTX, PPT), Word (DOCX, DOC), texto (TXT, MD, RTF) ou imagens de slides (PNG, JPG), até 50 MB por arquivo e 250 slides por curso (uma página de Word ou de texto conta como 3). As imagens são unidas em um só PDF na ordem dos nomes dos arquivos.",
  "filesAdd": "Adicionar mais arquivos",
  "filesSummary": "{pages} no total. Mais slides deixam o curso mais longo.",
  "dateTitle": "Quando é a sua prova?",

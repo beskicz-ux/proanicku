@@ -251,7 +251,7 @@ export default {
  "welcomeHave": "我已有账号",
  "welcomeResume": "继续设置",
  "filesTitle": "上传一门科目的幻灯片",
- "filesSub": "每门科目是一门独立的课程。支持 PDF、PowerPoint（PPTX、PPT）、Word（DOCX、DOC）、文本（TXT、MD、RTF）或幻灯片图片（PNG、JPG），每个文件最大 50 MB，每门课程最多 250 张幻灯片或页。图片会按文件名顺序合并成一个 PDF。",
+ "filesSub": "每门科目是一门独立的课程。支持 PDF、PowerPoint（PPTX、PPT）、Word（DOCX、DOC）、文本（TXT、MD、RTF）或幻灯片图片（PNG、JPG），每个文件最大 50 MB，每门课程最多 250 张幻灯片（Word 或文本的一页算 3 张）。图片会按文件名顺序合并成一个 PDF。",
  "filesAdd": "添加更多文件",
  "filesSummary": "共 {pages}。幻灯片越多，课程越长。",
  "dateTitle": "你什么时候考试？",
