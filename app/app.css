@@ -92,6 +92,8 @@ body.plain .app{padding-bottom:0}
 .ob-file .t span{color:var(--muted); font-size:14px}
 .ob-fk{flex:none; width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font:800 11px var(--head); color:#fff; background:#D2443A}
 .ob-fk.pptx{background:#E07A12}
+.ob-fk.doc{background:#2B6CD4}
+.ob-fk.txt{background:#5E6B7A}
 .ob-x{width:36px; height:36px; border:0; background:none; color:var(--muted); display:grid; place-items:center; cursor:pointer; border-radius:10px}
 .ob-x svg{width:20px; height:20px}
 .ob-bar{height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-top:8px}

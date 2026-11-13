@@ -134,7 +134,7 @@ function viewLogin() {
 export const MAX_PAGES = 250;
 const uploading = new Map();
 const tooMany = () => Object.assign(new Error("too_many_pages"), { code: "too_many_pages" });
-const fileKind = name => /\.pptx?$/i.test(name) ? "pptx" : "pdf";
+const fileKind = name => /\.pptx?$/i.test(name) ? "pptx" : /\.(docx?|rtf)$/i.test(name) ? "doc" : /\.(txt|md)$/i.test(name) ? "txt" : "pdf";
 function fileRows(d) {
   const rows = d.files.map(f => `<div class="ob-file"><span class="ob-fk ${fileKind(f.name)}">${fileKind(f.name).toUpperCase()}</span><div class="t"><b>${esc(f.name)}</b><span>${pagesTxt(f.pages)}${f.estimated ? ` (${t("filesEst")})` : ""}</span></div><button class="ob-x" data-rm="${esc(f.path)}" aria-label="${t("filesRemove")}">${ic.x}</button></div>`).join("");
   const up = [...uploading.values()].map(u => `<div class="ob-file busy"><span class="ob-fk ${fileKind(u.name)}">${fileKind(u.name).toUpperCase()}</span><div class="t"><b>${esc(u.name)}</b><div class="ob-bar"><i style="width:${u.pct}%"></i></div></div></div>`).join("");

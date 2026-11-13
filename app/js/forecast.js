@@ -34,6 +34,7 @@ export async function countPages(file) {
     const names = new Set(text.match(/ppt\/slides\/slide\d+\.xml/g) || []);
     if (names.size) return { pages: names.size, estimated: false };
   }
+  if (DOC_TYPES.includes(ext)) return countDocPages(ext, buf);
   if (ext === "pdf") {
     const pageObjs = s => (s.match(/\/Type\s*\/Page\b(?!s)/g) || []).length;
     let pages = pageObjs(text);
@@ -67,10 +68,60 @@ async function objectStreams(buf, text) {
   }
   return out;
 }
-// What the upload picker offers: PDF, PowerPoint (old .ppt too) and slide pictures (joined into one PDF in the browser).
-export const ACCEPT = ".pdf,.pptx,.ppt,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
+// What the upload picker offers: PDF, PowerPoint (old .ppt too), Word (.docx, .doc), RTF, text (.txt, .md) and slide pictures
+// (joined into one PDF in the browser). The builder turns Word, RTF and text into a PDF with LibreOffice.
+export const DOC_TYPES = ["docx", "doc", "rtf", "txt", "md"];
+export const ACCEPT = ".pdf,.pptx,.ppt,.docx,.doc,.rtf,.txt,.md,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
 export const validFile = (name, head) => {
   const ext = name.split(".").pop().toLowerCase();
   const h = String.fromCharCode(...head.slice(0, 4));
-  return (ext === "pdf" && h === "%PDF") || (ext === "pptx" && h.startsWith("PK")) || (ext === "ppt" && h === "\xD0\xCF\x11\xE0"); // .ppt: old PowerPoint (OLE file)
+  if (ext === "txt" || ext === "md") return head.length > 0 && (h.startsWith("\xFF\xFE") || h.startsWith("\xFE\xFF") || !head.slice(0, 4).includes(0)); // text: no zero bytes unless UTF-16
+  return (ext === "pdf" && h === "%PDF") || ((ext === "pptx" || ext === "docx") && h.startsWith("PK"))
+    || ((ext === "ppt" || ext === "doc") && h === "\xD0\xCF\x11\xE0") // old Office (OLE file)
+    || (ext === "rtf" && h === "{\\rt");
 };
+
+// LibreOffice prints plain text at about 90 characters a line and 50 lines a page (measured 2026-11-13 on .txt files).
+export const TXT_LINE = 90, TXT_LINES = 50, DOC_CHARS_PER_PAGE = 3000, DOC_KB_PER_PAGE = 15;
+export const textPages = s => Math.max(1, Math.ceil(s.split(/\r?\n/).reduce((n, l) => n + Math.max(1, Math.ceil(l.length / TXT_LINE)), 0) / TXT_LINES));
+const decodeText = buf => {
+  if (buf[0] === 0xFF && buf[1] === 0xFE) return new TextDecoder("utf-16le").decode(buf.subarray(2));
+  if (buf[0] === 0xFE && buf[1] === 0xFF) return new TextDecoder("utf-16be").decode(buf.subarray(2));
+  return new TextDecoder("utf-8").decode(buf);
+};
+// Word and text pages. Only a .docx that Word saved with its page count is exact; the rest is a guess, and the builder
+// keeps at most 250 real pages whatever the guess said.
+async function countDocPages(ext, buf) {
+  if (ext === "txt" || ext === "md") return { pages: textPages(decodeText(buf)), estimated: true };
+  if (ext === "docx") {
+    const app = await zipEntry(buf, "docProps/app.xml"), n = +(app.match(/<Pages>(\d+)<\/Pages>/)?.[1] || 0);
+    if (n > 0) return { pages: n, estimated: false };
+    const doc = await zipEntry(buf, "word/document.xml");
+    const chars = [...doc.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].reduce((a, m) => a + m[1].length, 0);
+    if (chars) return { pages: Math.max(1, Math.ceil(chars / DOC_CHARS_PER_PAGE)), estimated: true };
+  }
+  if (ext === "rtf") {
+    const s = new TextDecoder("latin1").decode(buf).replace(/[0-9a-f\s]{200,}/gi, " ").replace(/\'[0-9a-f]{2}/gi, "x").replace(/\[a-z]+-?\d* ?/gi, "").replace(/[{}]/g, "");
+    return { pages: Math.max(1, Math.ceil(s.trim().length / DOC_CHARS_PER_PAGE)), estimated: true };
+  }
+  return { pages: Math.max(1, Math.round(buf.length / 1024 / DOC_KB_PER_PAGE)), estimated: true };
+}
+// One file of a zip as text (UTF-8), found through the central directory; "" when it's missing or won't inflate.
+async function zipEntry(buf, name) {
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), dec = new TextDecoder("utf-8");
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (v.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) return "";
+  let p = v.getUint32(eocd + 16, true);
+  for (let k = v.getUint16(eocd + 10, true); k > 0 && p + 46 <= buf.length && v.getUint32(p, true) === 0x02014b50; k--) {
+    const method = v.getUint16(p + 10, true), size = v.getUint32(p + 20, true), nl = v.getUint16(p + 28, true), xl = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), off = v.getUint32(p + 42, true);
+    if (dec.decode(buf.subarray(p + 46, p + 46 + nl)) === name) {
+      const start = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true), data = buf.subarray(start, start + size);
+      if (method === 0) return dec.decode(data);
+      if (method !== 8 || typeof DecompressionStream === "undefined") return "";
+      try { return dec.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); } catch { return ""; }
+    }
+    p += 46 + nl + xl + cl;
+  }
+  return "";
+}
