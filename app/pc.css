@@ -146,7 +146,7 @@ body{background:var(--bg)}
 .pc-build-lessons li.new{animation:pcin .35s ease-out var(--d,0ms) both}
 @keyframes pcin{from{opacity:0; transform:translateY(6px)}}
 .pc-build-lessons li.now i{background:none; border:3px solid var(--line); border-top-color:var(--blue); animation:spin .9s linear infinite}
-.pc-build-lessons li.pop i{animation:pcpop .45s cubic-bezier(.3,1.6,.5,1)}
+.pc-build-lessons li.pc-pop i{animation:pcpop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pcpop{0%{transform:scale(.4)} 100%{transform:scale(1)}}
 .pc-tips{width:100%; border-radius:var(--r); background:var(--blue-soft); padding:var(--s3) var(--s4); margin-bottom:var(--s4); text-align:start}
 .pc-tips span{font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-ink)}
@@ -225,7 +225,7 @@ body .pc-rest .rest-win svg, body .side .pc-rest .rest-win svg{width:16px; heigh
 .pc-unitbar .bar{margin-top:4px; height:12px}
 .pc-set > div{display:flex; justify-content:space-between; align-items:center; min-height:48px; font-weight:700; color:var(--ink)}
 .pc-set > div + div{border-top:2px solid var(--line)}
-@media (prefers-reduced-motion:reduce){.pc-steps li.just i svg path{stroke-dashoffset:0} .bob,.pc-steps li.now i,.pc-steps li.just i,.pc-steps li.just span,.pc-steps li.done + li:before,.si-gear,.si-scan,.si-pen,.si-line,.si-star,.pc-rest .rest-bar i,.pc-rest .rest-win.pop,.pc-rest .rest-win.pop svg,.pc-build .bar i#pcBar,.pc-build-lessons li,.pc-build-lessons li.pop i,.pc-tips p.in{animation:none}}
+@media (prefers-reduced-motion:reduce){.pc-steps li.just i svg path{stroke-dashoffset:0} .bob,.pc-steps li.now i,.pc-steps li.just i,.pc-steps li.just span,.pc-steps li.done + li:before,.si-gear,.si-scan,.si-pen,.si-line,.si-star,.pc-rest .rest-bar i,.pc-rest .rest-win.pop,.pc-rest .rest-win.pop svg,.pc-build .bar i#pcBar,.pc-build-lessons li,.pc-build-lessons li.pc-pop i,.pc-tips p.in{animation:none}}
 /* Screens without the menu: base.css reserves its space on desktop, so give it back and keep them centred. */
 @media (min-width:1000px){body:has(#nav[hidden]){padding-left:0}}
 @media (min-width:700px){.pc-wait{max-width:480px; margin-inline:auto} .pc-steps{width:fit-content; margin-inline:auto}}

@@ -589,6 +589,33 @@ function buildHtml(phase, build, free, offline, bar = 0, seenN = 0) { // bar: wi
     ${lessons.length ? `<p class="pc-build-plan">${t("buildPlan")}</p><ul class="pc-build-lessons">${lessons.map((l, i) => `<li class="${l.done ? "done" : writing ? "now" : ""}${i >= seenN ? " new" : ""}" style="--d:${(i - seenN) * 70}ms" data-l="${i}"><i>${l.done ? ic.check : ""}</i>${esc(l.title)}</li>`).join("")}</ul>` : ""}
   </div>`;
 }
+// A poll updates the card in place instead of replacing it: the lesson list stays the same element, so a scroll the student
+// is in the middle of (a fling on a phone, dragging the scrollbar) isn't cut off and the rows' spinners don't restart.
+function patchCard(html) {
+  const card = $("#pcCard"), old = $(".pc-build", card), tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const neu = tmp.firstElementChild, os = old ? [...old.children] : [], ns = neu ? [...neu.children] : [];
+  const shape = els => els.map(e => e.tagName + "." + e.className).join();
+  if (!old || !neu || shape(os) !== shape(ns)) { // the card's layout changed (a new phase): redraw it, keeping the list's scroll
+    const top = $(".pc-build-lessons", card)?.scrollTop || 0;
+    card.replaceChildren(...tmp.childNodes);
+    const ul = $(".pc-build-lessons", card); if (ul) ul.scrollTop = top;
+    return;
+  }
+  os.forEach((o, i) => {
+    const n = ns[i];
+    if (o.matches(".bar")) return; // tick() moves the bar; replacing it would restart its transition
+    if (!o.matches(".pc-build-lessons")) { if (o.outerHTML !== n.outerHTML) o.replaceWith(n); return; }
+    const nls = [...n.children]; // a copy: appending a row moves it out of n
+    nls.forEach((nl, j) => {
+      const ol = o.children[j];
+      if (!ol) return o.append(nl); // a newly planned lesson fades in
+      for (const c of ["done", "now"]) ol.classList.toggle(c, nl.classList.contains(c));
+      if (ol.innerHTML !== nl.innerHTML) ol.innerHTML = nl.innerHTML;
+    });
+    while (o.children.length > nls.length) o.lastElementChild.remove();
+  });
+}
 const tipsHtml = () => `<div class="pc-tips"><span>${t("waitTipH")}</span><p id="pcTip">${t("waitTip1")}</p></div>`;
 async function viewWait() {
   hideNav(); plain();
@@ -627,10 +654,7 @@ async function viewWait() {
     const steps = () => { const prev = stepsFor?.split(":")[0]; stepsFor = sk; return stepsHtml(phase, p, prev); };
     if (painted === key && $("#pcLive")) { // keeps the mascot animation running
       if (sk !== stepsFor) $("#pcSteps").innerHTML = steps();
-      // the card is redrawn every poll: keep the lesson list where the student scrolled it, or it jumps back to the top
-      const top = $(".pc-build-lessons")?.scrollTop || 0;
-      $("#pcCard").innerHTML = buildHtml(phase, build, free, offline, shown, seenN);
-      const ul = $(".pc-build-lessons"); if (ul) ul.scrollTop = top;
+      patchCard(buildHtml(phase, build, free, offline, shown, seenN));
     } else {
       painted = key;
       const title = ready ? (free ? "waitFreeReady" : "waitReady") : failed ? "waitFailed" : free ? (waiting ? "waitFreeQueued" : "waitFreeTitle") : waiting ? "waitQueued" : "waitTitle";
@@ -643,7 +667,7 @@ async function viewWait() {
         ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
       bindLang();
     }
-    fresh.forEach((f, i) => f && $(`.pc-build-lessons [data-l="${i}"]`)?.classList.add("pop"));
+    fresh.forEach((f, i) => f && $(`.pc-build-lessons [data-l="${i}"]`)?.classList.add("pc-pop")); // not "pop": that's the map popover in base.css
     if (fresh.some(Boolean)) sfx.flip();
     tick();
   };
