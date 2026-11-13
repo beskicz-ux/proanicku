@@ -289,6 +289,17 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 .tut{position:absolute; z-index:2; width:84px; transform:translate(-50%,-62%); pointer-events:none}
 .tut svg{width:84px; height:auto; display:block}
 .exam{position:absolute; transform:translate(-50%,-50%); z-index:2; text-align:center; width:240px}
+/* before buying: after the 3 gray lessons, one quiet card says how much more the full course has (taps open the store) */
+.mmore{position:absolute; transform:translateX(-50%); z-index:2; width:min(calc(100% - 32px), 360px); box-sizing:border-box; display:flex; align-items:center; gap:12px;
+  padding:14px 16px; background:var(--surface); color:var(--text); border:2px solid var(--edge, var(--line)); border-radius:16px; text-decoration:none}
+.mmore .ul-ic{flex:none; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:var(--fill, #eef0f5); color:var(--muted)}
+.mmore .ul-ic svg{width:20px; height:20px}
+.mmore span{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+.mmore b{font:800 17px var(--head, inherit)}
+.mmore small{font-size:14px; color:var(--muted); font-weight:600}
+.mmore em{font-style:normal; font-size:14px; font-weight:800; color:var(--blue)}
+.mmore .ul-go{flex:none; color:var(--muted)}
+.mmore .ul-go svg{width:18px; height:18px}
 /* The goal node: a gold coin the same size as a level with a trophy, always bright (like Anna's). */
 .exam{--ef:#FFC531; --el:#E0A410; --ei:#7A4F00; --er:#FFC531}
 .exam .eb{position:relative; width:max-content; margin:14px auto 0}

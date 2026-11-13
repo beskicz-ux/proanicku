@@ -1,6 +1,6 @@
 // The course itself: the map, notes, review, the profile with settings, the lesson players and sync.
 import { $, $$, view, esc, store, api, today, addDays, shuffle, pick, norm, md, mdi, sfx, confetti, toast, ic } from "./util.js";
-import { t, pl, lang, itemCount, errText, days as daysTxt, inDays, inWeeks, fmtDay, studyTime, courseLang } from "./i18n.js";
+import { t, pl, lang, itemCount, lessonCount, errText, days as daysTxt, inDays, inWeeks, fmtDay, studyTime, courseLang } from "./i18n.js";
 import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
@@ -122,7 +122,7 @@ export async function storeInfo(slug) {
   return { tutor: curTutor(), exam: examDate(), left: daysToExam(), done: free.filter(l => lessonPct(l) >= 1).length, free: free.length,
     locked: ls.length - free.length, tapped: tap,
     units: C.units.map((u, ci) => ({ ci, title: u.title, n: u.lessons.filter(l => l.locked).length, titles: u.lessons.filter(l => l.locked).map(l => l.title) })).filter(u => u.n),
-    pages: coursePages(ls) };
+    pages: coursePages(ls) + (C.meta?.morePages || 0) }; // with the slides a free start has not read yet
 }
 // Slide pages the whole course covers, from each lesson's page ranges (locked stubs carry them too). 0 if the course has none.
 function coursePages(ls) {
@@ -460,12 +460,23 @@ function framed(page, main) {
 
 /* ---------- the map: one column, bottom-up, chapters in colour ---------- */
 // Every chapter ends with a test (a mixed round of the chapter's items). Levels open one after another.
-function nodes() {
+// Before buying, the map shows the free lessons and only the next GRAY_SHOWN locked ones (Marek, 2026-11-13); a card after
+// them says how much more the full course has. cut: the first lesson left off the map, or null when everything shows.
+const GRAY_SHOWN = 3;
+function mapCut() {
+  if (ACCESS.paid) return null;
+  let gray = 0;
+  for (const [ui, u] of C.units.entries()) for (const [k, l] of u.lessons.entries()) if (l.locked && ++gray > GRAY_SHOWN) return { ui, k };
+  return null;
+}
+const onMap = (cut, ui, k) => !cut || ui < cut.ui || (ui === cut.ui && k < cut.k);
+function nodes(cut = null) {
   const out = [];
   C.units.forEach((u, ui) => {
-    u.lessons.forEach((l, k) => out.push({ kind: "lesson", ui, l, k, done: lessonPct(l) >= 1, gold: l.items.length > 0 && (l.items.every(solid) || !!S.lessons["gold:" + l.id]), locked: !!l.locked }));
+    if (!onMap(cut, ui, 0)) return;
+    u.lessons.forEach((l, k) => onMap(cut, ui, k) && out.push({ kind: "lesson", ui, l, k, done: lessonPct(l) >= 1, gold: l.items.length > 0 && (l.items.every(solid) || !!S.lessons["gold:" + l.id]), locked: !!l.locked }));
     const items = u.lessons.flatMap(l => l.items);
-    if (items.length) { const r = S.lessons["test:" + (u.id || ui)]; out.push({ kind: "test", ui, done: !!r, gold: !!r && r.best >= .9, locked: u.lessons.some(l => l.locked) }); }
+    if (items.length && onMap(cut, ui, u.lessons.length)) { const r = S.lessons["test:" + (u.id || ui)]; out.push({ kind: "test", ui, done: !!r, gold: !!r && r.best >= .9, locked: u.lessons.some(l => l.locked) }); }
   });
   const cur = out.findIndex(n => !n.done);
   out.forEach((n, i) => { n.cur = i === cur && !n.locked; n.next = cur >= 0 && i > cur; });
@@ -495,7 +506,8 @@ function examLine() {
   return `${fmtDay(examDate())} · ${left < 14 ? inDays(left) : inWeeks(Math.round(left / 7))}`;
 }
 function viewMap() {
-  const { list, cur } = nodes(), locked = lockedCount();
+  const cut = mapCut(), { list, cur } = nodes(cut), locked = lockedCount();
+  const units = C.units.filter((u, ui) => onMap(cut, ui, 0));
   document.body.classList.add("map-page");
   TAPPED = null; // the store names the lesson tapped since the map was last shown
   // On a phone or tablet the rest being written is a slim pill floating over the map, not a big card on top of it.
@@ -505,10 +517,10 @@ function viewMap() {
   const { STEPY, CURX, SWX } = mapSpacing();
   const mw = $("#mw"), W = Math.min(MAPMAX, mw.clientWidth || 375), CX = W / 2, sc = Math.min(1.15, W / 375), sw = SWX || Math.min(1.7, W / 375);
   mw.dataset.w = W;
-  const byCh = C.units.map((u, ui) => list.filter(n => n.ui === ui));
+  const byCh = units.map((u, ui) => list.filter(n => n.ui === ui));
   let out = "", y = TOPPAD, k = 0, curPt = -1, curY = 0;
   const pts = [], chTop = [];
-  C.units.forEach((u, ui) => {
+  units.forEach((u, ui) => {
     const col = chapterColour(ui), top = y;
     // Every unit opens with its own banner in its colour, like Anna's.
     const nDone = byCh[ui].filter(n => n.done).length, full = nDone > 0 && nDone === byCh[ui].length;
@@ -535,6 +547,12 @@ function viewMap() {
     y += 28; // room between the last level's name and the next banner
     chTop.push([top, y]);
   });
+  // What the map leaves off: the other locked lessons, and the slides a free start didn't read yet. Taps go to the store (PRO or MAX).
+  const hidden = cut ? allLessons().filter(l => l.locked).length - GRAY_SHOWN : 0, more = ACCESS.paid ? 0 : C.meta?.morePages || 0;
+  if (hidden > 0 || more > 0) {
+    out += `<a class="mmore" href="#/unlock" style="top:${y}px;left:${CX}px"><i class="ul-ic">${ic.lock}</i><span><b>${esc(hidden > 0 ? t("mapMore", { x: lessonCount(hidden) }) : t("mapMoreSlidesOnly", { p: pl("pages", more) }))}</b>${hidden > 0 && more > 0 ? `<small>${esc(t("mapMoreSlides", { p: pl("pages", more) }))}</small>` : ""}<em>${t("mapMoreGo")}</em></span><i class="ul-go">${CHEV}</i></a>`;
+    y += 150;
+  }
   const EXAMY = y + 110, total = y + EXAMH;
   // Bright gold once every level is done or the exam is a week away; muted gold before that.
   const left = daysToExam(), near = (list.length && list.every(n => n.done)) || (left != null && left <= 7);
@@ -553,10 +571,10 @@ function viewMap() {
   const onScroll = () => {
     const mid = scrollY + innerHeight * .55 - mwTop();
     let ui = chTop.findIndex(([top, bot]) => mid >= top && mid <= bot);
-    if (ui < 0) ui = mid < (chTop[0]?.[0] ?? 0) ? 0 : C.units.length - 1;
+    if (ui < 0) ui = mid < (chTop[0]?.[0] ?? 0) ? 0 : units.length - 1;
     head(ui);
   };
-  head(cur >= 0 ? list[cur].ui : C.units.length - 1);
+  head(cur >= 0 ? list[cur].ui : units.length - 1);
   window.onscroll = onScroll;
   $$("[data-lesson],[data-test]", mw).forEach(b => b.onclick = () => {
     const st = b.dataset.state;
