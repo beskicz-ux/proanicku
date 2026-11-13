@@ -1401,7 +1401,7 @@ async function aiGradeEssay(e, text) {
   const ask = `Jsi přísný, ale férový zkoušející z Měnové teorie a politiky. Ohodnoť tuhle esej ze zkoušky.
 Zadání: „${e.prompt}“
 Klíčové body, které má dobrá esej obsahovat:
-${kp.map((p, i) => `${i + 1}. ${p}`).join("\n")}${(e.graphs || []).length ? `\nGrafy, které tam patří: ${e.graphs.join("; ")}` : ""}
+${kp.map((p, i) => `${i + 1}. ${p}`).join("\n")}${(e.graphs || []).length ? `\nGrafy, které tam patří: ${e.graphs.join("; ")}. Grafy si studentka kreslí na papír, v textu je nehledej a za chybějící popis grafu body nestrhávej (jen je v části Na plný počet připomeň).` : ""}
 
 Esej studentky:
 """
