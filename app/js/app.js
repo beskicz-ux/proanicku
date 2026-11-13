@@ -430,6 +430,9 @@ async function viewUnlock() {
   if (st.status === 401) { store.del("session"); return nav("#/login"); }
   if (st.paid) return nav("#/s/" + s.slug);
   document.body.classList.add("store");
+  // The server's payment mode wins, so the page can never say "buy" while a click is free (or "test" while Stripe charges).
+  // store.config.json's testMode is only the fallback for an older pc-api that doesn't report it.
+  const testMode = st.payments ? st.payments === "test" : !!cfg.testMode;
   const L = o => o?.[lang()] || o?.en || o?.cs, cur = esc(cfg.currency), left = info?.left;
   // Reasons on the left (above on a phone) and one buy panel: pick a plan, tick the consent, one button.
   // Kurz is pre-picked: most buyers are days before one exam (research 2026-11-11). The only urgency is the student's own exam date.
@@ -457,7 +460,7 @@ async function viewUnlock() {
       <label class="ob-check st-consent"><input type="checkbox" id="terms"><span>${t("storeTerms").replace("%", `<a href="#/terms" target="_blank" rel="noopener">${t("storeTermsLink")}</a>`)}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
       <button class="btn-p st-buy" id="buy"></button>
-      ${cfg.testMode ? `<p class="st-test" role="note">${t("storeTest")}</p>` : ""}
+      ${testMode ? `<p class="st-test" role="note">${t("storeTest")}</p>` : ""}
       <p class="ob-note c">${t("storeSecure")}</p>`;
   view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
     <div class="st-grid">
@@ -479,7 +482,7 @@ async function viewUnlock() {
   };
   const buy = $("#buy");
   if (!buy) return;
-  const label = () => `${t(cfg.testMode ? "storeBuyTest" : "storeBuy")} · ${amount(planOf(pick))}`;
+  const label = () => `${t(testMode ? "storeBuyTest" : "storeBuy")} · ${amount(planOf(pick))}`;
   const sync = () => { buy.textContent = label(); $$(".st-opt").forEach(o => o.classList.toggle("on", o.dataset.plan === pick)); $("#feats").innerHTML = feats(); };
   $$(".st-opt input").forEach(r => r.onchange = () => { pick = r.value; $("#err").hidden = true; sync(); });
   $("#terms").onchange = () => { $("#err").hidden = true; $(".st-consent").classList.remove("miss"); };
