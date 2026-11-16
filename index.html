@@ -377,8 +377,7 @@ html{background:#2b0c15; touch-action:manipulation}
 /* codes of any length: a dot appears per typed digit, ✓ to confirm */
 .pin{min-height:20px; align-items:center}
 .pad button[data-ok]{font:700 1.5rem/1 var(--body); border-color:rgba(244,207,150,.45); color:var(--candle); background:rgba(244,207,150,.08)}
-.medal.platinum{background:linear-gradient(145deg,#f3fffd,#86c6bd)}
-.medal.diamond{background:linear-gradient(145deg,#f4efff,#9a7cf2)}
+.medal svg{display:block; width:74%; height:74%}
 .tier .medal{width:46px; height:46px; font-size:.62rem}
 .tier.next{border-style:dashed; border-color:rgba(244,207,150,.5)}
 .tier .gap{color:var(--candle); font-weight:700}
@@ -707,11 +706,13 @@ const MONTH = {
     items: ["pizza", "golf", "sushi", "taco", "cocoa", "pumpkin", "dress", "tree"]   // co padá (ikonky z našich rande)
   },
   prizes: [                               // od nejhoršího po nejlepší; min = kolik bodů je potřeba
-    { tier:"bronze",   min:0,   name:"Filmový večer u tebe, dobroty nesu já" },
-    { tier:"silver",   min:30,  name:"Naše první kino" },
-    { tier:"gold",     min:55,  name:"Večeře venku, vybíráš ty" },
-    { tier:"platinum", min:80,  name:"Malujeme si hrnky na kakao" },
-    { tier:"diamond",  min:110, name:"Celodenní výlet s překvapením" }
+    { badge:"popcorn", min:0,   tag:"Filmové rande",  name:"Filmový večer u tebe, dobroty nesu já" },
+    { badge:"ticket",  min:30,  tag:"Kino rande",     name:"Naše první kino" },
+    { badge:"dinner",  min:55,  tag:"Večeře",         name:"Večeře venku, vybíráš ty" },
+    { badge:"mug",     min:80,  tag:"Hrnkové rande",  name:"Malujeme si hrnky na kakao" },
+    { badge:"skate",   min:100, tag:"Rande na ledě",  name:"Bruslení a horká čokoláda" },
+    { badge:"market",  min:125, tag:"Vánoční rande",  name:"Vánoční trhy, svařák a perníkové srdce" },
+    { badge:"trip",    min:150, tag:"Velký výlet",    name:"Celodenní výlet s překvapením" }
   ]
 };
 /* ====================== */
@@ -1185,14 +1186,30 @@ $("replay").addEventListener("click", () => {
 /* =====================================================================
    hra "Chyť naše rande" (kód 222 z dopisu) — chytej padající rande do košíku
    ===================================================================== */
-const TIER = {
-  bronze:   { name:"Bronzové rande",   adj:"bronzové",   short:"bronz"   },
-  silver:   { name:"Stříbrné rande",   adj:"stříbrné",   short:"stříbro" },
-  gold:     { name:"Zlaté rande",      adj:"zlaté",      short:"zlato"   },
-  platinum: { name:"Platinové rande",  adj:"platinové",  short:"platina" },
-  diamond:  { name:"Diamantové rande", adj:"diamantové", short:"diamant" }
+/* every prize has its own little badge (64x64 art on a coloured disc) */
+const PRIZE_BADGE = {
+  popcorn: { bg:"#ffd9a8", art:`<path d="M19 28 L24 56 H40 L45 28Z" fill="#fff6ef"/><path d="M19 28 L24 56 H27.5 L25 28Z M30 28 L31 56 H34 L35 28Z M40 28 L37.5 56 H40 L45 28Z" fill="#d9475f"/>
+    <g fill="#fff1c9" stroke="#e0b25c" stroke-width="1.2"><circle cx="23" cy="24" r="6"/><circle cx="32" cy="19" r="7"/><circle cx="41" cy="24" r="6"/><circle cx="28" cy="27" r="5"/><circle cx="37" cy="27" r="5"/></g>` },
+  ticket:  { bg:"#c9b8ff", art:`<g transform="rotate(-14 32 32)"><path d="M10 22 h44 v6 a4 4 0 0 0 0 8 v6 h-44 v-6 a4 4 0 0 0 0 -8z" fill="#ffd36b" stroke="#c98a1c" stroke-width="1.6"/>
+    <path d="M22 23 v18" stroke="#c98a1c" stroke-width="1.4" stroke-dasharray="2.5 2.5"/><path d="M38 25.5 l2 4.4 4.8 .5 -3.6 3.2 1 4.7 -4.2 -2.4 -4.2 2.4 1 -4.7 -3.6 -3.2 4.8 -.5z" fill="#d9475f"/></g>` },
+  dinner:  { bg:"#ffb3c1", art:`<circle cx="32" cy="33" r="16" fill="#fff6ef" stroke="#e9c9bd" stroke-width="1.5"/><circle cx="32" cy="33" r="10" fill="none" stroke="#e9c9bd" stroke-width="1.5"/>
+    <path d="M32 37.5 c-6 -4 -5.5 -9 -2.6 -9 1.4 0 2.2 .9 2.6 1.9 .4 -1 1.2 -1.9 2.6 -1.9 2.9 0 3.4 5 -2.6 9z" fill="#d9475f"/>
+    <path d="M10 14 v9 M13.5 14 v9 M17 14 v9 M10 23 q3.5 4 7 0 M13.5 25 v27" stroke="#4a1a26" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M52 52 V14 q-6 5 -5 18 h5" stroke="#4a1a26" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` },
+  mug:     { bg:"#a9ddd6", art:`<path d="M44 30 h4 a7 7 0 0 1 0 14 h-5" fill="none" stroke="#d9475f" stroke-width="4"/><path d="M16 24 h29 v20 a9 9 0 0 1 -9 9 h-11 a9 9 0 0 1 -9 -9z" fill="#ff8fa8" stroke="#d9475f" stroke-width="1.6"/>
+    <path d="M30.5 46 c-7 -4.6 -6.4 -10.4 -3 -10.4 1.6 0 2.5 1 3 2.2 .5 -1.2 1.4 -2.2 3 -2.2 3.400 0 4 5.8 -3 10.4z" fill="#fff6ef"/>
+    <path d="M24 19 q-3 -4 0 -8 M31 19 q-3 -4 0 -8 M38 19 q-3 -4 0 -8" stroke="#fff6ef" stroke-width="2.2" fill="none" stroke-linecap="round"/>` },
+  skate:   { bg:"#bfe3ff", art:`<path d="M20 10 h13 v17 c0 5 14 4 17 11 1.500 3.500 .5 7 -3 7 H22 c-2 0 -3 -1.500 -3 -3.500z" fill="#fff6ef" stroke="#7fa6c9" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M20 14 h13 M28 21 h6 M28 26 h6" stroke="#d9475f" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M24 45 v6 M44 45 v6 M14 48 q0 4 5 4 h34" stroke="#4a6b8a" stroke-width="2.6" fill="none" stroke-linecap="round"/>` },
+  market:  { bg:"#f4cf96", art:`<path d="M32 54 C8 38 10 14 22 14 c5 0 8.500 3 10 7 1.500 -4 5 -7 10 -7 12 0 14 24 -10 40z" fill="#a8672f" stroke="#7d4718" stroke-width="1.6"/>
+    <path d="M32 47 C15 35.500 16 20 23 20 c4 0 6.500 2.500 9 7 2.500 -4.500 5 -7 9 -7 7 0 8 15.500 -9 27z" fill="none" stroke="#fff6ef" stroke-width="2" stroke-dasharray="1 4.200" stroke-linecap="round"/>
+    <circle cx="32" cy="34" r="3" fill="#d9475f"/><circle cx="25.500" cy="30" r="1.800" fill="#fff6ef"/><circle cx="38.500" cy="30" r="1.800" fill="#fff6ef"/>` },
+  trip:    { bg:"#ffd36b", art:`<path d="M8 40 l14 -5 20 5 14 -5 v16 l-14 5 -20 -5 -14 5z" fill="#bfe8c4" stroke="#4f9a63" stroke-width="1.6" stroke-linejoin="round"/><path d="M22 35 v16 M42 40 v16" stroke="#4f9a63" stroke-width="1.4"/>
+    <path d="M32 44 C22 31 19 26 19 21 a13 13 0 0 1 26 0 c0 5 -3 10 -13 23z" fill="#d9475f" stroke="#a52a42" stroke-width="1.6"/>
+    <path d="M32 27.500 c-6 -4 -5.400 -8.800 -2.500 -8.800 1.400 0 2.100 .9 2.500 1.800 .4 -.9 1.100 -1.800 2.500 -1.800 2.900 0 3.500 4.800 -2.500 8.800z" fill="#fff6ef"/>` }
 };
-const TIER_COLOR = { bronze:"#e9a46e", silver:"#dfe4ec", gold:"#ffd36b", platinum:"#a9ddd6", diamond:"#c3b0ff" };
+const prizeMedal = (p, cls) => `<span class="${cls || ""} medal" style="background:${PRIZE_BADGE[p.badge].bg}"><svg viewBox="0 0 64 64" aria-hidden="true">${PRIZE_BADGE[p.badge].art}</svg></span>`;
 const bodu = n => plural(n, ["bod", "body", "bodů"]);
 const SVGNS = 'xmlns="http://www.w3.org/2000/svg"';
 const SPIDER_ART = `
@@ -1308,11 +1325,11 @@ const untilLabel = (() => { const d = new Date(UNTIL); return ["neděle", "pond�
 
 function setVoucher(el, p, small){
   el.className = "voucher" + (small ? " small" : "") + (MONTH.prizes.indexOf(p) >= 2 ? " gold" : "");
-  el.style.setProperty("--tc", TIER_COLOR[p.tier]);
-  el.innerHTML = `<div class="band">${TIER[p.tier].name}</div>
+  el.style.setProperty("--tc", PRIZE_BADGE[p.badge].bg);
+  el.innerHTML = `<div class="band">${p.tag}</div>
     <div class="prize">${p.name}</div>
     <div class="stub"><span>platí od 18. 11. 2026</span><b>Marek</b></div>
-    <span class="medal ${p.tier}">${small ? "" : TIER[p.tier].short}</span>`;
+    ${prizeMedal(p)}`;
 }
 
 /* entering 222 */
@@ -1335,7 +1352,7 @@ function renderRules(){
   const won = save.plays ? prizeFor(save.best) : null, nx = nextPrize(save.best);
   $("tiers").innerHTML = MONTH.prizes.map(p => {
     const isNext = save.plays && p === nx;
-    return `<div class="tier ${won === p ? "won" : ""} ${isNext ? "next" : ""}"><span class="medal ${p.tier}">${TIER[p.tier].short}</span>
+    return `<div class="tier ${won === p ? "won" : ""} ${isNext ? "next" : ""}">${prizeMedal(p)}
       <span><b>${p.name}</b><small>${p.min ? "od " + p.min + " " + bodu(p.min) : "za jakékoliv skóre"}${
         won === p ? ' · <span class="gap">tohle máš ♡</span>' : isNext ? ` · <span class="gap">chybí ${p.min - save.best}</span>` : ""}</small></span></div>`;
   }).join("");
@@ -1351,7 +1368,7 @@ const field = $("field"), g = field.getContext("2d");
 let G = null;
 const meterMax = Math.round(TOP * 1.1);
 $("meter").insertAdjacentHTML("beforeend", MONTH.prizes.filter(p => p.min > 0).map(p =>
-  `<span class="mk medal ${p.tier}" data-min="${p.min}" style="left:${(p.min / meterMax * 100).toFixed(1)}%"></span>`).join(""));
+  prizeMedal(p, "mk").replace("<span ", `<span data-min="${p.min}" `).replace('style="', `style="left:${(p.min / meterMax * 100).toFixed(1)}%;`)).join(""));
 
 async function startGame(){
   go(idx("m-game"));
@@ -1532,12 +1549,12 @@ function showFinal(){
   const p = prizeFor(save.best);
   go(idx("m-final"));
   setVoucher($("prizeVoucher"), p, false);
-  $("prizeLine").textContent = save.plays ? `${save.best} ${bodu(save.best)} = ${TIER[p.tier].adj} rande. Těším se ♡` : "Hra už skončila, ale filmový večer ti stejně dlužím ♡";
+  $("prizeLine").textContent = save.plays ? `${save.best} ${bodu(save.best)} a tohle rande je tvoje. Těším se ♡` : "Hra už skončila, ale filmový večer ti stejně dlužím ♡";
   setTimeout(party, 350);
 }
 async function shareScore(){
   const p = prizeFor(save.best);
-  const text = `Moje nejlepší skóre: ${save.best} ${bodu(save.best)} → ${TIER[p.tier].adj} rande: ${p.name} ♡`;
+  const text = `Moje nejlepší skóre: ${save.best} ${bodu(save.best)} → ${p.name} ♡`;
   try{ if (navigator.share){ await navigator.share({ text }); return; } }catch(e){ if (e && e.name === "AbortError") return; }
   try{ await navigator.clipboard.writeText(text); toast("Zkopírováno, vlož mi to do zprávy ♡"); }catch(e){ toast(text); }
 }
