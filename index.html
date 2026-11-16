@@ -598,10 +598,8 @@ html{background:#2b0c15; touch-action:manipulation}
     <div class="stolen" id="stolen" hidden>
       <div class="bubble"><span class="spider" data-spider aria-hidden="true"></span><p id="spiderSays"></p></div>
       <p class="spot" id="letterSpot"></p>
-      <p class="lead" id="letterCode"></p>
     <div class="stack">
       <button class="btn" id="haveCode">Mám kód z dopisu</button>
-      <button class="btn ghost" id="toFirst">Náš první dopis ♡</button>
     </div>
     </div>
   </section>
@@ -1585,10 +1583,7 @@ resetHeist();
 $("pullLabel").textContent = MONTH.letter.pull;
 $("spiderSays").textContent = MONTH.letter.spider;
 $("letterSpot").textContent = MONTH.letter.spot; $("letterSpot").style.display = MONTH.letter.spot ? "" : "none";
-$("letterCode").textContent = MONTH.letter.code;
 $("haveCode").addEventListener("click", () => reopenLock("zadej kód z dopisu ♡"));
-$("toFirst").addEventListener("click", () => $("replay").click());
-
 /* ---------- cute extras: drifting hearts + a heart wherever she taps ---------- */
 function floaties(host, n, fixed){
   const f = document.createElement("div");
