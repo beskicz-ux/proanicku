@@ -698,7 +698,7 @@ const MONTH = {
     pull: "vytáhni mě ↑",
     stolenTitle: "Hej! Vrať to!",
     spider: "Chacha! Jsem ten pavouk, co bydlel na tvojí kytce. Marek mě vystěhoval a tohle je moje pomsta. Dopis jsem schoval pod svůj starý domeček!",
-    spot: "Psst… mrkni pod kytku ♡",
+    spot: "",
     code: "Na konci dopisu je kód. Až ho najdeš, zadej ho tady ♡"
   },
   gameCode: "222",                        // kód z dopisu, otevře hru
@@ -1584,7 +1584,7 @@ heist.addEventListener("click", () => {
 resetHeist();
 $("pullLabel").textContent = MONTH.letter.pull;
 $("spiderSays").textContent = MONTH.letter.spider;
-$("letterSpot").textContent = MONTH.letter.spot;
+$("letterSpot").textContent = MONTH.letter.spot; $("letterSpot").style.display = MONTH.letter.spot ? "" : "none";
 $("letterCode").textContent = MONTH.letter.code;
 $("haveCode").addEventListener("click", () => reopenLock("zadej kód z dopisu ♡"));
 $("toFirst").addEventListener("click", () => $("replay").click());
