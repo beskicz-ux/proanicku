@@ -1443,16 +1443,34 @@ body.landing .app{max-width:1040px}
    being written" status card (.pc-rest) and the failed one (.off) are divs and stay quiet. */
 body a.pc-unlock, body .side a.pc-unlock{border-radius:20px; background:linear-gradient(135deg, #7A5CF0 0%, #6C5CE7 45%, #C04FD8 100%); box-shadow:0 5px 0 #4B3CC4}
 a.pc-unlock:before{right:-40px; top:-60px; width:150px; height:150px; background:#fff; opacity:.16}
-a.pc-unlock:after{content:""; position:absolute; z-index:-1; right:74px; top:10px; width:9px; height:9px; border-radius:50%; background:#fff; opacity:.5; pointer-events:none;
-  box-shadow:-34px 46px 0 -2px #fff, 18px 50px 0 -3px #ffffffaa}
 a.pc-unlock .ul-go{color:#6C5CE7}
+/* Marek, 2026-11-17: a gold padlock with no coin under it (the coin read as a second button beside the arrow); it
+   opens when the card is pointed at, and small bubbles rise slowly behind the text so the card is never quite still. */
+body a.pc-unlock .ul-ic, body .side a.pc-unlock .ul-ic{width:46px; height:46px; border-radius:0; background:none; box-shadow:none; filter:drop-shadow(0 3px 0 #00000026)}
+body a.pc-unlock .ul-ic svg, body .side a.pc-unlock .ul-ic svg{width:100%; height:100%; overflow:visible}
+.ul-sh{transform-box:view-box; transform-origin:27px 18px; transition:transform .32s cubic-bezier(.3,1.7,.5,1)}
+@media (hover:hover){ a.pc-unlock:hover .ul-sh{transform:translateY(-3.5px) rotate(24deg)} }
+a.pc-unlock:focus-visible .ul-sh{transform:translateY(-3.5px) rotate(24deg)}
+.ul-bubs{position:absolute; inset:0; z-index:-1; pointer-events:none}
+.ul-bubs i{position:absolute; bottom:-14px; border-radius:50%; background:#fff; opacity:0; animation:ulRise 9s linear infinite; will-change:transform}
+.ul-bubs i:nth-child(1){left:22%; width:8px; height:8px; animation-duration:9s; animation-delay:-2s}
+.ul-bubs i:nth-child(2){left:41%; width:5px; height:5px; animation-duration:12s; animation-delay:-7s}
+.ul-bubs i:nth-child(3){left:58%; width:10px; height:10px; animation-duration:10.5s; animation-delay:-4.5s}
+.ul-bubs i:nth-child(4){left:73%; width:6px; height:6px; animation-duration:8s; animation-delay:-1s}
+.ul-bubs i:nth-child(5){left:88%; width:7px; height:7px; animation-duration:13s; animation-delay:-9s}
+@keyframes ulRise{ 0%{transform:translate(0,0); opacity:0} 15%{opacity:.5} 60%{opacity:.4} 100%{transform:translate(8px,-130px); opacity:0} }
+@media (prefers-reduced-motion:reduce){
+  .ul-sh{transition:none}
+  .ul-bubs i{animation:none; opacity:.4; bottom:auto}
+  .ul-bubs i:nth-child(1){top:68%} .ul-bubs i:nth-child(2){top:22%} .ul-bubs i:nth-child(3){top:12%} .ul-bubs i:nth-child(4){top:70%} .ul-bubs i:nth-child(5){top:60%}
+}
 @media (hover:hover){ body a.pc-unlock:hover{transform:translateY(-2px); box-shadow:0 7px 0 #4B3CC4; filter:brightness(1.05)} }
 body a.pc-unlock:active{transform:translateY(4px); box-shadow:0 1px 0 #4B3CC4; filter:none}
 @media (prefers-reduced-motion:reduce){ body a.pc-unlock:hover, body a.pc-unlock:active{transform:none} }
 @media (min-width:1200px){
   body .side a.pc-unlock{padding:20px; border-radius:20px}
   body .side a.pc-unlock{gap:14px}
-  .side a.pc-unlock .ul-ic{width:50px; height:50px} body .side a.pc-unlock .ul-ic svg{width:24px; height:24px}
+  body .side a.pc-unlock .ul-ic{width:50px; height:50px}
   .side a.pc-unlock b{font-size:19px; line-height:1.15; white-space:nowrap}
   .side a.pc-unlock .ul-go{width:40px; height:40px}
 }

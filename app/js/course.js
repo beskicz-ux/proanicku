@@ -617,9 +617,12 @@ function sidePanel(locked, page = "map") {
     ${locked ? unlockCard(locked) : ""}${cards.join("")}
     ${C.meta.voice ? `<a class="sc sc-ask" href="#/s/${SLUG}/voice">${tutorArt(curTutor())}<div><b>${t("voiceTitle")}</b><span>${t("voiceSub")}</span></div></a>` : ""}</aside>`;
 }
+// The unlock card's own padlock (Marek, 2026-11-17: no coin, it read as a second button). The shackle is its own
+// group so the card can lift it open on hover.
+const UL_LOCK = `<svg viewBox="0 0 40 40" aria-hidden="true"><g class="ul-sh"><path d="M13 23v-9.5a7 7 0 0 1 14 0V23" fill="none" stroke="#FFE9A8" stroke-width="4.5" stroke-linecap="round"/></g><rect x="7" y="18.5" width="26" height="19" rx="6" fill="#E0A410"/><rect x="7" y="16.5" width="26" height="19" rx="6" fill="#FFC531"/><circle cx="20" cy="24.5" r="2.8" fill="#7A4F00"/><path d="M20 25.5V30" stroke="#7A4F00" stroke-width="2.6" stroke-linecap="round"/></svg>`;
 function unlockCard(locked) {
   if (!locked) return "";
-  if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock"><i class="ul-ic">${ic.lock}</i><div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div><i class="ul-go">${CHEV}</i></a>`;
+  if (!ACCESS.paid) return `<a class="pc-unlock" href="#/unlock"><i class="ul-bubs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></i><i class="ul-ic">${UL_LOCK}</i><div><b>${t("unlockCard")}</b><span>${t("unlockCardSub").replace("%", locked)}</span></div><i class="ul-go">${CHEV}</i></a>`;
   if (ACCESS.status === "failed") return `<div class="pc-unlock off" role="status"><div><b>${t("restFailed")}</b></div></div>`;
   return `<div class="pc-unlock pc-rest" role="status">${restInner()}</div>`;
 }
