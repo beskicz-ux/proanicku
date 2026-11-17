@@ -55,7 +55,7 @@ body{
 h1,h2{font-family:var(--display); font-weight:400; margin:0; text-wrap:balance; letter-spacing:-.01em; line-height:1.08}
 h1{font-size:clamp(2.3rem, 9vw, 3.4rem)}
 h2{font-size:clamp(1.9rem, 7.5vw, 2.6rem)}
-h1:focus,h2:focus{outline:none}
+h1:focus,h2:focus,.eyebrow:focus,.dear:focus{outline:none}
 p{margin:0; color:var(--muted); max-width:62ch}
 p.lead{color:var(--ink); font-size:1.1rem}
 
@@ -1075,7 +1075,8 @@ function buildStop(ch, d, i, n, badge, before){
   s.querySelector(".eyebrow").textContent = ch === "first" ? `rande ${i + 1} ze 4` : `náš měsíc · ${i + 1} ${zeOf(n)} ${n}`;
   const btn = s.querySelector(".badge-btn");
   btn.innerHTML = badgeSVG(badge);
-  s.querySelector("h2").textContent = d.title;
+  /* 18. 11.: the name lives only on the badge itself, no heading under it */
+  if (ch === "month") s.querySelector("h2").remove(); else s.querySelector("h2").textContent = d.title;
   s.querySelector(".lead").textContent = d.text;
   if (i === n - 1) s.querySelector("[data-next]").textContent = "Ukázat všechny odznaky";
   s.classList.add("is-locked");
@@ -1087,8 +1088,8 @@ CONFIG.dates.forEach((d, i) => buildStop("first", d, i, CONFIG.dates.length, i, 
 MONTH.dates.forEach((d, i) => buildStop("month", d, i, MONTH.dates.length, monthBadge(d), shelf2Scene));
 $("shelf").innerHTML = CONFIG.dates.map((d, i) => `<figure>${badgeSVG(i)}<figcaption>${d.title}</figcaption></figure>`).join("");
 /* the summary shelf: the first four dates + everything since */
-$("shelf2").innerHTML = CONFIG.dates.map((d, i) => `<figure>${badgeSVG(i)}<figcaption>${d.title}</figcaption></figure>`).join("")
-  + MONTH.dates.map(d => `<figure>${badgeSVG(monthBadge(d))}<figcaption>${d.title}</figcaption></figure>`).join("");
+$("shelf2").innerHTML = CONFIG.dates.map((d, i) => `<figure aria-label="${d.title}">${badgeSVG(i)}</figure>`).join("")
+  + MONTH.dates.map(d => `<figure aria-label="${d.title}">${badgeSVG(monthBadge(d))}</figure>`).join("");
 $("finalBadge").innerHTML = badgeSVG(4);
 $("monthTitle").textContent = MONTH.title;
 $("monthLead").textContent = MONTH.lead;
