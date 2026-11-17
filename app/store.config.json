@@ -2,10 +2,10 @@
   "testMode": true,
   "google": { "clientId": "" },
   "operator": {
-    "name": "",
-    "id": "",
-    "address": "",
-    "email": ""
+    "name": "Marek Malecha",
+    "id": "11763850",
+    "address": "Příčná 2207, 347 01 Tachov",
+    "email": "beskicz@gmail.com"
   },
   "currency": "Kč",
   "plans": [
