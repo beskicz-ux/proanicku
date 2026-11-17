@@ -6,7 +6,7 @@ import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween, ACCEPT, slidesOf } from "./forecast.js";
 import { phaseOf, QUEUED, stepsHtml, barTarget, phaseStart, clock, stageText } from "./build.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal, money } from "./course.js";
-import { BACK, CLOSE, PACE_ICONS, calIcon, langSheet, applyTheme, sheet } from "./ui.js";
+import { BACK, CLOSE, CHEV_DOWN, PACE_ICONS, calIcon, langSheet, applyTheme, sheet, yearWheel } from "./ui.js";
 import { pushSupported, pushState, askPush, subscribe, sendSub, remindTime } from "./push.js";
 import { persona } from "./persona.js";
 
@@ -53,13 +53,14 @@ function bindLang() {
 
 /* ---------- the onboarding frame: back, segments, title (or the tutor saying it), body, one button ---------- */
 // say: a tutor id. The title then comes as that tutor's speech bubble, like Duolingo's owl. skip: a quiet second button.
-function frame(step, { title, body, btn, btnId = "nextBtn", sub = "", say = "", skip = "" }) {
+// pre: html above the button (the Google button on the account step). after: a quiet line under it.
+function frame(step, { title, body, btn, btnId = "nextBtn", sub = "", say = "", skip = "", pre = "", after = "" }) {
   const i = STEPS.indexOf(step), segs = i < COUNTED ? `<div class="ob-segs">${Array.from({ length: COUNTED }, (_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</div>` : `<div class="ob-segs"></div>`;
   const head = say ? `<div class="ob-say"><div class="ob-say-art" aria-hidden="true">${tutorArt(say, "", "happy")}</div><h1 class="ob-bub" id="obTitle">${title}</h1></div>` : `<h1 class="ob-h" id="obTitle">${title}</h1>`;
   return `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${prevStep(step) ? BACK : CLOSE}</button>${segs}<span class="ob-bkpad"></span></div>
     ${head}${sub ? `<p class="ob-sub">${sub}</p>` : ""}
     <div class="ob-body">${body}</div>
-    <div class="ob-foot"><button class="btn-p" id="${btnId}">${btn}</button>${skip ? `<button class="btn-t" id="skipBtn">${skip}</button>` : ""}</div></div>`;
+    <div class="ob-foot">${pre}<button class="btn-p" id="${btnId}">${btn}</button>${skip ? `<button class="btn-t" id="skipBtn">${skip}</button>` : ""}${after}</div></div>`;
 }
 // X on the first step: a signed-in student (another subject) goes straight back to their course, not via #/ and #/wait,
 // which flashed the setup, then a blank wait page, then the map.
@@ -266,7 +267,8 @@ function loginFrame(title, form) {
 // Our own button face in the app's style, with Google's real button laid over it, invisible and stretched to cover: the tap
 // still lands on Google's button, and the page's buttons match (Marek, 2026-11-17).
 const G_LOGO = `<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
-const G_BOX = (signup = false) => `<div class="ob-g" id="gBox" hidden><div class="ob-gwrap"><div class="btn-s ob-gface" aria-hidden="true">${G_LOGO}<span>${t(signup ? "gSignup" : "gContinue")}</span></div><div class="ob-gbtn"></div></div><p class="ob-or"><span>${t(signup ? "orNewAcc" : "orWord")}</span></p></div>`;
+// On sign-in an "or" line follows, with the e-mail form under it; on the new-account step it is one of two buttons.
+const G_BOX = (signup = false) => `<div class="ob-g" id="gBox" hidden><div class="ob-gwrap"><div class="btn-s ob-gface" aria-hidden="true">${G_LOGO}<span>${t(signup ? "gSignup" : "gContinue")}</span></div><div class="ob-gbtn"></div></div>${signup ? "" : `<p class="ob-or"><span>${t("orWord")}</span></p>`}</div>`;
 let gsiP;
 const loadGsi = () => gsiP ||= new Promise((ok, no) => {
   const s = Object.assign(document.createElement("script"), { src: "https://accounts.google.com/gsi/client", async: true });
@@ -336,7 +338,8 @@ function viewFiles() {
     const n = cur.files.reduce((a, f) => a + slidesOf(f.name, f.pages), 0), over = n > MAX_PAGES;
     $("#total").hidden = !cur.files.length;
     $("#total").classList.toggle("over", over);
-    $("#total").innerHTML = `${ic.book}<span>${t(over ? "filesOver" : "filesSummary", { pages: `<b>${pagesTxt(n)}</b>`, max: MAX_PAGES })}</span>`;
+    // Just what was uploaded (Marek, 2026-11-17): the free start is one lesson, so "x of 250" said nothing here. The cap speaks up only once it is passed.
+    $("#total").innerHTML = `${over ? ic.book : ic.check}<span>${t(over ? "filesOver" : "filesSummary", { pages: `<b>${pagesTxt(n)}</b>`, max: MAX_PAGES })}</span>`;
     $("#nextBtn").disabled = !cur.files.length || uploading.size > 0 || over;
     $$("[data-rm]").forEach(b => b.onclick = async () => {
       const x = draft(); x.files = x.files.filter(f => f.path !== b.dataset.rm); saveDraft(x); refresh();
@@ -431,27 +434,39 @@ export function bindCal(startIso, onPick) {
   let sel = startIso && startIso >= min && startIso <= max ? startIso : null;
   let [y, m] = (sel || t0).split("-").map(Number); m--;
   const first = t0.slice(0, 7), last = max.slice(0, 7), grid = $("#calGrid");
-  const draw = focus => {
+  // The tint is drawn cell by cell, so it moves cell by cell: after a pick the new cells fill in one after another from the old
+  // end towards the tapped day, slowing down as they arrive; when the day moves earlier the cells left over empty out back
+  // to it. `was` is the pick before this one (undefined = no motion: a month turn). CSS runs it only without reduced motion.
+  const draw = (focus, was) => {
     const cur = ymd(y, m, 1).slice(0, 7);
     $("#calMonth").textContent = monthName(y, m);
     $("#calPrev").disabled = cur <= first; $("#calNext").disabled = cur >= last;
     const lead = (new Date(y, m, 1, 12).getDay() + 6) % 7, len = new Date(y, m + 1, 0).getDate();
     let html = "";
+    const move = was !== undefined && sel && was !== sel, back = move && was && was > sel;
+    const inMove = day => move && (back ? day > sel && day <= was : day >= t0 && day <= sel && (!was || day > was));
+    let n = 0, k = 0;
+    for (let d = 1; d <= len; d++) if (inMove(ymd(y, m, d))) n++;
+    const T = Math.min(420, 140 + 24 * n), ease = x => 1 - (1 - x) ** 2;
     for (let i = 0; i < lead; i++) html += `<span class="cd blank"></span>`;
     for (let d = 1; d <= len; d++) {
       const day = ymd(y, m, d), col = (lead + d - 1) % 7, off = day < min || day > max;
       // the tint runs from today to the exam day; it is rounded where it starts and ends, and at the ends of each week row
       const band = sel && day >= t0 && day <= sel;
-      const cls = ["cd", off && "off", day === t0 && "today", day === sel && "sel", band && "band",
-        band && (day === t0 || col === 0 || d === 1) && "bs", band && (day === sel || col === 6 || d === len) && "be"].filter(Boolean).join(" ");
-      html += `<button type="button" class="${cls}" data-d="${day}"${off ? " disabled" : ""} aria-pressed="${day === sel}" aria-label="${esc(fmtDay(day))}"${day === t0 ? ' aria-current="date"' : ""}><span>${d}</span></button>`;
+      const mv = inMove(day), out = mv && back, end = out ? was : sel;
+      const cls = ["cd", off && "off", day === t0 && "today", day === sel && "sel", band && "band", mv && (out ? "bout" : "gin"), move && day === sel && "cpop", // not "pop": that's the map popover in base.css
+        (band || out) && (day === t0 || col === 0 || d === 1) && "bs", (band || out) && (day === end || col === 6 || d === len) && "be"].filter(Boolean).join(" ");
+      let st = "";
+      if (mv) { const i = out ? n - 1 - k : k; k++; st = ` style="--d:${Math.round(T * ease(i / n))}ms;--t:${Math.max(16, Math.round(T * (ease((i + 1) / n) - ease(i / n))))}ms"`; }
+      html += `<button type="button" class="${cls}"${st} data-d="${day}"${off ? " disabled" : ""} aria-pressed="${day === sel}" aria-label="${esc(fmtDay(day))}"${day === t0 ? ' aria-current="date"' : ""}><span>${d}</span></button>`;
     }
     grid.innerHTML = html;
     if (focus) grid.querySelector(`[data-d="${focus}"]`)?.focus();
   };
   const choose = (day, focus) => {
+    const was = sel;
     sel = day; [y, m] = day.split("-").map(Number); m--;
-    draw(focus && day); sfx.flip();
+    draw(focus && day, was); sfx.flip();
     onPick(daysBetween(t0, day), day);
   };
   const month = k => { m += k; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } draw(); };
@@ -477,7 +492,7 @@ export function bindCal(startIso, onPick) {
     const k = (dx < 0) !== (document.documentElement.dir === "rtl") ? 1 : -1;
     if (!(k > 0 ? $("#calNext") : $("#calPrev")).disabled) month(k);
   });
-  draw();
+  draw(null, null);
   onPick(sel ? daysBetween(t0, sel) : 0, sel);
   return { get: () => sel };
 }
@@ -508,35 +523,47 @@ export function carouselHtml() {
 export function bindCarousel(startId, onChange) {
   const c = $("#car"), n = pickable().length, slots = [...c.children];
   let cur = -1, abs = n, settle = null;
-  // how far to scroll so slot s sits exactly in the middle of the carousel
-  const centre = s => { const sr = s.getBoundingClientRect(), cr = c.getBoundingClientRect(); return c.scrollLeft + sr.left + sr.width / 2 - cr.left - cr.width / 2; };
+  // Smooth on a phone (Marek, 2026-11-17: "glitchy"): the slots are measured once (and again when the width changes), so a
+  // frame of a swipe costs one read (scrollLeft) and then only writes, at most once per frame, and only for the figures
+  // that changed. Before, every scroll event measured all 21 slots between writes, a CSS transition chased the finger
+  // and a filter came and went mid-swipe.
+  let x0 = 0, W = 180, seenW = -1, raf = 0;
+  const last = new Array(slots.length).fill(-1);
+  const measure = () => { // x0: where slot 0's middle sits in the scrolled content; W: a slot's width
+    const sr = slots[0].getBoundingClientRect(), cr = c.getBoundingClientRect();
+    W = sr.width || 180; x0 = c.scrollLeft + sr.left + W / 2 - cr.left; seenW = c.clientWidth;
+  };
+  // how far to scroll so slot i sits exactly in the middle of the carousel
+  const centre = i => { if (c.clientWidth !== seenW) measure(); return x0 + i * W - c.clientWidth / 2; };
   const paint = () => {
+    raf = 0;
     if (!c.isConnected) return; // the step was left before this frame (Back, or a fast test): nothing to paint
-    const cr = c.getBoundingClientRect(), mid = cr.left + cr.width / 2;
+    if (c.clientWidth !== seenW) measure();
+    const mid = c.scrollLeft + c.clientWidth / 2;
     let best = 0, bd = 1e9;
-    slots.forEach((s, i) => {
-      const r = s.getBoundingClientRect(), dist = Math.abs(r.left + r.width / 2 - mid) / r.width, k = Math.min(dist, 1.4);
-      s.firstChild.style.transform = `scale(${1 - k * 0.42}) translateY(${k * 10}px)`;
-      s.firstChild.style.opacity = 1 - k * 0.45;
-      s.firstChild.style.filter = k > .5 ? "saturate(.6)" : "";
+    for (let i = 0; i < slots.length; i++) {
+      const dist = Math.abs(x0 + i * W - mid) / W, k = Math.round(Math.min(dist, 1.4) * 200) / 200;
       if (dist < bd) { bd = dist; best = i; }
-    });
+      if (k === last[i]) continue;
+      last[i] = k;
+      const f = slots[i].firstChild.style;
+      f.transform = `translate3d(0,${k * 10}px,0) scale(${1 - k * 0.42})`;
+      f.opacity = 1 - k * 0.45;
+    }
     abs = best;
     const i = best % n;
     if (i !== cur) { cur = i; $("#tName").textContent = pickable()[i].name; $("#tTag").textContent = persona(pickable()[i].id, "tag") || ""; [...$("#dots").children].forEach((d, j) => d.classList.toggle("on", j === i)); onChange(pickable()[i]); }
   };
-  // Once the swipe has fully stopped on a copy, jump to the same tutor in the middle copy. The jump must look like nothing:
-  // no size transition on the figures (they would visibly shrink and regrow) and never mid-swipe or mid-snap (that
-  // cut the motion short). `jump` turns the transitions off for that one frame.
+  // Once the swipe has fully stopped on a copy, jump to the same tutor in the middle copy. The jump must look like nothing,
+  // so it never happens mid-swipe or mid-snap (that cut the motion short).
   const recentre = () => {
     if (abs >= n && abs < 2 * n) return;
-    c.classList.add("jump"); c.scrollLeft = centre(slots[abs % n + n]); paint();
-    requestAnimationFrame(() => requestAnimationFrame(() => c.classList.remove("jump")));
+    c.scrollLeft = centre(abs % n + n); paint(); // painted in the same frame as the jump, so nothing flickers
   };
-  const go = (k, smooth = true) => c.scrollTo({ left: centre(slots[Math.max(0, Math.min(slots.length - 1, k))]), behavior: smooth ? "smooth" : "auto" });
+  const go = (k, smooth = true) => c.scrollTo({ left: centre(Math.max(0, Math.min(slots.length - 1, k))), behavior: smooth ? "smooth" : "auto" });
   // scrollend fires after momentum and snapping are done; where it doesn't exist (older Safari), wait for a quiet 300 ms
   const hasEnd = "onscrollend" in window;
-  c.addEventListener("scroll", () => { paint(); if (!hasEnd) { clearTimeout(settle); settle = setTimeout(recentre, 300); } }, { passive: true });
+  c.addEventListener("scroll", () => { raf ||= requestAnimationFrame(paint); if (!hasEnd) { clearTimeout(settle); settle = setTimeout(recentre, 300); } }, { passive: true });
   if (hasEnd) c.addEventListener("scrollend", recentre);
   slots.forEach((s, i) => s.onclick = () => go(i));
   c.tabIndex = 0; c.onkeydown = e => { if (e.key === "ArrowRight") go(abs + 1); if (e.key === "ArrowLeft") go(abs - 1); };
@@ -629,58 +656,120 @@ function viewNotify() {
   $("#skipBtn").onclick = done;
 }
 
-/* ---------- account, while the free lessons build (not counted in the progress bar) ---------- */
-function viewAccount() {
-  const d = draft(), y = new Date().getFullYear(), a = d.acc || {};
-  const card = `<div class="ob-course"><span class="sq">${esc((d.files[0]?.name || "P")[0].toUpperCase())}</span><div><b>${t("accCourse")}</b><span>${t("accCourseSub", { pages: pagesTxt(d.pages || 0), date: d.examDate ? esc(fmtDay(d.examDate)) : "", tutor: esc(tutorWith(d.tutor)) })}</span><small class="ob-price" id="accPrice" hidden></small></div></div>`;
-  view().innerHTML = frame("account", { title: t("accTitle"), sub: t("accSub"), btn: t("accGo"),
-    body: `${card}<form id="f" class="ob-form" novalidate>${G_BOX(true)}<p class="ob-gas" id="gAs" hidden></p>
+/* ---------- account, while the free lesson builds (not counted in the progress bar) ---------- */
+// Three short screens instead of one long form (Marek, 2026-11-17: "too crowded"), each on its own address so Back works:
+//   #/new/account          two buttons: sign up with Google, or create a new account
+//   #/new/account/form     name, e-mail, password (the e-mail path only)
+//   #/new/account/details  year of birth (a wheel, 15+ only), optional phone, the privacy tick, then signup
+// Google skips the middle one. The price and the course summary are gone from here: they come after the free lesson, in
+// the store. The Google token and the password live only in this page's memory, so a reload starts at the two buttons
+// again, with the name, e-mail and year kept in the draft.
+const acct = { gTok: null, gName: "", pass: "", err: "" };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const keepAcc = more => { const x = draft(); if (x) { x.acc = { ...x.acc, ...more }; saveDraft(x); } };
+// An error that belongs to another screen of the three (an expired Google token, an e-mail that already has an account)
+// is shown there once.
+function accErr() {
+  const el = $("#err"), code = acct.err; acct.err = "";
+  const show = c => { el.textContent = errText(c); el.hidden = false; sfx.wrong(); el.scrollIntoView({ block: "center" }); };
+  if (code) show(code);
+  return show;
+}
+function viewAccount(sub) {
+  const d = draft();
+  if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail($("#err"), e));
+  if (sub === "form") return accForm(d);
+  if (sub === "details") {
+    const a = d.acc || {};
+    if (acct.gTok || (a.name?.trim() && EMAIL_RE.test(a.email || "") && acct.pass.length >= 8)) return accDetails(d);
+  }
+  if (sub) return nav("#/new/account");
+  accChoice(d);
+}
+function accChoice(d) {
+  acct.gTok = null;
+  view().innerHTML = frame("account", { title: t("accTitle"), sub: t("accSub"), btn: t("accNew"), btnId: "newAcc", pre: G_BOX(true),
+    after: `<p class="ob-note c">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p>`,
+    body: `<div class="ob-mid acc-art" aria-hidden="true">${tutorArt(d.tutor || "penny", "", "happy")}</div><p class="ob-err" id="err" hidden role="alert"></p>` });
+  bindStepBack("account");
+  accErr();
+  $("#newAcc").onclick = () => nav("#/new/account/form");
+  googleButton($("#gBox"), token => {
+    const c = tokenClaims(token);
+    acct.gTok = token; acct.pass = "";
+    acct.gName = (c.given_name || c.name || "").trim(); // what the tutor will call the student
+    nav("#/new/account/details");
+  }, true);
+}
+function accForm(d) {
+  const a = d.acc || {};
+  acct.gTok = null;
+  view().innerHTML = frame("account", { title: t("accNewTitle"), btn: t("next"),
+    body: `<form id="f" class="ob-form" novalidate>
       <label class="ob-lbl" for="aName">${t("accName")}</label><input class="ob-in" id="aName" autocomplete="given-name" maxlength="80" placeholder="${t("accNamePh")}" value="${esc(a.name || "")}">
-      <div id="aEmailBox"><label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}"></div>
-      <div class="ob-two" id="aTwo"><div id="aPassBox"><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
-      <div><label class="ob-lbl" for="aYear">${t("accYear")}</label><input class="ob-in" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" placeholder="2004" value="${esc(a.year || "")}"></div></div>
+      <label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}">
+      <label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}" value="${esc(acct.pass)}">
+      <p class="ob-err" id="err" hidden role="alert"></p>
+    </form>` });
+  $("#nextBtn").setAttribute("form", "f"); $("#nextBtn").type = "submit";
+  $("#stepBack").onclick = () => nav("#/new/account");
+  const show = accErr();
+  // Remembers the name and e-mail on this device, never the password, so a reload doesn't lose them.
+  const keep = () => keepAcc({ name: $("#aName").value, email: $("#aEmail").value });
+  $("#aName").oninput = $("#aEmail").oninput = keep;
+  $("#f").onsubmit = e => {
+    e.preventDefault(); $("#err").hidden = true;
+    const name = $("#aName").value.trim(), email = $("#aEmail").value.trim(), pass = $("#aPass").value;
+    if (!name) return show("bad_name");
+    if (!EMAIL_RE.test(email)) return show("bad_email");
+    if (pass.length < 8) return show("bad_password");
+    keepAcc({ name, email }); acct.pass = pass;
+    nav("#/new/account/details");
+  };
+  if (matchMedia("(hover:hover)").matches) $(!a.name ? "#aName" : !a.email ? "#aEmail" : "#aPass").focus(); // a phone would throw its keyboard over the screen before it is read
+}
+function accDetails(d) {
+  const a = d.acc || {}, y = new Date().getFullYear(), g = !!acct.gTok, gMail = g ? tokenClaims(acct.gTok).email || "" : "";
+  // After Google nothing about Google is shown (Marek, 2026-11-17): the tap already said who it is. The name comes from the
+  // Google account; only an account with no name at all is asked for one. Back goes to the two buttons.
+  const who = g && !acct.gName ? `<label class="ob-lbl" for="aName">${t("accName")}</label><input class="ob-in" id="aName" autocomplete="given-name" maxlength="80" placeholder="${t("accNamePh")}" value="${esc(a.name || "")}">` : "";
+  view().innerHTML = frame("account", { title: t("accLastTitle"), btn: t("accGo"),
+    body: `<form id="f" class="ob-form" novalidate>${who}
+      <label class="ob-lbl" id="aYearLbl" for="aYear">${t("accYear")} <span>${t("accYearHint")}</span></label>
+      <button type="button" class="ob-in ob-pick" id="aYear" aria-haspopup="dialog"><span id="aYearV"></span>${CHEV_DOWN}</button>
       <label class="ob-lbl" for="aPhone">${t("accPhone")} <span>${t("accOptional")}</span></label><input class="ob-in" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
       <label class="ob-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
       <label class="ob-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
-    </form><p class="ob-note">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p>` });
+    </form>` });
   $("#nextBtn").setAttribute("form", "f"); $("#nextBtn").type = "submit";
-  bindStepBack("account");
-  // The price before signup (launch checklist 17), here rather than on the landing, which stays clean (Marek, 12 Nov).
-  // The plan that fits these slides, in Kč for Czech and $ otherwise, as pc-api's currencyFor charges.
-  storeConfig().then(c => {
-    const ps = c.plans || [], el = $("#accPrice"), slides = (d.files || []).reduce((a, f) => a + slidesOf(f.name, f.pages || 0), 0);
-    const p = ps.find(x => x.slides >= slides) || ps.at(-1);
-    // The price never breaks across lines: "287 Kč / měs." stays together.
-    if (p && el) { el.textContent = t("welcomePrice", { price: `${money(p, lang() === "cs" ? "czk" : "usd")} / ${t("stMonthShort")}`.replace(/ /g, " ") }); el.hidden = false; }
-  }).catch(() => { });
-  const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); err.scrollIntoView({ block: "center" }); };
-  if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail(err, e));
-  // Remembers what's typed on this device, except the password and phone, so a reload doesn't lose it.
-  // the answer from the "where did you hear about us" step (older drafts kept it here, on this form)
+  const backTo = g ? "#/new/account" : "#/new/account/form";
+  $("#stepBack").onclick = () => nav(backTo);
+  const show = accErr();
+  // Year of birth: a tap on the field opens a pop-up with a wheel of years (Marek, 2026-11-17). The newest year on it is the
+  // one that makes the student 15 this year, counted from today (pc-api checks the same way and still answers too_young).
+  // Nothing is picked until the student picks; the wheel opens 20 years back, since most buyers are at university.
+  const maxY = y - MIN_AGE, minY = y - 100, ok = n => n >= minY && n <= maxY;
+  let year = ok(Math.round(+a.year)) ? Math.round(+a.year) : 0;
+  const showYear = () => { $("#aYearV").textContent = year || t("accYearPick"); $("#aYear").classList.toggle("empty", !year); };
+  showYear();
+  $("#aYear").onclick = () => {
+    const sh = sheet(`<h2 class="sh-h" id="ywH">${esc(t("accYear"))}</h2><div id="yw"></div><button class="btn-p" id="ywOk">${esc(t("done"))}</button>`, { mid: true, onClose: () => $("#aYear")?.focus() });
+    const wheel = yearWheel($("#yw"), { min: minY, max: maxY, value: year || y - 20, rows: 5, labelledby: "ywH" });
+    const take = () => { year = wheel.get(); keepAcc({ year: String(year) }); showYear(); $("#err").hidden = true; sh.close(); };
+    $("#ywOk").onclick = take;
+    wheel.el.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); take(); } });
+    wheel.el.focus({ preventScroll: true });
+  };
+  if (who) $("#aName").oninput = () => keepAcc({ name: $("#aName").value });
+  // the answer from the "where did you hear about us" step (older drafts kept it on this form)
   const source = [d.source, a.source].find(x => SOURCES.includes(x)) || "";
-  const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value, source }; saveDraft(x); } };
-  ["#aName", "#aEmail", "#aYear"].forEach(s => $(s).oninput = keep);
-  // With Google the email and password give way to "With Google: x@gmail.com · Change"; the name comes filled in but stays
-  // editable (it's what the tutor calls you), and the year and the privacy tick are still asked. The token lives only here.
-  let gTok = null;
-  const withGoogle = on => { $("#gAs").hidden = !on; $("#gBox").hidden = on; $("#aEmailBox").hidden = on; $("#aPassBox").hidden = on; $("#aTwo").classList.toggle("one", on); };
-  googleButton($("#gBox"), token => {
-    const c = tokenClaims(token);
-    gTok = token; err.hidden = true;
-    if (!$("#aName").value.trim()) $("#aName").value = c.given_name || c.name || "";
-    $("#gAs").innerHTML = `<span>${esc(t("gAs", { email: c.email || "" }))}</span><button type="button" class="ob-glink" id="gChange">${t("gChange")}</button>`;
-    $("#gChange").onclick = () => { gTok = null; withGoogle(false); $("#aEmail").focus(); };
-    withGoogle(true); keep();
-    $($("#aName").value.trim() ? "#aYear" : "#aName").focus();
-  }, true);
   $("#f").onsubmit = async e => {
-    e.preventDefault(); err.hidden = true;
-    const v = { name: $("#aName").value.trim(), ...(gTok ? { google: gTok } : { email: $("#aEmail").value.trim(), password: $("#aPass").value }), birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
+    e.preventDefault(); $("#err").hidden = true;
+    const cur = draft()?.acc || {};
+    const v = { name: (g ? acct.gName || $("#aName").value : cur.name || "").trim(), ...(g ? { google: acct.gTok } : { email: (cur.email || "").trim(), password: acct.pass }), birthYear: year, phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
     if (!v.name) return show("bad_name");
-    if (!gTok && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) return show("bad_email");
-    if (!gTok && v.password.length < 8) return show("bad_password");
-    if (!(v.birthYear >= y - 100 && v.birthYear <= y)) return show("bad_year");
+    if (!year) return show("bad_year");
     if (y - v.birthYear < MIN_AGE) return show("too_young");
     if (v.phone && !/^\+?\d{9,15}$/.test(v.phone.replace(/[\s()-]/g, ""))) return show("bad_phone");
     if (!v.privacy) return show("no_privacy");
@@ -690,16 +779,19 @@ function viewAccount() {
       store.del("invite");
       if (r.gift === "ok") toast(t("giftOk"));
       store.set("session", { token: r.session, slug: r.slug });
-      store.set("email", gTok ? tokenClaims(gTok).email : v.email); store.set("name", v.name);
+      store.set("email", g ? gMail : v.email); store.set("name", v.name);
       // the reminder subscription from the notifications step can only be saved once there is an account
       const push = draft()?.push;
       if (push) sendSub(r.session, push).catch(() => { });
       store.del("draft");
+      acct.gTok = null; acct.pass = "";
       confetti(); sfx.done();
       nav("#/wait");
     } catch (er) {
-      if (gTok && er.code === "bad_google") { gTok = null; withGoogle(false); } // the token lasts an hour: past that, the button again
-      fail(err, er); btn.disabled = false; btn.textContent = t("accGo");
+      // the token lasts an hour: past that, back to the two buttons. A problem with the e-mail, name or password: back to that form.
+      if (g && er.code === "bad_google") { acct.gTok = null; acct.err = er.code; return nav("#/new/account"); }
+      if (!g && ["email_taken", "bad_email", "bad_password", "bad_name"].includes(er.code)) { acct.err = er.code; return nav("#/new/account/form"); }
+      fail($("#err"), er); btn.disabled = false; btn.textContent = t("accGo");
     }
   };
 }
@@ -1055,7 +1147,7 @@ function route() {
     if (step === "notify" && !showNotify(d)) { step = "account"; if (d.step === "notify") { d.step = "account"; saveDraft(d); } }
     if (step !== (parts[1] || d.step)) return nav("#/new/" + step);
     if (STEPS.indexOf(step) > STEPS.indexOf(d.step || "files")) return nav("#/new/" + (d.step || "files"));
-    const stepView = { files: viewFiles, date: viewDate, tutor: viewTutor, source: viewSource, notify: viewNotify, account: viewAccount }[step];
+    const stepView = { files: viewFiles, date: viewDate, tutor: viewTutor, source: viewSource, notify: viewNotify, account: () => viewAccount(parts[2]) }[step];
     return stepView ? stepView() : nav("#/");
   }
   if (parts[0] === "s") return courseRoute(parts.slice(1), nav, render);

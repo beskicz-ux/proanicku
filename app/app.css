@@ -121,8 +121,7 @@ body.plain .app{padding-bottom:0}
 .car{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:10px 0 0; margin:0 calc(-1 * var(--gutter)); outline:none}
 .car::-webkit-scrollbar{display:none}
 .slot{flex:0 0 180px; scroll-snap-align:center; display:flex; justify-content:center; cursor:pointer}
-.fig{transition:transform .08s linear, opacity .08s linear; transform-origin:50% 90%}
-.car.jump .fig{transition:none}
+.fig{transform-origin:50% 90%; will-change:transform, opacity}
 .fig svg{width:180px; height:auto; display:block}
 .car-floor{height:14px; width:170px; margin:-6px auto 0; border-radius:50%; background:radial-gradient(closest-side, #0000001f, transparent)}
 .tinfo{text-align:center; margin-top:14px}
@@ -134,12 +133,7 @@ body.plain .app{padding-bottom:0}
 .dots i.on{width:20px; background:var(--accent)}
 
 /* account and forms */
-.ob-course{display:flex; gap:12px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px 14px; margin-bottom:18px}
-.ob-course .sq,.subrow .sq{flex:none; width:40px; height:40px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font:800 17px var(--head)}
-.ob-course b{display:block; font:800 16px var(--head)}
-.ob-course span{color:var(--muted); font-size:14px}
-.ob-course .ob-price{display:block; margin-top:4px; color:var(--accent-ink); font-size:14px; font-weight:800}
-.ob-course .ob-price[hidden]{display:none}
+.subrow .sq{flex:none; width:40px; height:40px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font:800 17px var(--head)}
 .ob-form{display:flex; flex-direction:column}
 .ob-lbl{font:700 14px var(--font); margin:12px 0 6px}
 .ob-lbl span{color:var(--muted); font-weight:500}
@@ -160,9 +154,25 @@ body.plain .app{padding-bottom:0}
 .ob-gbtn{position:absolute; inset:-4px 0 auto 0; transform-origin:0 0; opacity:.01; color-scheme:light}
 .ob-or{display:flex; align-items:center; gap:12px; margin:16px 0 0; color:var(--muted); font-size:14px; font-weight:700}
 .ob-or::before,.ob-or::after{content:""; flex:1; height:1.5px; background:var(--line)}
-.ob-gas{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 0; padding:12px 14px; border:1.5px solid var(--line); border-radius:14px; background:var(--surface); font-size:15px; font-weight:700; text-align:left}
-.ob-gas span{min-width:0; overflow-wrap:anywhere}
-.ob-glink{flex:none; border:0; background:none; padding:6px 0; color:var(--accent-ink); font:800 15px var(--font); cursor:pointer}
+/* the new-account step: two buttons under the tutor (Google, or a new account), then short screens */
+.ob-foot .ob-g{margin:0 0 10px}
+.ob-foot .ob-note{margin:12px 0 0}
+.acc-art{align-items:center; min-height:150px}
+.acc-art > *{display:block; width:min(58%, 220px); height:auto}
+/* year of birth: a field that opens a sheet with a wheel of years; the wheel's middle row is the pick */
+.ob-pick{display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:start; cursor:pointer; font-variant-numeric:tabular-nums}
+.ob-pick.empty span{color:var(--muted)}
+.ob-pick svg{width:22px; height:22px; flex:none; color:var(--muted)}
+.sh .wheel{margin:6px 0 14px}
+.wheel{--pad:calc((var(--rows, 3) - 1) / 2 * 44px); position:relative; height:calc(var(--rows, 3) * 44px); border:1.5px solid var(--line); border-radius:14px; background:var(--surface); overflow:hidden}
+.wheel:before{content:""; position:absolute; inset:var(--pad) 8px; border-radius:10px; background:var(--accent-soft); pointer-events:none}
+.wheel:has(.wh-list:focus-visible){border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
+.wh-list{position:relative; height:100%; overflow-y:auto; overscroll-behavior:contain; scroll-snap-type:y mandatory; scrollbar-width:none; outline:none;
+  -webkit-mask-image:linear-gradient(transparent, #000 38%, #000 62%, transparent); mask-image:linear-gradient(transparent, #000 38%, #000 62%, transparent)}
+.wh-list::-webkit-scrollbar{display:none}
+.wh-pad{display:block; height:var(--pad)}
+.wh-o{display:grid; place-items:center; height:44px; scroll-snap-align:center; color:var(--muted); font:700 19px var(--font); font-variant-numeric:tabular-nums; cursor:pointer; user-select:none; -webkit-user-select:none}
+.wh-o.on{color:var(--accent-ink); font:800 23px var(--head)}
 .ob-check{display:flex; gap:10px; align-items:flex-start; margin-top:14px; font-size:15px; line-height:1.4; cursor:pointer}
 .ob-check input{width:22px; height:22px; flex:none; accent-color:var(--accent); margin:0}
 .ob-check a{color:var(--accent-ink); font-weight:700}
@@ -195,6 +205,12 @@ body.plain .app{padding-bottom:0}
   border-radius:26px 26px 0 0; padding:8px 18px calc(18px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .26s cubic-bezier(.2,.8,.2,1); overscroll-behavior:contain}
 .sh.in{transform:none}
 .sh:not(.in),.sh-dim:not(.in){pointer-events:none} /* a closing sheet never catches a tap */
+/* the same pop-up as a card in the middle of the screen (year of birth), like the phone's own picker */
+.sh.mid{top:50%; bottom:auto; left:20px; right:20px; max-width:340px; max-height:calc(100dvh - 40px); border-radius:26px; padding:20px 18px 18px;
+  transform:translateY(-50%) scale(.94); opacity:0; transition:transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s; box-shadow:0 18px 50px #0005}
+.sh.mid.in{transform:translateY(-50%); opacity:1}
+.sh.mid .sh-hdl{display:none}
+@media (prefers-reduced-motion:reduce){ .sh.mid{transition:none} }
 .sh-hdl{width:44px; height:5px; border-radius:5px; background:var(--line); margin:4px auto 10px}
 .sh-h{font:800 22px var(--head); text-align:center; margin:4px 0 16px}
 .sh-search{display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:16px; padding:0 14px; min-height:52px; color:var(--muted)}
@@ -459,7 +475,6 @@ body.map-page .pc-unlock{margin:10px var(--gutter) 0}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){ .loading i{animation-duration:2.4s} }
 /* nested corners: inner radius = outer radius − padding */
-.ob-course .sq{border-radius:10px}
 .sgrp .srow:first-child{border-radius:18px 18px 0 0} .sgrp .srow:last-child{border-radius:0 0 18px 18px}
 
 /* match pairs: one row per pair, both boxes the same height, short terms left, definitions right */
@@ -1360,6 +1375,17 @@ body.landing .app{max-width:1040px}
 .cd.bs:before{inset-inline-start:max(0px, calc(50% - 20px)); border-start-start-radius:20px; border-end-start-radius:20px}
 .cd.be:before{inset-inline-end:max(0px, calc(50% - 20px)); border-start-end-radius:20px; border-end-end-radius:20px}
 .cd.sel span{background:var(--accent); color:var(--on-accent); font-weight:800; box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 64%, #000)}
+/* the tint grows towards the tapped day and empties back when the day moves earlier (bindCal sets --d and --t per cell) */
+@keyframes cal-in{from{transform:scaleX(0)}}
+@keyframes cal-out{to{transform:scaleX(0)}}
+@keyframes cal-pop{from{transform:scale(.6)}}
+@media (prefers-reduced-motion:no-preference){
+  .cd.gin:before, .cd.bout:before{transform-origin:0 50%}
+  [dir=rtl] .cd.gin:before, [dir=rtl] .cd.bout:before{transform-origin:100% 50%}
+  .cd.gin:before{animation:cal-in var(--t) linear var(--d) both}
+  .cd.bout:before{content:""; position:absolute; inset:2px 0; background:var(--accent-soft); animation:cal-out var(--t) linear var(--d) both}
+  .cd.cpop span{animation:cal-pop .34s cubic-bezier(.3,1.6,.5,1) both}
+}
 .cd:focus-visible{outline:none}
 .cd:focus-visible span{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent)}
 .cd.sel:focus-visible span{box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 64%, #000), 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent)}

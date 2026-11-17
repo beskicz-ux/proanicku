@@ -147,10 +147,11 @@ export const LANGS = [["cs", "Čeština"], ["en", "English"], ["es", "Español"]
 export const langName = code => (LANGS.find(l => l[0] === code) || LANGS[0])[1];
 
 /* ---------- bottom sheet ---------- */
-export function sheet(html, { onClose } = {}) {
+// mid: a small card in the middle of the screen (the year picker), not a sheet from the bottom
+export function sheet(html, { onClose, mid } = {}) {
   closeSheet();
   const dim = document.createElement("div"); dim.className = "sh-dim"; dim.id = "shDim";
-  const sh = document.createElement("div"); sh.className = "sh"; sh.id = "sh"; sh.setAttribute("role", "dialog"); sh.setAttribute("aria-modal", "true");
+  const sh = document.createElement("div"); sh.className = mid ? "sh mid" : "sh"; sh.id = "sh"; sh.setAttribute("role", "dialog"); sh.setAttribute("aria-modal", "true");
   sh.innerHTML = `<div class="sh-hdl" aria-hidden="true"></div>${html}`;
   document.body.append(dim, sh);
   requestAnimationFrame(() => { dim.classList.add("in"); sh.classList.add("in"); });
@@ -167,6 +168,40 @@ function fadeOut(...els) {
   const now = matchMedia("(prefers-reduced-motion:reduce)").matches;
   // its ids go at once, so a sheet opened during the fade never finds this one's buttons with $("#…")
   for (const e of els) { for (const x of [e, ...e.querySelectorAll("[id]")]) x.removeAttribute("id"); e.classList.remove("in"); if (now) e.remove(); else setTimeout(() => e.remove(), 280); }
+}
+
+/* ---------- a wheel of years: a scroll-snap list, the middle row is the pick ---------- */
+// Like the phone's own picker: flick it and it settles on a row. A mouse scrolls it or clicks a row; keys: arrows (a year),
+// Page Up/Down (five), Home/End, or the four digits typed. Only min…max exist, so nothing out of range can be picked.
+export function yearWheel(box, { min, max, value, labelledby, onChange, rows = 3 }) {
+  const ROW = 44, n = max - min + 1, clamp = i => Math.max(0, Math.min(n - 1, i));
+  let cur = clamp((value ?? max) - min), typed = "", typedAt = 0, timer = 0;
+  box.className = "wheel"; box.style.setProperty("--rows", rows);
+  box.innerHTML = `<div class="wh-list" role="listbox" tabindex="0" aria-labelledby="${esc(labelledby)}"><i class="wh-pad"></i>${Array.from({ length: n }, (_, i) => `<div class="wh-o" role="option" id="whO${i}" data-i="${i}" aria-selected="false">${min + i}</div>`).join("")}<i class="wh-pad"></i></div>`;
+  const list = box.firstElementChild, opts = list.querySelectorAll(".wh-o");
+  const mark = i => {
+    opts[cur].classList.remove("on"); opts[cur].setAttribute("aria-selected", "false");
+    cur = i; opts[i].classList.add("on"); opts[i].setAttribute("aria-selected", "true"); list.setAttribute("aria-activedescendant", opts[i].id);
+  };
+  // the row in the middle is the pick; the draft hears about it once the wheel has settled
+  const sync = () => { const i = clamp(Math.round(list.scrollTop / ROW)); if (i !== cur) { mark(i); clearTimeout(timer); timer = setTimeout(() => onChange?.(min + cur), 120); } };
+  const go = (i, smooth) => {
+    list.scrollTo({ top: clamp(i) * ROW, behavior: smooth && !matchMedia("(prefers-reduced-motion:reduce)").matches ? "smooth" : "instant" });
+    if (!smooth) sync();
+  };
+  list.onscroll = sync;
+  list.onclick = e => { const o = e.target.closest(".wh-o"); if (o) go(+o.dataset.i, true); };
+  list.onkeydown = e => {
+    const k = { ArrowDown: 1, ArrowUp: -1, PageDown: 5, PageUp: -5 }[e.key];
+    if (k) { e.preventDefault(); return go(cur + k); }
+    if (e.key === "Home" || e.key === "End") { e.preventDefault(); return go(e.key === "Home" ? 0 : n - 1); }
+    if (/^\d$/.test(e.key)) { // 2 0 0 4 typed in a row jumps there
+      const now = Date.now(); typed = (now - typedAt > 1500 ? "" : typed) + e.key; typedAt = now;
+      if (typed.length === 4) { go(+typed - min); typed = ""; }
+    }
+  };
+  mark(cur); list.scrollTop = cur * ROW;
+  return { get: () => min + cur, el: list };
 }
 
 /* ---------- appearance: auto follows the system, or a forced light/dark ---------- */
