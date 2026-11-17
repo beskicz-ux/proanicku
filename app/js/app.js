@@ -434,9 +434,9 @@ export function bindCal(startIso, onPick) {
   let sel = startIso && startIso >= min && startIso <= max ? startIso : null;
   let [y, m] = (sel || t0).split("-").map(Number); m--;
   const first = t0.slice(0, 7), last = max.slice(0, 7), grid = $("#calGrid");
-  // The tint is drawn cell by cell, so it moves cell by cell: after a pick the new cells fill in one after another from the old
-  // end towards the tapped day, slowing down as they arrive; when the day moves earlier the cells left over empty out back
-  // to it. `was` is the pick before this one (undefined = no motion: a month turn). CSS runs it only without reduced motion.
+  // The tint is drawn cell by cell but moves as one line: after a pick a rounded head runs at a steady speed from the old end
+  // to the tapped day (each cell is uncovered as the head crosses it, and the head is 40px long, so a cell is still filling
+  // while the next one starts); when the day moves earlier the same runs backwards. `was` is the pick before this one (undefined = no motion: a month turn). CSS runs it only without reduced motion.
   const draw = (focus, was) => {
     const cur = ymd(y, m, 1).slice(0, 7);
     $("#calMonth").textContent = monthName(y, m);
@@ -447,7 +447,7 @@ export function bindCal(startIso, onPick) {
     const inMove = day => move && (back ? day > sel && day <= was : day >= t0 && day <= sel && (!was || day > was));
     let n = 0, k = 0;
     for (let d = 1; d <= len; d++) if (inMove(ymd(y, m, d))) n++;
-    const T = Math.min(420, 140 + 24 * n), ease = x => 1 - (1 - x) ** 2;
+    const w = grid.clientWidth / 7 || 44, tau = n ? Math.min(45, 320 / n) : 0, T1 = Math.round(tau * (w + 40) / w); // tau: ms per cell
     for (let i = 0; i < lead; i++) html += `<span class="cd blank"></span>`;
     for (let d = 1; d <= len; d++) {
       const day = ymd(y, m, d), col = (lead + d - 1) % 7, off = day < min || day > max;
@@ -457,7 +457,7 @@ export function bindCal(startIso, onPick) {
       const cls = ["cd", off && "off", day === t0 && "today", day === sel && "sel", band && "band", mv && (out ? "bout" : "gin"), move && day === sel && "cpop", // not "pop": that's the map popover in base.css
         (band || out) && (day === t0 || col === 0 || d === 1) && "bs", (band || out) && (day === end || col === 6 || d === len) && "be"].filter(Boolean).join(" ");
       let st = "";
-      if (mv) { const i = out ? n - 1 - k : k; k++; st = ` style="--d:${Math.round(T * ease(i / n))}ms;--t:${Math.max(16, Math.round(T * (ease((i + 1) / n) - ease(i / n))))}ms"`; }
+      if (mv) { const i = out ? n - 1 - k : k; k++; st = ` style="--d:${Math.round(i * tau)}ms;--t:${T1}ms"`; }
       html += `<button type="button" class="${cls}"${st} data-d="${day}"${off ? " disabled" : ""} aria-pressed="${day === sel}" aria-label="${esc(fmtDay(day))}"${day === t0 ? ' aria-current="date"' : ""}><span>${d}</span></button>`;
     }
     grid.innerHTML = html;
@@ -598,11 +598,12 @@ function viewTutor() {
 // One tap and Next; "somewhere else" covers the rest, so nobody is stuck. The answer goes with the signup (pc_students.source),
 // so the launch can tell which channel brings students. The free lessons are already building while the student answers.
 const SRC_ICONS = {
-  tiktok: `<svg viewBox="0 0 24 24"><path fill="#25F4EE" d="M9.4 9.9v-1a7 7 0 0 0-1-.1 6.3 6.3 0 0 0-3.6 11.5A6.3 6.3 0 0 1 9.4 9.9z"/><path fill="#25F4EE" d="M9.6 21.2a2.9 2.9 0 0 0 2.9-2.8V3.2h2.6a4.8 4.8 0 0 1-.1-1h-3.6v15.3a2.9 2.9 0 0 1-4.2 2.5 2.9 2.9 0 0 0 2.4 1.2zM19.9 8V7a4.8 4.8 0 0 1-2.7-.8A4.8 4.8 0 0 0 19.9 8z"/><path fill="#FE2C55" d="M17.2 6.2A4.8 4.8 0 0 1 16 3.2h-1a4.8 4.8 0 0 0 2.2 3zM8.4 13.7a2.9 2.9 0 0 0-1.3 5.4 2.9 2.9 0 0 1 3.3-4.5v-3.9a6.3 6.3 0 0 0-1-.1h-.1v3a2.9 2.9 0 0 0-.9-.1z"/><path fill="#FE2C55" d="M19.9 8v2.9a8.2 8.2 0 0 1-4.8-1.5v6.9a6.3 6.3 0 0 1-9.8 5.2 6.3 6.3 0 0 0 10.9-4.3V10.3a8.2 8.2 0 0 0 4.8 1.5V8.9a4.9 4.9 0 0 1-1.1-.1z"/><path fill="currentColor" d="M15.1 16.3V9.4a8.2 8.2 0 0 0 4.8 1.5V8a4.8 4.8 0 0 1-2.7-1.8 4.8 4.8 0 0 1-2.2-3h-2.5v15.2a2.9 2.9 0 0 1-5.3 1.6 2.9 2.9 0 0 1 2.2-5.3v-3a6.3 6.3 0 0 0-4.5 10.7 6.3 6.3 0 0 0 10.2-6.1z"/></svg>`,
-  instagram: `<svg viewBox="0 0 24 24"><defs><radialGradient id="igG" cx="30%" cy="107%" r="150%"><stop offset="0" stop-color="#fdf497"/><stop offset=".05" stop-color="#fdf497"/><stop offset=".45" stop-color="#fd5949"/><stop offset=".6" stop-color="#d6249f"/><stop offset=".9" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igG)"/><rect x="6.5" y="6.5" width="11" height="11" rx="5.5" fill="none" stroke="#fff" stroke-width="1.9"/><circle cx="17.3" cy="6.7" r="1.2" fill="#fff"/></svg>`,
+  // the TikTok note: one shape three times (cyan up-left, red down-right, the ink one on top)
+  tiktok: `<svg viewBox="0 0 24 24"><path fill="#25F4EE" transform="translate(2 1.7) scale(.8)" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/><path fill="#FE2C55" transform="translate(3.8 3.1) scale(.8)" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/><path fill="currentColor" transform="translate(2.9 2.4) scale(.8)" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`,
+  instagram: `<svg viewBox="0 0 24 24"><defs><radialGradient id="igG" cx="30%" cy="107%" r="150%"><stop offset="0" stop-color="#fdf497"/><stop offset=".05" stop-color="#fdf497"/><stop offset=".45" stop-color="#fd5949"/><stop offset=".6" stop-color="#d6249f"/><stop offset=".9" stop-color="#285AEB"/></radialGradient></defs><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igG)"/><rect x="5.6" y="5.6" width="12.8" height="12.8" rx="3.9" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="15.9" cy="8.1" r=".95" fill="#fff"/></svg>`,
   youtube: `<svg viewBox="0 0 24 24"><rect x="1.5" y="5" width="21" height="14.5" rx="4.5" fill="#FF0033"/><path d="M10 9v6.5l5.6-3.25z" fill="#fff"/></svg>`,
   google: `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.2-2.7l-3.5-2.7c-1 .6-2.2 1-3.7 1-2.9 0-5.3-1.9-6.2-4.5H2.2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.2 7.1l3.6 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>`,
-  friend: `<svg viewBox="0 0 24 24"><circle cx="8.5" cy="8" r="3.6" fill="#FFB020"/><path d="M1.8 20a6.7 6.7 0 0 1 13.4 0z" fill="#FFB020"/><circle cx="16.8" cy="9.2" r="3" fill="#58CC02"/><path d="M13.4 20a5.6 5.6 0 0 1 9-4.5V20z" fill="#58CC02"/></svg>`,
+  friend: `<svg viewBox="0 0 24 24"><circle cx="16.9" cy="8.6" r="3" fill="#FFB020"/><path d="M11.6 19.4a5.3 5.3 0 0 1 10.6 0 1.2 1.2 0 0 1-1.2 1.2h-8.2a1.2 1.2 0 0 1-1.2-1.2z" fill="#FFB020"/><circle cx="8.6" cy="7.6" r="3.7" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.2"/><path d="M1.8 19.3a6.8 6.8 0 0 1 13.6 0 1.3 1.3 0 0 1-1.3 1.3H3.1a1.3 1.3 0 0 1-1.3-1.3z" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.2"/></svg>`,
   other: `<svg viewBox="0 0 24 24"><path d="M4 4.5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8.5L6.5 21v-3.5H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" fill="var(--accent)"/><circle cx="8" cy="11" r="1.3" fill="#fff"/><circle cx="12" cy="11" r="1.3" fill="#fff"/><circle cx="16" cy="11" r="1.3" fill="#fff"/></svg>`,
 };
 function viewSource() {
@@ -1042,7 +1043,7 @@ async function viewWait() {
         ${failed ? "" : `<div id="pcLive"><div id="pcSteps">${steps()}</div><div id="pcCard">${buildHtml(phase, build, free, offline, shown, seenN)}</div></div>`}
         ${ready || failed ? "" : tipsHtml()}
         ${failed ? `<div class="ob-foot pc-failed"><button class="btn-p" id="wfWrite">${t("fbH")}</button><button class="btn-s" id="wfNew">${t("waitFailedNew")}</button><button class="btn-t" id="wfOut">${t("waitFailedOut")}</button></div>` : ready ? "" : `<p class="ob-legal"><a href="#/wait" id="wfWrite">${t("fbH")}</a></p>`}
-        ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
+        ${ready ? `<div class="ob-foot"><a class="btn-p" href="#/s/${esc(s.slug)}${free ? "/lesson/first" : ""}" id="startCourse">${t(free ? "waitFreeStart" : "waitStart")}</a></div>` : ""}</div>`;
       bindLang();
       // a failed build must not be a dead end: write to us, start over with other files, or sign out
       const w = $("#wfWrite"), n = $("#wfNew"), o = $("#wfOut");

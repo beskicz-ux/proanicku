@@ -6,7 +6,7 @@ import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
 import { persona } from "./persona.js";
-import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
+import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, COURSE_ICONS, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
 import { phaseOf, iconFor, barTarget, phaseStart, stageText } from "./build.js";
 import { calHtml, bindCal, planHtml, carouselHtml, bindCarousel, startNewSubject } from "./app.js";
 import { pushSupported, pushState, askPush, current, sendSub, turnOff, saveText, remindTime } from "./push.js";
@@ -188,7 +188,7 @@ export async function courseRoute(parts, nav, render) {
   if (sub === "settings") return viewSettings();
   if (sub === "contact") return viewContact();
   if (sub === "voice") return viewVoice({ token: TOKEN, art: tutorArt(curTutor(), "bob"), topbar: "", onOut: () => { store.del("session"); nav("#/login"); } });
-  if (sub === "lesson") return startLesson(arg);
+  if (sub === "lesson") return startLesson(arg === "first" ? openLessons()[0]?.id ?? arg : arg); // "first": the ready screen's button
   if (sub === "test") return startTest(+arg);
   if (sub === "gold") return startGold(arg);
   if (sub === "review") return startReview(arg);
@@ -200,6 +200,9 @@ function setTabs(slug, sub) {
   const n = $("#nav");
   const show = !sub || ["notes", "practice", "progress", "settings", "contact"].includes(sub);
   n.hidden = !show; document.body.classList.toggle("has-tabs", show);
+  // the app's name above the menu; CSS shows it from 768px up, where the tab bar is a rail on the left (Marek, 2026-11-17)
+  if (!$(".nav-brand", n)) $(".nav-in", n).insertAdjacentHTML("afterbegin", `<b class="nav-brand"></b>`);
+  $(".nav-brand", n).textContent = t("brand");
   const on = { "": "home", notes: "notes", practice: "review", progress: "progress", settings: "more", contact: "more" }[sub || ""];
   $$("a", n).forEach(a => {
     const k = a.dataset.k;
@@ -288,10 +291,20 @@ async function logOut() {
 // The subject's name on the top bar, kept short so the button is always the same size: no "(…)" and no ": detail".
 const shortSubj = s => { const x = String(s || "").replace(/\s*[([][^)\]]*[)\]]/g, "").split(/\s*[:–—]\s+|\s+-\s+/)[0].trim(); return x || String(s || ""); };
 
+/* ---------- the course's look: a colour and one of our own icons in place of the first letter (Marek, 2026-11-17) ----------
+   Kept on this device only, one entry per course ("pc.look.<slug>"); the account has no field for it yet. Only values
+   from these two lists are ever drawn, so nothing from storage reaches the page as markup. */
+const LOOK_COLS = ["#6C5CE7", "#3B82F6", "#0FA3B1", "#22A861", "#E0A410", "#F0653E", "#E5446D", "#64748B"];
+const lookOf = slug => { const v = store.get("look." + slug) || {}; return { col: LOOK_COLS.includes(v.col) ? v.col : null, ico: Object.hasOwn(COURSE_ICONS, v.ico) ? v.ico : null }; };
+const sqHtml = (k, title, cls = "") => `<span class="sq${k.ico ? " ico" : ""}${cls ? " " + cls : ""}"${k.col ? ` style="background:${k.col}"` : ""}>${k.ico ? COURSE_ICONS[k.ico] : esc((String(title || "")[0] || "?").toUpperCase())}</span>`;
+// The course's square, wherever it is drawn: the top bar, the subject list, Settings.
+const courseSq = (slug, title, cls) => sqHtml(lookOf(slug), title, cls);
+const courseTitle = () => C.meta.subject || C.meta.title || "P";
+
 /* ---------- top bar: subject, readiness, days to the exam ---------- */
 function topbar() {
   const left = daysToExam(), r = readiness(), title = C.meta.subject || C.meta.title || "";
-  return `<header class="tb"><button class="subj" title="${esc(title)}"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><b>${esc(shortSubj(title))}</b>${CHEV_DOWN}</button>
+  return `<header class="tb"><button class="subj" title="${esc(title)}">${courseSq(SLUG, title || "P")}<b>${esc(shortSubj(title))}</b>${CHEV_DOWN}</button>
     <div class="mets"><a class="met ready" href="#/s/${SLUG}/progress" aria-label="${t("readinessTitle")}: ${r} %">${ringIcon(r)}<span>${r} %</span></a>
     ${left == null ? "" : `<a class="met" href="#/s/${SLUG}/progress" aria-label="${esc(daysTxt(Math.max(0, left)))} ${t("toExam")}">${calIcon(new Date(examDate() + "T12:00").getDate())}<span>${esc(daysTxt(Math.max(0, left)))}</span></a>`}</div></header>`;
 }
@@ -303,7 +316,7 @@ const acctFetch = () => { const tk = TOKEN; return api("account", { session: tk 
 function bindTopbar() {
   const title = C.meta.subject || C.meta.title || "";
   if (ACCT?.token !== TOKEN) { ACCT = { token: TOKEN, a: null }; acctFetch().catch(() => { }); }
-  const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}"><span class="sq">${esc(((c.current ? title : c.title) || "?")[0].toUpperCase())}</span><div><b><span>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</span></b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
+  const row = c => `<button class="subrow${c.current ? " on" : ""}" data-slug="${esc(c.slug)}">${courseSq(c.slug, c.current ? title : c.title)}<div><b><span>${esc(c.current ? C.meta.title || title : c.title || t("subjUntitled"))}</span></b><small>${t(!c.ready ? "subjBuilding" : c.paid ? "payPaid" : "payFree")}</small></div>${c.current ? `<i class="lok">${TICK}</i>` : ""}</button>`;
   const add = `<button class="subrow add" id="subNew"><span class="sq">+</span><div><b>${t("subjNew")}</b><small>${t("subjNewSub")}</small></div></button>`;
   const me = { slug: SLUG, current: true, ready: true, paid: ACCESS.paid };
   // Before the first reply: this subject, and + New subject when signed in with an account (an e-mail is stored).
@@ -762,7 +775,7 @@ function sessionTop(st) {
   return `<div class="session-top"><button class="x" id="quit" aria-label="${t("close")}">${ic.x}</button><div class="bar"><i style="width:${Math.max(3, done / Math.max(1, st.total) * 100)}%"></i></div></div>`;
 }
 function runSession(cfg) {
-  const st = { ...cfg, notes: cfg.notes || new Map(), queue: [...cfg.items], total: cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, run: 0, miss: 0, started: Date.now(), tick: Date.now() };
+  const st = { ...cfg, notes: cfg.notes || new Map(), queue: [...cfg.items], total: cfg.items.length, right: 0, answered: 0, ready0: readiness(),retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, run: 0, miss: 0, started: Date.now(), tick: Date.now() };
   step(st);
 }
 function step(st) {
@@ -790,7 +803,7 @@ function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } =
   if (rec) record(it, ok);
   st.answered++;
   if (!st.firstSeen.has(it.id)) { st.firstSeen.add(it.id); st.firstN++; if (ok) st.firstRight++; } // the score counts first tries; retries are for learning
-  if (ok) { st.right++; addXP(10); st.xp += 10; sfx.right(); } else { addXP(1); st.xp += 1; sfx.wrong(); }
+  if (ok) { st.right++; addXP(10); sfx.right(); } else { addXP(1); sfx.wrong(); }
   $("#qdock")?.remove();
   const fb = document.createElement("div");
   fb.className = "feedback " + (ok ? "good" : "badf");
@@ -835,7 +848,7 @@ const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5
 // the result's numbers run up from 0 while their boxes pop in; with reduced motion they already stand at the final value
 function countStats(root) {
   if (calm()) return;
-  $$(".sbox .v[data-to]", root).forEach((n, i) => {
+  $$(".sbox [data-to]", root).forEach((n, i) => {
     const to = +n.dataset.to, suf = n.dataset.suf, t0 = performance.now() + 450 + i * 120;
     n.textContent = 0 + suf;
     const tick = now => { const k = Math.min(1, Math.max(0, (now - t0) / 900)), e = 1 - Math.pow(1 - k, 3); n.textContent = Math.round(to * e) + suf; if (k < 1 && n.isConnected) requestAnimationFrame(tick); };
@@ -856,7 +869,7 @@ function playCard(st, it) {
     const ns = grade(it.id, g);
     st.answered++; if (g >= 2) { st.right++; sfx.right(); }
     streak(st, g >= 2);
-    addXP(g >= 2 ? 5 : 2); st.xp += g >= 2 ? 5 : 2;
+    addXP(g >= 2 ? 5 : 2);
     st.queue.shift();
     if (ns.due <= Date.now() + 15 * 60e3) { st.queue.splice(Math.min(st.queue.length, 3), 0, it); st.total++; }
     step(st);
@@ -979,15 +992,18 @@ function finish(st) {
   const what = t(st.test != null ? "testDone" : more ? "doneMore" : "doneTitle");
   const head = st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : stars === 3 ? t("donePerfect") : stars === 2 ? t("doneGreat") : what;
   const sub = [st.gold || head === what ? "" : what, l || st.test != null || st.gold ? st.title : ""].filter(Boolean).join(" · "); // what was finished still gets said when the headline praises instead
-  const boxes = [[t("xp"), st.xp, "", "y"], [t("correct"), pct, " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), null, "b"]];
+  // Three numbers (Marek, 2026-11-17): the whole course's test readiness now and how far this round moved it, how well
+  // the round went, and how long it took. No XP: it isn't used for anything the student sees.
+  const ready = readiness(), gain = ready - st.ready0;
+  const boxes = [[t("endReady"), ready, " %", "p", gain], [t("correct"), pct, " %", "g"], [t("endTime"), studyTime(Date.now() - st.started), null, "b"]];
   // The free start is over (every open lesson finished, the rest locked, not bought): Continue goes to the store, naming
   // the next lesson, instead of back to a map with nothing left to open (Marek, 2026-11-17).
   const sell = l && !more && !st.gold && !ACCESS.paid && lockedCount() > 0 && openLessons().every(x => lessonPct(x) >= 1);
   if (sell) TAPPED = allLessons().find(x => x.locked)?.id ?? null;
   view().innerHTML = `<div class="done-screen cel"><div class="cel-art">${tutorArt(curTutor(), "jump", "happy")}</div><div class="title">${head}</div>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
     ${stars ? `<div class="cel-stars" role="img" aria-label="${stars} / 3">${[1, 2, 3].map(i => `<i>${STAR}${i <= stars ? `<b>${STAR}</b>` : ""}</i>`).join("")}</div>` : ""}
-    <div class="statboxes">${boxes.map(([h, v, suf, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v"${suf == null ? "" : ` data-to="${v}" data-suf="${suf}"`}>${esc(v + (suf || ""))}</div></div>`).join("")}</div></div>
-    ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : sell ? "#/unlock" : st.back}" id="endNext">${t("cont")}</a>`)}`;
+    <div class="statboxes">${boxes.map(([h, v, suf, c, d]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v"><span${suf == null ? "" : ` data-to="${v}" data-suf="${suf}"`}>${esc(v + (suf || ""))}</span>${d ? `<small class="gain${d < 0 ? " dn" : ""}">${d > 0 ? "+" : "−"}${Math.abs(d)}</small>` : ""}</div></div>`).join("")}</div></div>
+    ${dock(`<a class="btn block big" href="${sell ? "#/unlock" : st.back}" id="endNext">${t("cont")}</a>`)}`;
   countStats(view());
 }
 
@@ -1044,6 +1060,7 @@ function viewSettings() {
       ${row("goal", "goal", t("setGoal"), STUDENT?.minutes ? t("timeM", { m: STUDENT.minutes }) : "")}
       <button class="srow" data-s="tutor"><span class="s-ic stut">${tutorArt(curTutor())}</span><b>${t("setTutor")}</b><span class="sv">${esc(tutorOf(curTutor()).name)}</span>${CHEV}</button>
       ${row("remind", "bell", t("setRemind"), `<span id="remindV"></span>`)}
+      <button class="srow" data-s="clook">${courseSq(SLUG, courseTitle(), "s-ic")}<b>${t("setCourseLook")}</b><span class="sv"></span>${CHEV}</button>
       ${C.meta.voice ? row("voice", "voice", t("setVoice")) : ""}</div>
     <h2 class="grp">${t("grpApp")}</h2><div class="sgrp">
       ${row("lang", "lang", t("setLang"), esc(langName(lang())))}
@@ -1060,7 +1077,7 @@ function viewSettings() {
   $("#contact").onclick = e => { e.preventDefault(); contactUs(); };
   $("#delAcc").onclick = e => { e.preventDefault(); toast(t("deleteSoon")); };
   const H = {
-    date: dateSheet, goal: goalSheet, tutor: tutorSheet, look: lookSheet, pay: paySheet,
+    date: dateSheet, goal: goalSheet, tutor: tutorSheet, look: lookSheet, pay: paySheet, clook: courseLookSheet,
     remind: remindToggle,
     voice: () => ctx.nav(`#/s/${SLUG}/voice`),
     lang: () => langSheet(l => { if (l === "cs" || l === "en") api("update_student", { session: TOKEN, lang: courseLang() }).catch(() => { }); viewSettings(); }),
@@ -1183,9 +1200,28 @@ function lookSheet() {
   const s = sheet(`<h2 class="sh-h">${t("setLook")}</h2><div class="sh-list">${["auto", "light", "dark"].map(k => `<button class="lrow ${k === cur ? "on" : ""}" data-th="${k}"><b>${t({ auto: "lookAuto", light: "lookLight", dark: "lookDark" }[k])}</b>${k === cur ? `<i class="lok">${TICK}</i>` : ""}</button>`).join("")}</div>`);
   $$("[data-th]", s.el).forEach(b => b.onclick = () => { store.set("theme", b.dataset.th); applyTheme(); s.close(); viewSettings(); });
 }
+// The course's colour and icon: a live preview on top, eight colours, the first letter or one of our icons.
+function courseLookSheet() {
+  const pick = lookOf(SLUG), title = courseTitle();
+  const s = sheet(`<h2 class="sh-h">${t("setCourseLook")}</h2>
+    <div class="subrow cl-prev"><span id="clSq"></span><div><b><span>${esc(C.meta.title || title)}</span></b></div></div>
+    <h3 class="cl-h" id="clColH">${t("lookColour")}</h3><div class="cl-cols" role="radiogroup" aria-labelledby="clColH">${LOOK_COLS.map((c, i) => `<button class="cl-col" role="radio" data-col="${c}" style="--c:${c}" aria-label="${t("lookColour")} ${i + 1}">${TICK}</button>`).join("")}</div>
+    <h3 class="cl-h" id="clEmoH">${t("lookIcon")}</h3><div class="cl-emos" role="radiogroup" aria-labelledby="clEmoH"><button class="cl-emo let" role="radio" data-emo="" aria-label="${t("lookLetter")}">${esc(title[0].toUpperCase())}</button>${Object.keys(COURSE_ICONS).map((k, i) => `<button class="cl-emo" role="radio" data-emo="${k}" aria-label="${t("lookIcon")} ${i + 1}">${COURSE_ICONS[k]}</button>`).join("")}</div>
+    <p class="sh-note">${t("lookLocal")}</p><button class="btn-p" id="shSave">${t("save")}</button>`);
+  const draw = () => {
+    $("#clSq", s.el).outerHTML = sqHtml(pick, title).replace("<span ", '<span id="clSq" ');
+    $(".cl-emos", s.el).style.setProperty("--cl", pick.col || LOOK_COLS[0]); // the icons are shown on the picked colour
+    $$("[data-col]", s.el).forEach(b => b.setAttribute("aria-checked", String(b.dataset.col === (pick.col || LOOK_COLS[0]))));
+    $$("[data-emo]", s.el).forEach(b => b.setAttribute("aria-checked", String(b.dataset.emo === (pick.ico || ""))));
+  };
+  $$("[data-col]", s.el).forEach(b => b.onclick = () => { pick.col = b.dataset.col === LOOK_COLS[0] ? null : b.dataset.col; draw(); }); // the first one is the app's own violet
+  $$("[data-emo]", s.el).forEach(b => b.onclick = () => { pick.ico = b.dataset.emo || null; draw(); });
+  draw();
+  $("#shSave").onclick = () => { store.set("look." + SLUG, pick); s.close(); toast(t("saved")); viewSettings(); };
+}
 function paySheet() {
   const title = C.meta.subject || C.meta.title || "";
-  const s = sheet(`<h2 class="sh-h">${t("setSubjects")}</h2><div class="sh-list"><div class="subrow on"><span class="sq">${esc((title[0] || "P").toUpperCase())}</span><div><b><span>${esc(C.meta.title || title)}</span></b><small>${t(ACCESS.paid ? "payPaid" : "payFree")}</small></div></div></div>
+  const s = sheet(`<h2 class="sh-h">${t("setSubjects")}</h2><div class="sh-list"><div class="subrow on">${courseSq(SLUG, title || "P")}<div><b><span>${esc(C.meta.title || title)}</span></b><small>${t(ACCESS.paid ? "payPaid" : "payFree")}</small></div></div></div>
     ${ACCESS.paid ? "" : `<button class="btn-p" id="payGo">${t("payUnlock")}</button>`}`);
   rollTitles(s.el);
   const b = $("#payGo"); if (b) b.onclick = () => { s.close(); ctx.nav("#/unlock"); };
