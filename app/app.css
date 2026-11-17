@@ -1458,6 +1458,10 @@ a.pc-unlock:focus-visible .ul-sh{transform:translateY(-3.5px) rotate(24deg)}
 .ul-bubs i:nth-child(3){left:58%; width:10px; height:10px; animation-duration:10.5s; animation-delay:-4.5s}
 .ul-bubs i:nth-child(4){left:73%; width:6px; height:6px; animation-duration:8s; animation-delay:-1s}
 .ul-bubs i:nth-child(5){left:88%; width:7px; height:7px; animation-duration:13s; animation-delay:-9s}
+/* the store's hero wears the same bubbles (Marek, 2026-11-17); it is taller, so they travel further and are a bit bigger */
+.st-hero .ul-bubs{z-index:0}
+.st-hero .ul-bubs i{animation-name:ulRiseTall; scale:1.3}
+@keyframes ulRiseTall{ 0%{transform:translate(0,0); opacity:0} 12%{opacity:.5} 65%{opacity:.4} 100%{transform:translate(10px,-230px); opacity:0} }
 @keyframes ulRise{ 0%{transform:translate(0,0); opacity:0} 15%{opacity:.5} 60%{opacity:.4} 100%{transform:translate(8px,-130px); opacity:0} }
 @media (prefers-reduced-motion:reduce){
   .ul-sh{transition:none}

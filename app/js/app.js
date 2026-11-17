@@ -852,7 +852,7 @@ async function viewUnlock() {
   view().innerHTML = `<div class="ob st"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${CLOSE}</button></div>
     <div class="st-grid">
       <div class="st-top">
-        <div class="st-hero"><i class="st-spark s1"></i><i class="st-spark s2"></i><i class="st-spark s3"></i>
+        <div class="st-hero"><i class="st-spark s1"></i><i class="st-spark s2"></i><i class="ul-bubs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></i>
           <div class="st-hx"><h1 class="ob-h">${t("stTitle")}</h1>${urg}</div><div class="st-art">${tutorArt(info?.tutor || "penny", "", "happy")}</div></div>
         ${tap}
       </div>
