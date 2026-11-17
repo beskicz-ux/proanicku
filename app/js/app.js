@@ -263,7 +263,10 @@ function loginFrame(title, form) {
 // Google's own button, from Google's script, so it looks the way their brand rules ask. It hands back a signed ID token
 // that pc-api checks (signup and login take it as "google"); the page reads the email and first name out of it only to show
 // them. Off, with nothing loaded from Google, until store.config.json has google.clientId.
-const G_BOX = () => `<div class="ob-g" id="gBox" hidden><div class="ob-gbtn"></div><p class="ob-or"><span>${t("orWord")}</span></p></div>`;
+// Our own button face in the app's style, with Google's real button laid over it, invisible and stretched to cover: the tap
+// still lands on Google's button, and the page's buttons match (Marek, 2026-11-17).
+const G_LOGO = `<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
+const G_BOX = (signup = false) => `<div class="ob-g" id="gBox" hidden><div class="ob-gwrap"><div class="btn-s ob-gface" aria-hidden="true">${G_LOGO}<span>${t(signup ? "gSignup" : "gContinue")}</span></div><div class="ob-gbtn"></div></div><p class="ob-or"><span>${t(signup ? "orNewAcc" : "orWord")}</span></p></div>`;
 let gsiP;
 const loadGsi = () => gsiP ||= new Promise((ok, no) => {
   const s = Object.assign(document.createElement("script"), { src: "https://accounts.google.com/gsi/client", async: true });
@@ -274,7 +277,7 @@ const loadGsi = () => gsiP ||= new Promise((ok, no) => {
 const tokenClaims = tok => {
   try { return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0)))); } catch { return {}; }
 };
-async function googleButton(box, onToken) {
+async function googleButton(box, onToken, signup = false) {
   const id = (await storeConfig().catch(() => ({}))).google?.clientId;
   if (!id || !box?.isConnected) return;
   const g = await loadGsi().catch(() => null);
@@ -282,7 +285,9 @@ async function googleButton(box, onToken) {
   const th = document.documentElement.dataset.theme, dark = th === "dark" || (!th && matchMedia("(prefers-color-scheme: dark)").matches);
   g.initialize({ client_id: id, callback: r => r?.credential && onToken(r.credential), ux_mode: "popup", auto_select: false });
   box.hidden = false;
-  g.renderButton(box.querySelector(".ob-gbtn"), { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with", logo_alignment: "center", width: Math.round(Math.max(200, Math.min(400, box.clientWidth))), locale: lang() });
+  const slot = box.querySelector(".ob-gbtn"), w = Math.round(Math.max(200, Math.min(400, box.clientWidth)));
+  g.renderButton(slot, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: signup ? "signup_with" : "continue_with", logo_alignment: "center", width: w, locale: lang() });
+  slot.style.transform = `scale(${(box.clientWidth / w).toFixed(3)}, 1.5)`; // Google's button is 40 high and at most 400 wide: stretch it over our 56-high face
 }
 
 function viewLogin() {
@@ -629,7 +634,7 @@ function viewAccount() {
   const d = draft(), y = new Date().getFullYear(), a = d.acc || {};
   const card = `<div class="ob-course"><span class="sq">${esc((d.files[0]?.name || "P")[0].toUpperCase())}</span><div><b>${t("accCourse")}</b><span>${t("accCourseSub", { pages: pagesTxt(d.pages || 0), date: d.examDate ? esc(fmtDay(d.examDate)) : "", tutor: esc(tutorWith(d.tutor)) })}</span><small class="ob-price" id="accPrice" hidden></small></div></div>`;
   view().innerHTML = frame("account", { title: t("accTitle"), sub: t("accSub"), btn: t("accGo"),
-    body: `${card}<form id="f" class="ob-form" novalidate>${G_BOX()}<p class="ob-gas" id="gAs" hidden></p>
+    body: `${card}<form id="f" class="ob-form" novalidate>${G_BOX(true)}<p class="ob-gas" id="gAs" hidden></p>
       <label class="ob-lbl" for="aName">${t("accName")}</label><input class="ob-in" id="aName" autocomplete="given-name" maxlength="80" placeholder="${t("accNamePh")}" value="${esc(a.name || "")}">
       <div id="aEmailBox"><label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}"></div>
       <div class="ob-two" id="aTwo"><div id="aPassBox"><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
@@ -668,7 +673,7 @@ function viewAccount() {
     $("#gChange").onclick = () => { gTok = null; withGoogle(false); $("#aEmail").focus(); };
     withGoogle(true); keep();
     $($("#aName").value.trim() ? "#aYear" : "#aName").focus();
-  });
+  }, true);
   $("#f").onsubmit = async e => {
     e.preventDefault(); err.hidden = true;
     const v = { name: $("#aName").value.trim(), ...(gTok ? { google: gTok } : { email: $("#aEmail").value.trim(), password: $("#aPass").value }), birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
