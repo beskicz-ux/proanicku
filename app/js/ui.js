@@ -175,20 +175,22 @@ export function applyTheme() {
   if (th === "light" || th === "dark") document.documentElement.dataset.theme = th; else delete document.documentElement.dataset.theme;
 }
 
-/* ---------- the language sheet: search, 20 languages with flags, Done applies ---------- */
+/* ---------- the language sheet: search, 20 languages with flags, a tap applies ---------- */
 export function langSheet(onPick) {
-  let pick = lang();
+  const pick = lang();
   const other = code => { try { return new Intl.DisplayNames([lang()], { type: "language" }).of(code === "en" ? "en" : code); } catch (e) { return ""; } };
   const row = ([code, name]) => { const o = other(code); return `<button class="lrow ${code === pick ? "on" : ""}" data-l="${code}" lang="${code}"><span class="flag">${FLAG[code]}</span><b>${esc(name)}</b>${o && o.toLowerCase() !== name.toLowerCase() ? `<small lang="${lang()}">${esc(o)}</small>` : ""}${code === pick ? `<i class="lok">${TICK}</i>` : ""}</button>`; };
   const s = sheet(`<h2 class="sh-h">${t("langTitle")}</h2><label class="sh-search">${SEARCH}<input id="lq" type="search" placeholder="${t("langSearch")}" aria-label="${t("langSearch")}" autocomplete="off"></label>
-    <div class="sh-list" id="ll"></div><p class="sh-note">${t("langNote")}</p><button class="btn-p" id="lDone">${t("done")}</button>`);
+    <div class="sh-list" id="ll"></div><p class="sh-note">${t("langNote")}</p>`);
+  s.el.classList.add("sh-lang");
+  // A tap on a language applies and saves it and closes the sheet: no Done button to scroll down to (Marek, 2026-11-17).
+  const choose = async code => { s.close(); if (code !== lang()) { await setLang(code); onPick?.(code); } };
   const draw = () => {
     const q = $("#lq").value.trim().toLowerCase();
     $("#ll").innerHTML = LANGS.filter(l => !q || (l[0] + " " + l[1] + " " + other(l[0])).toLowerCase().includes(q)).map(row).join("");
-    s.el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { pick = b.dataset.l; draw(); });
+    s.el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => choose(b.dataset.l));
   };
   $("#lq").oninput = draw; draw();
-  $("#lDone").onclick = async () => { s.close(); if (pick !== lang()) { await setLang(pick); onPick?.(pick); } };
 }
 
 /* Practice tiles: same chunky two-tone style as the tab icons (lip underneath, white symbol on top). */

@@ -5,9 +5,11 @@ import { ham, teacher } from "./art.js";
 import { mergeState, defaults } from "./merge.js";
 import { daysBetween } from "./forecast.js";
 import { viewVoice } from "./voice.js";
+import { persona } from "./persona.js";
 import { mix, chapterColour, TAB_ICONS, PRAC_ICONS, ringIcon, calIcon, doneIcon, timeIcon, GEAR, CHEV_DOWN, CHEV, CLOSE, NOTES_ICON, setIcon, LEVEL_ICONS, TICK, levelIcon, langSheet, langName, sheet, applyTheme } from "./ui.js";
 import { phaseOf, iconFor, barTarget, phaseStart, stageText } from "./build.js";
-import { rulerHtml, bindRuler, datePanel, carouselHtml, bindCarousel, startNewSubject } from "./app.js";
+import { calHtml, bindCal, planHtml, carouselHtml, bindCarousel, startNewSubject } from "./app.js";
+import { pushSupported, pushState, askPush, current, sendSub, turnOff, saveText, remindTime } from "./push.js";
 
 const DAY = 86400000;
 export const TUTORS = [
@@ -703,12 +705,24 @@ function startLesson(id) {
   const l = LESSON[id];
   if (l?.locked) TAPPED = id;
   if (!l || l.locked) return ctx.nav(l && !ACCESS.paid ? "#/unlock" : "#/s/" + SLUG);
-  const unread = (l.reading || []).filter(s => !S.read[s.id]);
   const todo = l.items.filter(it => !mastered(it));
   const pool = todo.length ? todo : l.items;
   const own = pool.slice(0, ROUND - 2), back = reviewPicks(l, 2);
   const items = [...own]; back.forEach((it, i) => items.splice(Math.min(items.length, 2 + i * 3), 0, it));
-  runSession({ title: l.title, reading: unread, items, lesson: l, back: "#/s/" + SLUG });
+  runSession({ title: l.title, items, lesson: l, notes: notesFor(l, own), back: "#/s/" + SLUG });
+}
+// Lessons are questions only, as in Duolingo: no page to read first (2026-11-15). New courses put the new idea on the
+// question itself (an item's "teach" line). Courses built before that only have reading sections: each one not read yet
+// comes after the first answer on the same slide (else the lesson's first question), so it explains, it doesn't lecture.
+function notesFor(l, own) {
+  const map = new Map();
+  if (l.items.some(it => it.teach)) return map;
+  const same = (a, b) => a && b && a.file === b.file && a.page === b.page;
+  for (const s of (l.reading || []).filter(s => !S.read[s.id])) {
+    const it = own.find(it => !map.has(it.id) && same(it.source, s.source)) || own.find(it => !map.has(it.id));
+    if (it) map.set(it.id, s);
+  }
+  return map;
 }
 // Up to n questions from earlier, already-seen levels: due cards and past mistakes first, then the oldest.
 function reviewPicks(l, n) {
@@ -722,14 +736,14 @@ function startTest(ui) {
   if (!u || u.lessons.some(l => l.locked)) return ctx.nav("#/s/" + SLUG);
   const items = shuffle(u.lessons.flatMap(l => l.items)).slice(0, 12);
   if (!items.length) return ctx.nav("#/s/" + SLUG);
-  runSession({ title: `${t("testTitle")}: ${u.title}`, reading: [], items, test: u.id || ui, back: "#/s/" + SLUG });
+  runSession({ title: `${t("testTitle")}: ${u.title}`, items, test: u.id || ui, back: "#/s/" + SLUG });
 }
-// Gold (like Duolingo's Legendary): a finished level, every question once, no reading. 90 % on first tries turns it gold.
+// Gold (like Duolingo's Legendary): a finished level, every question once, no tips. 90 % on first tries turns it gold.
 const GOLD_AT = 90;
 function startGold(id) {
   const l = LESSON[id];
   if (!l || l.locked || !l.items.length) return ctx.nav("#/s/" + SLUG);
-  runSession({ title: l.title, reading: [], items: shuffle(l.items), gold: l, back: "#/s/" + SLUG });
+  runSession({ title: l.title, items: shuffle(l.items), gold: l, back: "#/s/" + SLUG });
 }
 function goldSheet(lessonId, test) {
   const isTest = test != null, href = isTest ? `#/s/${SLUG}/test/${test}` : `#/s/${SLUG}/gold/${encodeURIComponent(lessonId)}`;
@@ -741,33 +755,36 @@ function startReview(kind) {
   const list = kind === "due" ? dueIds().map(id => ITEM[id]) : kind === "mistakes" ? mistakeIds().map(id => ITEM[id])
     : shuffle(Object.values(ITEM).filter(it => S.cards[it.id] || S.q[it.id])).slice(0, ROUND);
   if (!list.length) return ctx.nav(`#/s/${SLUG}/practice`);
-  runSession({ title: t("pracTitle"), reading: [], items: shuffle(list).slice(0, ROUND * 2), back: `#/s/${SLUG}/practice` });
+  runSession({ title: t("pracTitle"), items: shuffle(list).slice(0, ROUND * 2), back: `#/s/${SLUG}/practice` });
 }
 function sessionTop(st) {
-  const done = st.total - st.queue.length - st.reading.length;
+  const done = st.total - st.queue.length;
   return `<div class="session-top"><button class="x" id="quit" aria-label="${t("close")}">${ic.x}</button><div class="bar"><i style="width:${Math.max(3, done / Math.max(1, st.total) * 100)}%"></i></div></div>`;
 }
 function runSession(cfg) {
-  const st = { ...cfg, reading: [...cfg.reading], queue: [...cfg.items], total: cfg.reading.length + cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, run: 0, miss: 0, started: Date.now(), tick: Date.now() };
+  const st = { ...cfg, notes: cfg.notes || new Map(), queue: [...cfg.items], total: cfg.items.length, right: 0, answered: 0, xp: 0, retried: new Map(), firstSeen: new Set(), firstN: 0, firstRight: 0, run: 0, miss: 0, started: Date.now(), tick: Date.now() };
   step(st);
 }
 function step(st) {
   const now = Date.now(); doneToday().ms = (doneToday().ms || 0) + Math.min(120e3, now - st.tick); st.tick = now; // study time, capped per step
   window.onkeydown = null;
   window.scrollTo({ top: 0, behavior: "instant" });
-  if (st.reading.length) return playReading(st);
   if (!st.queue.length) return finish(st);
   const it = st.queue[0];
+  st.fresh = !!st.lesson && !st.firstSeen.has(it.id) && !S.q[it.id] && !S.cards[it.id]; // the first time ever, in a lesson (not gold, tests or practice)
   ({ flashcard: playCard, mc: playMc, tf: playTf, fill: playFill, match: playMatch })[it.type](st, it);
   cheerSit();
   $("#quit").onclick = () => { SYNC.push(); ctx.nav(st.back); };
 }
 function dock(html) { return `<div class="dock" id="qdock"><div class="dock-in">${html}</div></div>`; }
-function playReading(st) {
-  const s = st.reading[0];
-  view().innerHTML = `${sessionTop(st)}<article class="pc-read"><h1>${esc(s.title)}</h1><div class="md">${md(s.body)}</div>${srcLine(s)}</article>${dock(`<button class="btn block big" id="go">${t("cont")}</button>`)}`;
-  $("#quit").onclick = () => { SYNC.push(); ctx.nav(st.back); };
-  $("#go").onclick = () => { S.read[s.id] = Date.now(); save(); st.reading.shift(); step(st); };
+// A new idea arrives on the question it belongs to, like Duolingo's "new word": one line, the first time only.
+const tipHtml = (st, it) => st.fresh && it.teach ? `<div class="pc-tip"><span class="pc-new">${t("newTip")}</span><p>${mdi(it.teach)}</p></div>` : "";
+// An older course's reading section, shown after the answer it belongs to; that counts as reading it (the Notes tab ticks it).
+function takeNote(st, it) {
+  const s = st.notes.get(it.id);
+  if (!s) return "";
+  st.notes.delete(it.id); S.read[s.id] = Date.now(); save();
+  return `<div class="pc-fnote"><p class="pc-fnote-h"><span class="pc-new">${t("newTip")}</span><b>${esc(s.title)}</b></p><div class="md">${md(s.body)}</div></div>`;
 }
 function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } = {}) {
   if (rec) record(it, ok);
@@ -777,8 +794,10 @@ function answered(st, it, ok, { record: rec = true, answerHtml = "", verdict } =
   $("#qdock")?.remove();
   const fb = document.createElement("div");
   fb.className = "feedback " + (ok ? "good" : "badf");
+  // The teaching is here, after the try: the why after a miss, and after a first right answer too, so a lucky guess still learns it.
+  const why = (!ok || st.fresh) && it.explanation ? `<div class="md">${md(it.explanation)}</div>` : "", note = takeNote(st, it);
   fb.innerHTML = `<div class="in"><h3><span class="ok-ico">${ok ? ic.check : ic.x}</span>${esc(verdict || (ok ? pick([t("say1"), t("say2"), t("say3"), t("say4")]) : t("correctIs")))}</h3>
-    ${ok ? "" : `${answerHtml}<div class="md">${md(it.explanation || "")}</div>${srcLine(it)}`}
+    ${ok ? "" : answerHtml}${why || note ? `<div class="fb-x">${why}${note}</div>` : ""}${ok ? "" : srcLine(it)}
     <div class="row"><button class="btn ${ok ? "ok" : "bad"} big" style="flex:1" id="fbNext">${t("cont")}</button></div></div>`;
   document.body.appendChild(fb);
   streak(st, ok);
@@ -807,9 +826,10 @@ function cheer(text, soft) {
   cheerT = setTimeout(() => { if (cheerEl === el) clearCheer(); }, soft ? 2600 : 1600); // the CSS has slid it away by then; with reduced motion it simply stands and goes
 }
 // 3 in a row, then 5, 10, 15…; a wrong answer starts over. After two misses in a row one calm line, once a round, so it never nags.
+// The tutor says it in their own voice (persona.js); in a language without their lines, the neutral ones.
 function streak(st, ok) {
-  if (ok) { st.miss = 0; const n = ++st.run; if (n === 3 || n % 5 === 0) cheer(t(pick(["cheer1", "cheer2", "cheer3", "cheer4"]), { n })); }
-  else { st.run = 0; if (++st.miss === 2 && !st.soothed) { st.soothed = true; cheer(t("cheerMiss"), true); } }
+  if (ok) { st.miss = 0; const n = ++st.run; if (n === 3 || n % 5 === 0) cheer(persona(curTutor(), "cheer", { n }) || t(pick(["cheer1", "cheer2", "cheer3", "cheer4"]), { n })); }
+  else { st.run = 0; if (++st.miss === 2 && !st.soothed) { st.soothed = true; cheer(persona(curTutor(), "miss") || t("cheerMiss"), true); } }
 }
 const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 // the result's numbers run up from 0 while their boxes pop in; with reduced motion they already stand at the final value
@@ -827,7 +847,7 @@ function countStats(root) {
 function playCard(st, it) {
   const s = S.cards[it.id] || {};
   view().innerHTML = `${sessionTop(st)}<div class="flash"><div class="face" id="face"><div class="lbl"><span>${esc(LESSON[it._l]?.title || "")}</span><span>${s.reps ? t("cardRepeat") : t("cardNew")}</span></div>
-    <div class="q">${mdi(it.front)}</div>
+    ${tipHtml(st, it)}<div class="q">${mdi(it.front)}</div>
     <div class="a" id="ans" hidden><div class="md">${md(it.back)}</div>${it.explanation && it.explanation !== it.back ? `<div class="md pc-expl">${md(it.explanation)}</div>` : ""}${srcLine(it)}</div>
     <div style="flex:1"></div></div></div>
     ${dock(`<div id="ctrl"><button class="btn blue block big" id="reveal">${t("showAns")}</button></div>`)}`;
@@ -843,6 +863,7 @@ function playCard(st, it) {
   };
   const reveal = () => {
     sfx.flip(); $("#ans").hidden = false; $("#face").classList.add("reveal");
+    if (!$("#ans .pc-fnote")) $("#ans").insertAdjacentHTML("beforeend", takeNote(st, it));
     // Two honest choices instead of Anki's four: students can't reliably tell "hard" from "good" from "easy",
     // and the choice itself costs attention. Knew it = normal spacing; didn't = comes back this round.
     $("#ctrl").innerHTML = `<div class="grades two">
@@ -857,7 +878,7 @@ function playCard(st, it) {
 
 /* multiple choice and true/false share the option screen */
 function optionScreen(st, it, { label, q, opts, isRight, rightHtml }) {
-  view().innerHTML = `${sessionTop(st)}<div class="qcard"><div class="lbl">${esc(label)}</div><div class="q">${mdi(q)}</div>${opts}</div>${dock(`<button class="btn block big off" id="qcheck">${t("check")}</button>`)}`;
+  view().innerHTML = `${sessionTop(st)}<div class="qcard">${tipHtml(st, it)}<div class="lbl">${esc(label)}</div><div class="q">${mdi(q)}</div>${opts}</div>${dock(`<button class="btn block big off" id="qcheck">${t("check")}</button>`)}`;
   let sel = null;
   const btns = $$(".opt");
   const pickOpt = b => { btns.forEach(x => x.classList.remove("sel")); b.classList.add("sel"); sel = b.dataset.v; $("#qcheck").classList.remove("off"); sfx.flip(); };
@@ -896,7 +917,7 @@ function playTf(st, it) {
 /* fill the gap */
 function playFill(st, it) {
   const [before, after] = it.text.split("___");
-  view().innerHTML = `${sessionTop(st)}<div class="qcard"><div class="lbl">${t("fillQ")}</div>
+  view().innerHTML = `${sessionTop(st)}<div class="qcard">${tipHtml(st, it)}<div class="lbl">${t("fillQ")}</div>
     <form id="ff" class="pc-fill"><span>${mdi(before)}</span><input id="fillIn" class="pc-gap" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${t("fillPh")}" aria-label="${t("fillPh")}"><span>${mdi(after)}</span></form></div>
     ${dock(`<button class="btn block big off" id="qcheck">${t("check")}</button>`)}`;
   const inp = $("#fillIn");
@@ -916,7 +937,7 @@ function playFill(st, it) {
 function playMatch(st, it) {
   const lefts = shuffle(it.pairs.map((p, i) => ({ i, s: p.left }))), rights = shuffle(it.pairs.map((p, i) => ({ i, s: p.right })));
   // One grid, row by row, so each left box lines up with the right box next to it.
-  view().innerHTML = `${sessionTop(st)}<div class="qcard"><div class="lbl">${t("matchQ")}</div><div class="pc-match mx">
+  view().innerHTML = `${sessionTop(st)}<div class="qcard">${tipHtml(st, it)}<div class="lbl">${t("matchQ")}</div><div class="pc-match mx">
     ${lefts.map((x, r) => `<button class="opt ml" data-side="l" data-i="${x.i}">${mdi(x.s)}</button><button class="opt mr" data-side="r" data-i="${rights[r].i}">${mdi(rights[r].s)}</button>`).join("")}</div></div>`;
   let sel = null, mistakes = 0, left = it.pairs.length;
   $$(".pc-match .opt").forEach(b => b.onclick = () => {
@@ -950,7 +971,7 @@ function finish(st) {
   save(); SYNC.push();
   const more = l && lessonPct(l) < 1;
   clearCheer();
-  // perfect / great / done: the headline, the stars and the size of the confetti all follow the score. A round with nothing to answer (reading only) gets no stars.
+  // perfect / great / done: the headline, the stars and the size of the confetti all follow the score. A round with nothing answered gets no stars.
   const stars = !st.answered ? 0 : pct === 100 ? 3 : pct >= 80 ? 2 : 1;
   sfx.done(); if (!st.gold || won) confetti(stars === 3 ? 160 : 70);
   // once, after the first lesson finished all the way: ask the tester what was confusing. Only after the celebration has played out (about 4 s), not on top of it.
@@ -959,10 +980,14 @@ function finish(st) {
   const head = st.gold ? t(won ? "goldWon" : "goldMiss", { n: GOLD_AT }) : stars === 3 ? t("donePerfect") : stars === 2 ? t("doneGreat") : what;
   const sub = [st.gold || head === what ? "" : what, l || st.test != null || st.gold ? st.title : ""].filter(Boolean).join(" · "); // what was finished still gets said when the headline praises instead
   const boxes = [[t("xp"), st.xp, "", "y"], [t("correct"), pct, " %", "g"], [t("profTime"), studyTime(Date.now() - st.started), null, "b"]];
+  // The free start is over (every open lesson finished, the rest locked, not bought): Continue goes to the store, naming
+  // the next lesson, instead of back to a map with nothing left to open (Marek, 2026-11-17).
+  const sell = l && !more && !st.gold && !ACCESS.paid && lockedCount() > 0 && openLessons().every(x => lessonPct(x) >= 1);
+  if (sell) TAPPED = allLessons().find(x => x.locked)?.id ?? null;
   view().innerHTML = `<div class="done-screen cel"><div class="cel-art">${tutorArt(curTutor(), "jump", "happy")}</div><div class="title">${head}</div>${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
     ${stars ? `<div class="cel-stars" role="img" aria-label="${stars} / 3">${[1, 2, 3].map(i => `<i>${STAR}${i <= stars ? `<b>${STAR}</b>` : ""}</i>`).join("")}</div>` : ""}
     <div class="statboxes">${boxes.map(([h, v, suf, c]) => `<div class="sbox ${c}"><div class="h">${esc(h)}</div><div class="v"${suf == null ? "" : ` data-to="${v}" data-suf="${suf}"`}>${esc(v + (suf || ""))}</div></div>`).join("")}</div></div>
-    ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : st.back}" id="endNext">${t("cont")}</a>`)}`;
+    ${dock(`<a class="btn block big" href="${more ? `#/s/${SLUG}/lesson/${esc(l.id)}?r=${Date.now()}` : sell ? "#/unlock" : st.back}" id="endNext">${t("cont")}</a>`)}`;
   countStats(view());
 }
 
@@ -1018,7 +1043,7 @@ function viewSettings() {
       ${row("date", "date", t("setDate"), examDate() ? esc(fmtDay(examDate())) : "")}
       ${row("goal", "goal", t("setGoal"), STUDENT?.minutes ? t("timeM", { m: STUDENT.minutes }) : "")}
       <button class="srow" data-s="tutor"><span class="s-ic stut">${tutorArt(curTutor())}</span><b>${t("setTutor")}</b><span class="sv">${esc(tutorOf(curTutor()).name)}</span>${CHEV}</button>
-      ${row("remind", "bell", t("setRemind"), `<span class="soon">${t("soon")}</span>`)}
+      ${row("remind", "bell", t("setRemind"), `<span id="remindV"></span>`)}
       ${C.meta.voice ? row("voice", "voice", t("setVoice")) : ""}</div>
     <h2 class="grp">${t("grpApp")}</h2><div class="sgrp">
       ${row("lang", "lang", t("setLang"), esc(langName(lang())))}
@@ -1036,12 +1061,13 @@ function viewSettings() {
   $("#delAcc").onclick = e => { e.preventDefault(); toast(t("deleteSoon")); };
   const H = {
     date: dateSheet, goal: goalSheet, tutor: tutorSheet, look: lookSheet, pay: paySheet,
-    remind: () => toast(t("setRemindSoon")),
+    remind: remindToggle,
     voice: () => ctx.nav(`#/s/${SLUG}/voice`),
     lang: () => langSheet(l => { if (l === "cs" || l === "en") api("update_student", { session: TOKEN, lang: courseLang() }).catch(() => { }); viewSettings(); }),
     out: logOut,
   };
   $$("[data-s]").forEach(b => b.onclick = () => H[b.dataset.s]?.());
+  remindShow();
   api("account", { session: TOKEN }).then(a => {
     const el = $("#proRow"); if (!el) return;
     const sv = $('[data-s="pay"] .sv'); if (sv) sv.textContent = String(a.courses.length || 1);
@@ -1108,13 +1134,32 @@ async function saveStudent(fields) {
   try { const r = await api("update_student", { session: TOKEN, ...fields }); STUDENT = { ...STUDENT, ...(r.student || fields) }; toast(t("saved")); return true; }
   catch (e) { toast(errText(e.code)); return false; }
 }
+// The same month calendar as the setup's date step.
 function dateSheet() {
-  const start = examDate() ? daysBetween(today(), examDate()) : 42;
-  const s = sheet(`<h2 class="sh-h">${t("setDate")}</h2><div class="dbig"><b id="dDate"></b><span id="dRel"></span></div><div class="dbadge" id="dBadge"></div>${rulerHtml()}<button class="btn-p" id="shSave">${t("save")}</button>`);
-  let pickIso = null;
+  const s = sheet(`<h2 class="sh-h">${t("setDate")}</h2>${calHtml()}<div id="calPlan" aria-live="polite"></div><button class="btn-p" id="shSave" disabled>${t("save")}</button>`);
   const pages = allLessons().reduce((a, l) => a + l.items.length, 0) / 3;
-  bindRuler(start, (n, iso) => { pickIso = iso; const p = datePanel(n, iso, pages); $("#dDate").textContent = p.date; $("#dRel").textContent = p.rel; $("#dBadge").innerHTML = p.badge; });
-  $("#shSave").onclick = async () => { if (await saveStudent({ examDate: pickIso })) { s.close(); viewSettings(); } };
+  const cal = bindCal(examDate(), (n, iso) => { $("#calPlan").innerHTML = planHtml(n, iso, pages); $("#shSave").disabled = !iso || iso === examDate(); });
+  $("#shSave").onclick = async () => { const iso = cal.get(); if (iso && await saveStudent({ examDate: iso })) { s.close(); viewSettings(); } };
+}
+// Daily reminder: "On · 18:00" or "Off". On means this browser holds a push subscription; pc-api keeps the matching row.
+async function remindShow() {
+  const el = $("#remindV"); if (!el) return;
+  const sub = await current();
+  if (sub) saveText(tutorOf(curTutor()).name); // the language or the tutor may have changed since; the reminder follows
+  el.textContent = sub ? t("setRemindOn", { time: remindTime() }) : t("setRemindOff");
+}
+async function remindToggle() {
+  if (!pushSupported()) return toast(t("pushNoSupport"));
+  if (pushState() === "denied") return toast(t("pushDenied"));
+  try {
+    if (await current()) { await turnOff(TOKEN); toast(t("remindOffDone")); }
+    else {
+      const sub = await askPush(tutorOf(curTutor()).name);
+      if (!sub) return toast(t(pushState() === "denied" ? "pushDenied" : "setRemindOff"));
+      await sendSub(TOKEN, sub); toast(t("notifyOn", { time: remindTime() }));
+    }
+  } catch (e) { toast(errText(e.code)); }
+  remindShow();
 }
 // The only daily goals there are (Marek 2026-11-11). Older picks like 45 or 90 show as the nearest.
 export const GOALS = [10, 15, 20, 30, 60];

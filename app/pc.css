@@ -200,8 +200,14 @@ body .pc-rest .rest-win svg, body .side .pc-rest .rest-win svg{width:16px; heigh
 .pc-say{display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s3)}
 .pc-mini{width:64px; height:64px; flex:none}
 .pc-say .bubble{border:2px solid var(--line); border-radius:var(--r); padding:var(--s2) var(--s3); font-size:15px; font-weight:700; color:var(--ink)}
-.pc-read{padding:var(--s3) 0 calc(110px + env(safe-area-inset-bottom))}
-.pc-read h1{font-size:24px; font-weight:800; color:var(--ink-strong); margin:0 0 var(--s3)}
+/* lessons are questions only: a new idea is a short tip on its first question, an older course's reading comes after the answer */
+.pc-new{display:inline-block; flex:none; padding:2px 8px; border-radius:999px; background:var(--purple); color:var(--on-color); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; line-height:1.5}
+.pc-tip{display:flex; align-items:flex-start; gap:var(--s2); background:var(--purple-soft); border-radius:var(--r); padding:12px 14px; margin:0 0 var(--s4)}
+.pc-tip p{margin:0; font-size:16px; font-weight:700; line-height:1.4; color:var(--ink-strong)}
+.feedback .fb-x{max-height:38vh; overflow:auto; margin:var(--s2) 0 var(--s4)}
+.feedback .fb-x .md{max-height:none; overflow:visible; margin:0}
+.pc-fnote-h{display:flex; align-items:center; gap:var(--s2); margin:0 0 4px; color:var(--ink-strong)}
+.fb-x .md + .pc-fnote, .flash .a .pc-fnote{border-top:2px dashed var(--line); margin-top:var(--s3); padding-top:var(--s3)}
 .pc-source{font-size:13px; font-weight:700; color:var(--wolf); margin:var(--s2) 0 var(--s3)}
 .pc-expl{margin-top:var(--s2); color:var(--wolf)}
 .pc-fill{font-size:19px; font-weight:700; color:var(--ink-strong); line-height:1.8; padding-top:var(--s2)}

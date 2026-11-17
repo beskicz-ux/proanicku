@@ -1,19 +1,27 @@
 // Router, welcome, onboarding (slides → date → tutor, then the account), wait page, login, unlock (store), terms and privacy.
-import { $, $$, view, esc, store, api, today, addDays, ic, toast, confetti, sfx } from "./util.js";
+import { $, $$, view, esc, store, api, today, addDays, ic, I, toast, confetti, sfx } from "./util.js";
 import { t, lang, setLang, courseLang, errText, pages as pagesTxt, fileCount, lessonCount, minutesLeft, inDays, inWeeks, fmtDay, fmtShortMonth } from "./i18n.js";
 import { ham } from "./art.js";
 import { isImage, imagesToPdfs } from "./images.js";
 import { countPages, validFile, daysBetween, ACCEPT, slidesOf } from "./forecast.js";
 import { phaseOf, QUEUED, stepsHtml, barTarget, phaseStart, clock, stageText } from "./build.js";
 import { courseRoute, tutorArt, TUTORS, tutorWith, resetCourse, storeInfo, snapGoal, money } from "./course.js";
-import { BACK, CLOSE, PACE_ICONS, langSheet, applyTheme, sheet } from "./ui.js";
+import { BACK, CLOSE, PACE_ICONS, calIcon, langSheet, applyTheme, sheet } from "./ui.js";
+import { pushSupported, pushState, askPush, subscribe, sendSub, remindTime } from "./push.js";
+import { persona } from "./persona.js";
 
 const draft = () => { const d = store.get("draft", null); if (d && !STEPS.includes(d.step)) d.step = d.slug ? "account" : "files"; return d; };
 const saveDraft = d => store.set("draft", d);
 const session = () => store.get("session", null);
-// "How did you hear about Penny": on the account step, so it adds no screen. Same list in pc-api's accountFields.
+// "How did you hear about Penny": its own screen after the tutor (Marek, 2026-11-15, like Duolingo's). Same list in pc-api's accountFields.
 const SOURCES = ["tiktok", "instagram", "youtube", "google", "friend", "other"];
-const STEPS = ["files", "date", "tutor", "account"], COUNTED = 3; // the account step isn't counted in the progress bar
+// The free lessons start building when the tutor is picked; the screens after that (where they heard of us, reminders,
+// the account) fill that wait. The account step isn't counted in the progress bar.
+const STEPS = ["files", "date", "tutor", "source", "notify", "account"], COUNTED = 5;
+const AFTER = ["source", "notify", "account"]; // once the free lessons are queued, the steps before these can't change
+// The reminders screen shows only where a browser can push and hasn't been asked yet (or the student is coming back to it).
+const showNotify = d => pushSupported() && (pushState() === "default" || !!d?.notifyAsked);
+const tutorName = id => (TUTORS.find(x => x.id === id) || TUTORS[0]).name;
 const MIN_AGE = 15; // same as pc-api
 const nav = h => { if (location.hash === h) render(); else location.hash = h; };
 // el can be gone: an upload that fails after the student moved on to the next step still has to say so.
@@ -43,51 +51,178 @@ function bindLang() {
   });
 }
 
-/* ---------- the onboarding frame: back, 3 segments, title, body, one button ---------- */
-function frame(step, { title, body, btn, btnId = "nextBtn", sub = "" }) {
+/* ---------- the onboarding frame: back, segments, title (or the tutor saying it), body, one button ---------- */
+// say: a tutor id. The title then comes as that tutor's speech bubble, like Duolingo's owl. skip: a quiet second button.
+function frame(step, { title, body, btn, btnId = "nextBtn", sub = "", say = "", skip = "" }) {
   const i = STEPS.indexOf(step), segs = i < COUNTED ? `<div class="ob-segs">${Array.from({ length: COUNTED }, (_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</div>` : `<div class="ob-segs"></div>`;
-  return `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${i ? BACK : CLOSE}</button>${segs}<span class="ob-bkpad"></span></div>
-    <h1 class="ob-h">${title}</h1>${sub ? `<p class="ob-sub">${sub}</p>` : ""}
+  const head = say ? `<div class="ob-say"><div class="ob-say-art" aria-hidden="true">${tutorArt(say, "", "happy")}</div><h1 class="ob-bub" id="obTitle">${title}</h1></div>` : `<h1 class="ob-h" id="obTitle">${title}</h1>`;
+  return `<div class="ob"><div class="ob-hd"><button class="ob-bk" id="stepBack" aria-label="${t("back")}">${prevStep(step) ? BACK : CLOSE}</button>${segs}<span class="ob-bkpad"></span></div>
+    ${head}${sub ? `<p class="ob-sub">${sub}</p>` : ""}
     <div class="ob-body">${body}</div>
-    <div class="ob-foot"><button class="btn-p" id="${btnId}">${btn}</button></div></div>`;
+    <div class="ob-foot"><button class="btn-p" id="${btnId}">${btn}</button>${skip ? `<button class="btn-t" id="skipBtn">${skip}</button>` : ""}</div></div>`;
 }
 // X on the first step: a signed-in student (another subject) goes straight back to their course, not via #/ and #/wait,
 // which flashed the setup, then a blank wait page, then the map.
 const homeOf = () => { const s = session(); return s ? (store.get("readySeen") === s.slug ? "#/s/" + s.slug : "#/wait") : "#/"; };
-function bindStepBack(step) { const i = STEPS.indexOf(step); $("#stepBack").onclick = () => nav(i ? "#/new/" + STEPS[i - 1] : homeOf()); }
+// The step Back goes to: never one locked by the queued free lessons, never the reminders screen where it isn't shown.
+function prevStep(step) {
+  const d = draft();
+  for (let k = STEPS.indexOf(step) - 1; k >= 0; k--) {
+    const s = STEPS[k];
+    if (d?.slug && !AFTER.includes(s)) return null;
+    if (s === "notify" && !showNotify(d)) continue;
+    return s;
+  }
+  return null;
+}
+function bindStepBack(step) { const p = prevStep(step); $("#stepBack").onclick = () => nav(p ? "#/new/" + p : homeOf()); }
 
-/* ---------- landing: one big drop box ---------- */
+/* ---------- landing: the tutors, one line, two buttons (Marek, 2026-11-15: "Duolingo has a cleaner homepage") ---------- */
+// Same features as the drop-box page before: files dropped anywhere on the page or picked with the big button go straight
+// to the files step, the language button, sign in, the three steps and the legal links. Only the look is calmer.
 let handoff = null; // files dropped or picked on the landing page, uploaded by the files step as soon as it opens
-const PLUS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
+const UPLOAD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>`;
 const SPIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4a8 8 0 1 0 8 8"/></svg>`;
+// The picture (Marek 2026-11-15: "only Penny and the books, files and stuff she turns into the course", then "make it
+// the best possible"). Left: the student's files, only kinds the upload takes (PDF, PowerPoint, Word, a photo of a slide),
+// on plain greyish paper. One by one each flies into Penny's open book, curving under her face; out of the book comes a
+// purple level that lands on the dotted path round her, which ends at the exam trophy. The trophy lights up, confetti,
+// Penny cheers, and the round starts again. One timeline in seconds (T, E, TR, RS below); each piece gets its own
+// keyframes from it, written into a <style> next to the picture, so the pieces stay in step. Under reduced motion the
+// picture is one still: the files, Penny and the finished path. Positions are % of the square box; moves are in cqw.
+const crew = (() => { // scoped, so the short names below can't clash with the rest of the file
+  const PAPER = "#F5F2EA", INK = "#CDC7BA";
+  const lines = (x, ys, ws, h = 2.4) => ys.map((y, i) => `<rect x="${x}" y="${y}" width="${ws[i]}" height="${h}" rx="${h / 2}"/>`).join("");
+  const badge = (x, y, w, h, fill, txt, size) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3.2" fill="${fill}"/><text x="${x + w / 2}" y="${(y + h / 2 + size * .36).toFixed(1)}" text-anchor="middle" font-size="${size}" font-weight="800" font-family="system-ui, sans-serif" fill="#fff">${txt}</text>`;
+  const PDF = `<svg viewBox="0 0 44 56"><path d="M5 0h24l15 15v36a5 5 0 0 1-5 5H5a5 5 0 0 1-5-5V5a5 5 0 0 1 5-5z" fill="${PAPER}"/><path d="M29 0v10a5 5 0 0 0 5 5h10z" fill="#DDD7CA"/>
+    <g fill="${INK}">${lines(6, [9, 16, 21, 26, 31], [17, 30, 32, 26, 31], 2.6)}</g>${badge(6, 38, 25, 12, "#E5484D", "PDF", 8.5)}</svg>`;
+  const PPT = `<svg viewBox="0 0 64 48"><rect width="64" height="44" rx="5" fill="${PAPER}"/><rect x="6" y="6" width="28" height="4.6" rx="2.3" fill="#B8B1A3"/>
+    <rect x="6" y="15" width="22" height="20" rx="2.5" fill="#E2DDD1"/><path d="M8 33l6-8 4.5 5 3-3.5L26 33z" fill="#C6BFB0"/><circle cx="23" cy="20" r="2.4" fill="#C6BFB0"/>
+    <g fill="${INK}">${lines(32, [16, 22, 28], [24, 19, 22])}</g>${badge(47, 33, 15, 14, "#D35230", "P", 10)}</svg>`;
+  const DOC = `<svg viewBox="0 0 44 56"><rect width="44" height="56" rx="5" fill="${PAPER}"/><g fill="${INK}">${lines(6, [8, 15, 20, 25, 30, 35, 40], [20, 32, 30, 32, 27, 31, 18])}</g>
+    <circle cx="30" cy="31" r="8.5" fill="none" stroke="#C9A57E" stroke-width="2.2" opacity=".5"/>${badge(5, 43, 15, 12, "#2B5DB8", "W", 9)}</svg>`;
+  const PHOTO = `<svg viewBox="0 0 60 52"><rect width="60" height="52" rx="4" fill="#fff"/><rect x="4" y="4" width="52" height="37" rx="2" fill="#3A3E56"/>
+    <path d="M11 8.5l38 2.5v20l-38 3.5z" fill="#E7E3D9"/><g fill="#BDB6A8"><path d="M15 13l18 1v2.6l-18-1z"/><path d="M15 19.5l26 1.3v2.2l-26-1z"/><path d="M15 25l22 .8v2.2l-22-.6z"/></g>
+    <path d="M10 41a7 7 0 0 1 14 0zM33 41a8 8 0 0 1 16 0z" fill="#23263A"/></svg>`;
+  const GLYPH = [ // the levels: a lesson, flashcards, a quiz, a star
+    `<path d="M11 14.5q4.5-1.6 9 1 4.5-2.6 9-1v12q-4.5-1.6-9 1-4.5-2.6-9-1z"/><path d="M20 15.5v12"/>`,
+    `<rect x="11.5" y="14" width="13" height="15" rx="2.5"/><path d="M16 10.5h10a2.5 2.5 0 0 1 2.5 2.5v12"/>`,
+    `<path d="M12.5 20.5l5 5 10-10"/>`,
+    `<path d="M20 11.5l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6L20 24.2l-5.1 2.7 1.1-5.6-4.2-3.9 5.7-.7z" fill="#fff" stroke-width="1.6"/>`];
+  const NODE = g => `<svg viewBox="0 0 40 44"><circle cx="20" cy="24" r="18" fill="#5A4BD1"/><circle cx="20" cy="20" r="18" fill="#7B6CF0"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${g}</g></svg>`;
+  const SLOT = `<svg viewBox="0 0 40 44"><circle class="s2" cx="20" cy="24" r="18"/><circle class="s1" cx="20" cy="20" r="18"/></svg>`;
+  const CUP = `<path d="M16 13h16v6.5a8 8 0 0 1-16 0z"/><path d="M16 15.5h-3.6v1.2a4.6 4.6 0 0 0 4.6 4.6M32 15.5h3.6v1.2a4.6 4.6 0 0 1-4.6 4.6" fill="none" stroke-width="2.6"/><rect x="22.1" y="26.5" width="3.8" height="4.5"/><rect x="18" y="31" width="12" height="4.2" rx="1.6"/>`;
+  const TROPHY = on => `<svg viewBox="0 0 48 52"><circle class="s2" cx="24" cy="28" r="23"${on ? ' fill="#D9890A"' : ""}/><circle class="s1" cx="24" cy="24" r="23"${on ? ' fill="#F5A524"' : ""}/><g class="g"${on ? ' fill="#fff" stroke="#fff"' : ""}>${CUP}</g></svg>`;
+  const SPARK = `<svg viewBox="0 0 20 20"><path d="M10 0q1.2 8.8 10 10-8.8 1.2-10 10Q8.8 11.2 0 10q8.8-1.2 10-10z" fill="#F5A524"/></svg>`;
+  const T = 8.6, E = [1.4, 2.5, 3.6, 4.7], TR = 6, RS = 7.3, BACK = 7.45, D = .5; // round length, gulps, trophy, clear-up, files back, start
+  const BOOK = [49, 66.5], PEN = [25, 30, 48], LEFT = [32, 65], RIGHT = [67, 70]; // Penny's book; her box; the bends under her face
+  const INS = [[PDF, 6, 6, 15, -10, 56 / 44], [PPT, 0, 31, 24, 7, 48 / 64], [DOC, 8, 54, 15, -5, 56 / 44], [PHOTO, 2, 77, 21, 8, 52 / 60]];
+  const SLOTS = [[84, 82], [90, 62], [85, 42], [76, 23]], CUPAT = [55, 11], NW = 12, CW = 16;
+  const r1 = n => +n.toFixed(2);
+  const box = (x, y, w) => `left:${r1(x)}%;top:${r1(y)}%;width:${w}%`;
+  const go = (dx, dy, rest = "") => `transform:translate(${dx.toFixed(1)}cqw,${dy.toFixed(1)}cqw)${rest && " " + rest}`;
+  const kf = (name, fr) => `@keyframes ${name}{${fr.map(([s, css, ease]) => `${(s / T * 100).toFixed(2)}%{${css}${ease ? ";animation-timing-function:" + ease : ""}}`).join("")}}`;
+  const blink = (spans, on, off) => [[0, off], ...spans.flatMap(([a, b]) => [[a, off], [a + .03, on], [b, on], [b + .03, off]]), [T, off]];
+  const PTS = [...SLOTS, CUPAT]; // the road: a smooth line through the levels to the trophy
+  const ROAD = PTS.map((c, i) => {
+    if (!i) return `M${c[0]} ${c[1]}`;
+    const a = PTS[i - 2] || PTS[i - 1], b = PTS[i - 1], d = PTS[i + 1] || c;
+    return `C${r1(b[0] + (c[0] - a[0]) / 6)} ${r1(b[1] + (c[1] - a[1]) / 6)} ${r1(c[0] - (d[0] - b[0]) / 6)} ${r1(c[1] - (d[1] - b[1]) / 6)} ${c[0]} ${c[1]}`;
+  }).join("");
+  const LEN = PTS.slice(1).map((p, i) => Math.hypot(p[0] - PTS[i][0], p[1] - PTS[i][1]));
+  const LEFTOVER = LEN.map((_, i) => r1(100 - 100 * LEN.slice(0, i + 1).reduce((s, x) => s + x) / LEN.reduce((s, x) => s + x))); // road still to draw at each stop
+  function heroCss() {
+    const css = [], run = [];
+    const add = (sel, name, fr) => { css.push(kf(name, fr)); run.push(`#ldArt ${sel}{animation:${name} ${T}s ${D}s infinite backwards}`); };
+    const hidden = "opacity:0;transform:scale(0)";
+    INS.forEach(([, x, y, w, , k], i) => {
+      const e = E[i], c = [x + w / 2, y + w * k / 2], back = BACK + .12 * i, inside = go(BOOK[0] - c[0], BOOK[1] - c[1], "scale(.08)") + ";opacity:0";
+      add(`.i${i} .mv`, `ld-i${i}`, [[0, "transform:none;opacity:1"], [e - .95, "transform:none;opacity:1", "cubic-bezier(.3,0,.4,1)"],
+        [e - .75, "transform:translate(0,-3cqw) rotate(-8deg) scale(1.08)", "cubic-bezier(.5,0,.6,1)"],
+        [e - .3, go(LEFT[0] - c[0], LEFT[1] - c[1], "rotate(12deg) scale(.6)"), "cubic-bezier(.5,0,.9,.6)"],
+        [e, go(BOOK[0] - c[0], BOOK[1] - c[1], "rotate(30deg) scale(.12)") + ";opacity:1"], [e + .04, inside], [back - .01, inside],
+        [back, "transform:scale(0);opacity:0", "cubic-bezier(.3,1.6,.5,1)"], [back + .4, "transform:none;opacity:1"], [T, "transform:none;opacity:1"]]);
+    });
+    SLOTS.forEach(([x, y], i) => {
+      const e = E[i], off = RS + .06 * (3 - i), inBook = go(BOOK[0] - x, BOOK[1] - y, "scale(.1)") + ";opacity:0";
+      add(`.n${i} .mv`, `ld-n${i}`, [[0, inBook], [e + .02, inBook, "cubic-bezier(.3,.6,.5,1)"], [e + .3, go(RIGHT[0] - x, RIGHT[1] - y, "scale(.65)") + ";opacity:1", "cubic-bezier(.3,1.5,.5,1)"],
+        [e + .68, "transform:none"], [e + .76, "transform:scale(1.12,.9)"], [e + .86, "transform:none;opacity:1"], [off, "transform:none;opacity:1", "cubic-bezier(.5,0,.9,.5)"],
+        [off + .3, hidden], [off + .31, inBook], [T, inBook]]);
+      add(`.p${i}`, `ld-p${i}`, [[0, "opacity:0;transform:scale(.8)"], [e + .7, "opacity:0;transform:scale(.8)"], [e + .74, "opacity:.8;transform:scale(.95)"], [e + 1.25, "opacity:0;transform:scale(1.8)"], [T, "opacity:0;transform:scale(.8)"]]);
+    });
+    add(".ld-road .r1", "ld-road", [[0, "stroke-dashoffset:100"], ...[1, 2, 3].flatMap(k => [[E[k] + .45, `stroke-dashoffset:${k > 1 ? LEFTOVER[k - 2] : 100}`], [E[k] + .75, `stroke-dashoffset:${LEFTOVER[k - 1]}`]]),
+      [TR - .45, `stroke-dashoffset:${LEFTOVER[2]}`], [TR, "stroke-dashoffset:0"], [RS, "stroke-dashoffset:0"], [RS + .35, "stroke-dashoffset:100"], [T, "stroke-dashoffset:100"]]);
+    add(".ld-tro.on", "ld-tro", [[0, "opacity:0;transform:scale(.5)"], [TR - .05, "opacity:0;transform:scale(.5)", "cubic-bezier(.3,1.6,.5,1)"], [TR + .35, "opacity:1;transform:none"],
+      [TR + .5, "transform:rotate(-10deg)"], [TR + .7, "transform:rotate(8deg)"], [TR + .9, "transform:rotate(-4deg)"], [TR + 1.05, "opacity:1;transform:none"],
+      [RS, "opacity:1;transform:none", "ease-in"], [RS + .35, "opacity:0;transform:scale(.7)"], [T, "opacity:0;transform:scale(.5)"]]);
+    add(".ld-tglow", "ld-tglow", [[0, "opacity:0;transform:scale(.5)"], [TR, "opacity:0;transform:scale(.5)"], [TR + .3, "opacity:1;transform:scale(1.15)"], [TR + 1.4, "opacity:0;transform:scale(1.7)"], [T, "opacity:0;transform:scale(.5)"]]);
+    add(".cf", "ld-cf", [[0, "opacity:0;transform:none"], [TR + .02, "opacity:0;transform:none", "cubic-bezier(.15,.8,.35,1)"], [TR + .08, "opacity:1"],
+      [TR + .75, "transform:translate(var(--cx),var(--cy)) rotate(var(--cr))", "cubic-bezier(.5,0,.8,.5)"], [TR + 1.2, "opacity:1"],
+      [TR + 1.6, "opacity:0;transform:translate(var(--cx),calc(var(--cy) + 12cqw)) rotate(calc(var(--cr) * 2))"], [T, "opacity:0;transform:none"]]);
+    const hop = [[TR - .04, "transform:none"], [TR + .1, "transform:scale(1.08,.9)", "cubic-bezier(.2,.7,.4,1)"], [TR + .34, "transform:translateY(-7cqw) scale(.96,1.05)", "cubic-bezier(.6,0,.8,.4)"],
+      [TR + .56, "transform:scale(1.06,.94)"], [TR + .7, "transform:none"], [TR + .78, "transform:none", "cubic-bezier(.2,.7,.4,1)"], [TR + .94, "transform:translateY(-3.5cqw)", "cubic-bezier(.6,0,.8,.4)"],
+      [TR + 1.1, "transform:scale(1.03,.97)"], [TR + 1.2, "transform:none"]];
+    add(".cw-penny .mv", "ld-pen", [[0, "transform:none"], ...E.flatMap(e => [[e - .04, "transform:none"], [e + .1, "transform:scale(1.07,.93)"], [e + .24, "transform:scale(.97,1.04)"], [e + .38, "transform:none"]]), ...hop, [T, "transform:none"]]);
+    const glad = [...E.map(e => [e + .05, e + .5]), [TR, RS - .15]];
+    add(".e-happy", "ld-eh", blink(glad, "opacity:1", "opacity:0"));
+    add(".e-open", "ld-eo", blink(glad, "opacity:0", "opacity:1"));
+    add(".mouth-o", "ld-mo", blink([[TR + .05, RS - .15]], "opacity:1", "opacity:0"));
+    add(".mouth-s", "ld-ms", blink([[TR + .05, RS - .15]], "opacity:0", "opacity:1"));
+    add(".ld-glow", "ld-glow", [[0, "opacity:0;transform:scale(.4)"], ...E.flatMap(e => [[e - .01, "opacity:0;transform:scale(.4)"], [e + .12, "opacity:.95;transform:scale(1)"], [e + .6, "opacity:0;transform:scale(1.5)"]]), [T, "opacity:0;transform:scale(.4)"]]);
+    [0, 1, 2].forEach(j => add(`.sp${j}`, `ld-sp${j}`, [[0, hidden], ...E.flatMap(e => [[e + .05 * j, hidden + " rotate(0deg)"], [e + .05 * j + .18, "opacity:1;transform:scale(1.2) rotate(45deg)"], [e + .05 * j + .45, hidden + " rotate(90deg)"]]), [T, hidden]]));
+    return `<style>${css.join("")}@media (prefers-reduced-motion:no-preference){#ldArt .cw-penny .e-happy,#ldArt .cw-penny .mouth-o{display:inline}${run.join("")}}</style>`;
+  }
+  const COLORS = ["#6C5CE7", "#F5A524", "#3FC98F", "#FF5A47", "#4C8DF6", "#FF8FA8"];
+  return () => heroCss()
+    + `<svg class="ld-road" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="r0" d="${ROAD}"/><path class="r1" d="${ROAD}" pathLength="100"/></svg>`
+    + SLOTS.map(([x, y]) => `<div class="ld-slot" style="${box(x - NW / 2, y - NW * .55, NW)}">${SLOT}</div>`).join("")
+    + `<i class="ld-tglow" style="${box(CUPAT[0] - 13, CUPAT[1] - 13, 26)}"></i>`
+    + [false, true].map(on => `<div class="ld-tro ${on ? "on" : "off"}" style="${box(CUPAT[0] - CW / 2, CUPAT[1] - CW * 52 / 96, CW)}">${TROPHY(on)}</div>`).join("")
+    + `<div class="fl cw cw-penny" style="${box(...PEN)}"><div class="mv">${tutorArt("penny", "", "open")}</div></div>`
+    + `<i class="ld-glow" style="${box(BOOK[0] - 16, BOOK[1] - 16, 32)}"></i>`
+    + [[40, 58], [57, 56], [52, 71]].map(([x, y], j) => `<i class="ld-spk sp${j}" style="${box(x - 2.5, y - 2.5, 5)}">${SPARK}</i>`).join("")
+    + INS.map(([art, x, y, w, r], i) => `<div class="fl in i${i}" style="${box(x, y, w)};--r:${r}deg;--p:${(.08 * i).toFixed(2)}s;--t:${(3.2 + i * .5).toFixed(1)}s"><div class="mv">${art}</div></div>`).join("")
+    + SLOTS.map(([x, y], i) => `<div class="fl nd n${i}" style="${box(x - NW / 2, y - NW * .55, NW)}"><div class="mv">${NODE(GLYPH[i])}</div></div><i class="ld-ping p${i}" style="${box(x - NW / 2, y - .6 - NW / 2, NW)}"></i>`).join("")
+    + Array.from({ length: 14 }, (_, i) => {
+      const a = (-168 + i * 156 / 13) * Math.PI / 180, r = 13 + (i * 7 % 5) * 2.6;
+      return `<i class="cf" style="${box(CUPAT[0] - 1.2, CUPAT[1] - .6, 2.4)};background:${COLORS[i % 6]};--cx:${(Math.cos(a) * r).toFixed(1)}cqw;--cy:${(Math.sin(a) * r * .8).toFixed(1)}cqw;--cr:${(i % 2 ? 1 : -1) * (160 + i * 25)}deg"></i>`;
+    }).join("");
+})();
+const STEP_ICONS = [UPLOAD, `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>`,
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg>`];
 function viewWelcome() {
   hideNav(); plain(); document.body.classList.add("landing");
   const s = session(), d = draft();
   if (s) return nav(homeOf());
-  const locked = !!d?.slug; // the free lessons are already building: the files can't change, so offer to finish the account
+  const locked = !!d?.slug; // the free lessons are already building: the files can't change, so offer to finish the setup
   view().innerHTML = `<div class="ld" id="ld">
-    <header class="ld-top"><span class="ld-logo">${ham("happy", "ld-mini")}<b>${t("brand")}</b></span><span class="ld-gap"></span>${langBtn()}<a class="ld-in" href="#/login">${t("landLogin")}</a></header>
-    <section class="ld-main">
-      <h1 class="ld-h">${t("landTitle1")} <em>${t("landTitle2")}</em></h1>
-      <p class="ld-sub">${t("landSub")}</p>
-      ${locked ? `<div class="ld-resume">${ham("happy", "bob")}<a class="btn-p" href="#/new/account">${t("welcomeResume")}</a></div>` : `
-      <div class="ld-box">
-        <div class="ld-peek" aria-hidden="true">${ham("happy")}</div>
-        <button class="ld-drop" id="drop" type="button" aria-describedby="dropHint"><span class="ld-plus" id="plus">${PLUS}</span><b id="dropTxt">${t("landDrop")}</b><span class="ld-drag">${t("landDrag")}</span><span class="ld-types" id="dropHint">${t("landTypes")}</span></button>
-        <input type="file" id="pick" accept="${ACCEPT}" multiple hidden>
+    <header class="ld-top"><span class="ld-logo"><b>${t("brand")}</b></span><span class="ld-gap"></span>${langBtn()}</header>
+    <section class="ld-hero">
+      <div class="ld-art" id="ldArt" aria-hidden="true">${crew()}</div>
+      <div class="ld-copy">
+        <h1 class="ld-h">${t("landTitle1")} <em>${t("landTitle2")}</em></h1>
+        <p class="ld-sub">${t("landSub")}</p>
+        <div class="ld-cta">
+          ${locked ? `<a class="ld-b ld-go" href="#/new/${d.step || "account"}">${t("welcomeResume")}</a>`
+            : `<button class="ld-b ld-go" id="drop" type="button" aria-describedby="dropHint">${UPLOAD}<span id="dropTxt">${t("landDrop")}</span></button>`}
+          <a class="ld-b ld-have" href="#/login">${t("welcomeHave")}</a>
+          ${d && !locked ? `<a class="btn-t sm ld-resume" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : ""}
+        </div>
+        ${locked ? "" : `<p class="ld-types" id="dropHint"><span class="ld-drag">${t("landDrag")} · </span>${t("landTypes")}</p>
+        <input type="file" id="pick" accept="${ACCEPT}" multiple hidden>`}
+        <p class="ob-err c" id="err" hidden role="alert"></p>
       </div>
-      <p class="ob-err c" id="err" hidden role="alert"></p>
-      ${d ? `<a class="btn-t" href="#/new/${d.step || "files"}">${t("welcomeResume")}</a>` : ""}`}
-      <ol class="ld-steps"><li><i>1</i>${t("landS1")}</li><li><i>2</i>${t("landS2")}</li><li><i>3</i>${t("landS3")}</li></ol>
     </section>
-    <footer class="ld-foot">${legalLinks()}</footer></div>`;
+    <ol class="ld-steps">${[1, 2, 3].map(i => `<li><span class="ld-si">${STEP_ICONS[i - 1]}</span><span><small>${i}</small>${t("landS" + i)}</span></li>`).join("")}</ol>
+    <footer class="ld-foot">${legalLinks()}</footer>
+    <div class="ld-over" aria-hidden="true"><div>${ham("open")}<b>${t("landDropHere")}</b></div></div></div>`;
   bindLang();
   if (locked) return;
   const drop = $("#drop"), pick = $("#pick"), ld = $("#ld");
   let busy = false;
   const start = async list => {
     const files = [...list]; if (!files.length || busy) return;
-    busy = true; drop.classList.add("busy"); drop.setAttribute("aria-busy", "true"); $("#plus").innerHTML = SPIN; $("#dropTxt").textContent = t("landBusy"); $("#err").hidden = true;
+    busy = true; drop.classList.add("busy"); drop.setAttribute("aria-busy", "true"); drop.querySelector("svg").outerHTML = SPIN; $("#dropTxt").textContent = t("landBusy"); $("#err").hidden = true;
     try {
       if (!draft()) {
         const { orderToken } = await api("start", { lang: courseLang() });
@@ -96,7 +231,7 @@ function viewWelcome() {
       handoff = files;
       nav("#/new/files");
     } catch (e) {
-      busy = false; drop.classList.remove("busy"); drop.removeAttribute("aria-busy"); $("#plus").innerHTML = PLUS; $("#dropTxt").textContent = t("landDrop");
+      busy = false; drop.classList.remove("busy"); drop.removeAttribute("aria-busy"); drop.querySelector("svg").outerHTML = UPLOAD; $("#dropTxt").textContent = t("landDrop");
       fail($("#err"), e);
     }
   };
@@ -124,8 +259,34 @@ function loginFrame(title, form) {
     <div class="ob-login">${ham("open", "ob-mini")}<h1 class="ob-h">${title}</h1>${form}</div></div>`;
   $("#stepBack").onclick = () => nav("#/");
 }
+/* ---------- Continue with Google (2026-11-15) ---------- */
+// Google's own button, from Google's script, so it looks the way their brand rules ask. It hands back a signed ID token
+// that pc-api checks (signup and login take it as "google"); the page reads the email and first name out of it only to show
+// them. Off, with nothing loaded from Google, until store.config.json has google.clientId.
+const G_BOX = () => `<div class="ob-g" id="gBox" hidden><div class="ob-gbtn"></div><p class="ob-or"><span>${t("orWord")}</span></p></div>`;
+let gsiP;
+const loadGsi = () => gsiP ||= new Promise((ok, no) => {
+  const s = Object.assign(document.createElement("script"), { src: "https://accounts.google.com/gsi/client", async: true });
+  s.onload = () => window.google?.accounts?.id ? ok(window.google.accounts.id) : no(new Error("offline"));
+  s.onerror = () => { gsiP = null; s.remove(); no(new Error("offline")); };
+  document.head.append(s);
+});
+const tokenClaims = tok => {
+  try { return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0)))); } catch { return {}; }
+};
+async function googleButton(box, onToken) {
+  const id = (await storeConfig().catch(() => ({}))).google?.clientId;
+  if (!id || !box?.isConnected) return;
+  const g = await loadGsi().catch(() => null);
+  if (!g || !box.isConnected) return; // offline, a blocker, or the page moved on: the email form is still there
+  const th = document.documentElement.dataset.theme, dark = th === "dark" || (!th && matchMedia("(prefers-color-scheme: dark)").matches);
+  g.initialize({ client_id: id, callback: r => r?.credential && onToken(r.credential), ux_mode: "popup", auto_select: false });
+  box.hidden = false;
+  g.renderButton(box.querySelector(".ob-gbtn"), { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with", logo_alignment: "center", width: Math.round(Math.max(200, Math.min(400, box.clientWidth))), locale: lang() });
+}
+
 function viewLogin() {
-  loginFrame(t("signinTitle"), `<form id="f" class="ob-form"><input class="ob-in" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
+  loginFrame(t("signinTitle"), `${G_BOX()}<form id="f" class="ob-form"><input class="ob-in" id="email" type="email" autocomplete="email" placeholder="${t("accEmail")}" aria-label="${t("accEmail")}" maxlength="200">
     <input class="ob-in" id="pass" type="password" autocomplete="current-password" placeholder="${t("accPass")}" aria-label="${t("accPass")}" maxlength="200">
     <p class="ob-err" id="err" hidden role="alert"></p><button class="btn-p" id="go">${t("loginGo")}</button><p class="ob-legal" id="forgot" hidden></p></form>`);
   $("#email").focus();
@@ -138,6 +299,10 @@ function viewLogin() {
     $("#go").disabled = true; $("#err").hidden = true;
     try { const r = await api("login", { email, password }); store.set("session", { token: r.session, slug: r.student.slug }); await useInvite(); signedIn(r, email); } catch (er) { fail($("#err"), er); $("#go").disabled = false; }
   };
+  googleButton($("#gBox"), async token => {
+    $("#err").hidden = true;
+    try { const r = await api("login", { google: token }); store.set("session", { token: r.session, slug: r.student.slug }); await useInvite(); signedIn(r, r.email || tokenClaims(token).email); } catch (er) { fail($("#err"), er); }
+  });
 }
 
 /* ---------- step 1: slides ---------- */
@@ -232,88 +397,94 @@ function viewFiles() {
   if (handoff) { const f = handoff; handoff = null; addAll(f); } // dropped on the landing page: upload them here, no second pick
 }
 
-/* ---------- step 2: exam date, a timeline under a fixed needle ---------- */
-// PRE: dimmed, unpickable days drawn before MIN, so near the start the ruler still fills both sides of the needle.
-export const RULER = { MIN: 1, MAX: 150, STEP: 12, PRE: 24 };
+/* ---------- step 2: exam date, a month calendar ---------- */
+// Marek, 2026-11-15: "I still hate the timeline". A plain month you tap, like the calendar on a phone. The days from today
+// to the exam are tinted, so the student sees how much time is left. The same picker is in Settings → exam date.
+export const DATE_MIN = 1, DATE_MAX = 180; // from tomorrow to about half a year out
 const paceOf = n => n < 14 ? "sprint" : n < 35 ? "tempo" : "chill";
 // Minutes a day: one pass plus three repeats of every page (3 min a page), spread over the days before the last two.
 // The plan's daily minutes, snapped to the goals the settings offer (10/15/20/30/60).
 export const minutesFor = (pages, n) => snapGoal(Math.max(10, Math.min(90, Math.round((pages || 20) * 3 / Math.max(1, n - 2) / 5) * 5)));
-export function rulerHtml() {
-  // Classes are rd-mo / rd-wk, never bare .mo / .wk: app.css has a global .wk (the week-streak grid) that once
-  // turned every Monday into a 36 px grid, so ticks were uneven and the needle sat on the wrong day.
-  let html = "";
-  for (let n = RULER.MIN - RULER.PRE; n <= RULER.MAX; n++) {
-    const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n);
-    const day = d.getDate(), mo = day === 1, wk = d.getDay() === 1;
-    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    // a Monday within 3 days of a month label keeps its tick but drops its number, so "30." and "Dec" never collide
-    const crowded = wk && (day <= 4 || day >= last - 2);
-    html += `<div class="rd${n < RULER.MIN ? " rd-off" : ""}${mo ? " rd-mo" : wk ? " rd-wk" : ""}">${mo ? `<small>${esc(fmtShortMonth(d))}</small>` : wk && !crowded ? `<small>${day}.</small>` : ""}</div>`;
-  }
-  return `<div class="ruler" dir="ltr"><div class="rscroll" id="rs" tabindex="0" role="slider" aria-valuemin="${RULER.MIN}" aria-valuemax="${RULER.MAX}">${html}</div><div class="needle" aria-hidden="true"></div></div>`;
+const p2 = n => String(n).padStart(2, "0");
+const ymd = (y, m, d) => `${y}-${p2(m + 1)}-${p2(d)}`;
+const monthName = (y, m) => { try { return new Date(y, m, 1, 12).toLocaleDateString(lang(), { month: "long", year: "numeric" }); } catch { return `${m + 1}/${y}`; } };
+// Monday first; 1 Jan 2024 was a Monday.
+const weekdays = () => Array.from({ length: 7 }, (_, i) => { try { return new Date(2024, 0, 1 + i, 12).toLocaleDateString(lang(), { weekday: "short" }).replace(".", ""); } catch { return ""; } });
+export function calHtml() {
+  return `<div class="mcal"><div class="cal-hd"><button type="button" class="cal-nav" id="calPrev" aria-label="${esc(t("calPrev"))}">${BACK}</button><b id="calMonth" aria-live="polite"></b><button type="button" class="cal-nav nx" id="calNext" aria-label="${esc(t("calNext"))}">${BACK}</button></div>
+    <div class="cal-wd" aria-hidden="true">${weekdays().map(w => `<span>${esc(w)}</span>`).join("")}</div><div class="cal-grid" id="calGrid"></div></div>`;
 }
-// Binds a ruler; onChange(n, iso) on every snap. Arrow keys move a day.
-export function bindRuler(startDays, onChange) {
-  const rs = $("#rs");
-  const x0 = RULER.PRE * RULER.STEP; // scrollLeft that puts day MIN under the needle
-  const at = () => Math.min(RULER.MAX, Math.max(RULER.MIN, RULER.MIN + Math.round((rs.scrollLeft - x0) / RULER.STEP)));
-  let last = -1;
-  const upd = () => { const n = at(); if (n === last) return; last = n; rs.setAttribute("aria-valuenow", n); onChange(n, addDays(today(), n)); };
-  rs.addEventListener("scroll", upd, { passive: true });
-  const go = n => { rs.scrollLeft = x0 + (Math.min(RULER.MAX, Math.max(RULER.MIN, n)) - RULER.MIN) * RULER.STEP; };
-  rs.onkeydown = e => { const k = { ArrowRight: 1, ArrowLeft: -1, PageUp: 7, PageDown: -7 }[e.key]; if (k) { e.preventDefault(); go(at() + k); } };
-  // Desktop: a mouse wheel scrolls up/down, so turn that into days (sideways trackpad swipes stay native).
-  let acc = 0;
-  rs.addEventListener("wheel", e => {
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-    e.preventDefault();
-    acc += e.deltaMode ? e.deltaY * 33 : e.deltaY;
-    const k = Math.trunc(acc / 33);
-    if (k) { acc -= k * 33; go(at() + k); }
-  }, { passive: false });
-  // Desktop: drag with the mouse, or click a day to jump to it.
-  let drag = null;
-  rs.addEventListener("pointerdown", e => {
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
-    drag = { x: e.clientX, left: rs.scrollLeft, moved: false };
-    rs.setPointerCapture(e.pointerId); rs.classList.add("drag");
-  });
-  rs.addEventListener("pointermove", e => {
-    if (!drag) return;
-    if (Math.abs(e.clientX - drag.x) > 4) drag.moved = true;
-    if (drag.moved) rs.scrollLeft = drag.left - (e.clientX - drag.x);
-  });
-  const end = e => {
-    if (!drag) return;
-    const d = drag; drag = null; rs.classList.remove("drag");
-    if (d.moved) { go(at()); return; }
-    if (e.type !== "pointerup") return;
-    const r = rs.getBoundingClientRect(); // the needle sits in the middle
-    go(at() + Math.round((e.clientX - (r.left + r.width / 2)) / RULER.STEP));
-  };
-  rs.addEventListener("pointerup", end); rs.addEventListener("pointercancel", end);
-  requestAnimationFrame(() => { go(startDays); upd(); });
-  return { get: () => addDays(today(), at()) };
-}
-export function datePanel(n, iso, pages) {
+// The line under the calendar: the date in words, how far off it is, minutes a day and the pace.
+export function planHtml(n, iso, pages) {
+  if (!iso) return `<div class="cal-plan empty">${calIcon()}<span>${esc(t("datePick"))}</span></div>`;
   const kind = paceOf(n), when = n < 14 ? inDays(n) : inWeeks(Math.round(n / 7));
-  return { date: fmtDay(iso), rel: t("dateRel", { when, min: minutesFor(pages, n) }), badge: `<span class="badge ${kind}">${PACE_ICONS[kind]}${t({ sprint: "paceSprint", tempo: "paceTempo", chill: "paceChill" }[kind])}</span>` };
+  return `<div class="cal-plan"><div class="t"><b>${esc(fmtDay(iso))}</b><span>${esc(t("dateRel", { when, min: minutesFor(pages, n) }))}</span></div><span class="badge ${kind}">${PACE_ICONS[kind]}${t({ sprint: "paceSprint", tempo: "paceTempo", chill: "paceChill" }[kind])}</span></div>`;
+}
+// Binds the calendar from calHtml(). onPick(n, iso) after every pick (and once at the start when a date is already set).
+export function bindCal(startIso, onPick) {
+  const t0 = today(), min = addDays(t0, DATE_MIN), max = addDays(t0, DATE_MAX);
+  let sel = startIso && startIso >= min && startIso <= max ? startIso : null;
+  let [y, m] = (sel || t0).split("-").map(Number); m--;
+  const first = t0.slice(0, 7), last = max.slice(0, 7), grid = $("#calGrid");
+  const draw = focus => {
+    const cur = ymd(y, m, 1).slice(0, 7);
+    $("#calMonth").textContent = monthName(y, m);
+    $("#calPrev").disabled = cur <= first; $("#calNext").disabled = cur >= last;
+    const lead = (new Date(y, m, 1, 12).getDay() + 6) % 7, len = new Date(y, m + 1, 0).getDate();
+    let html = "";
+    for (let i = 0; i < lead; i++) html += `<span class="cd blank"></span>`;
+    for (let d = 1; d <= len; d++) {
+      const day = ymd(y, m, d), col = (lead + d - 1) % 7, off = day < min || day > max;
+      // the tint runs from today to the exam day; it is rounded where it starts and ends, and at the ends of each week row
+      const band = sel && day >= t0 && day <= sel;
+      const cls = ["cd", off && "off", day === t0 && "today", day === sel && "sel", band && "band",
+        band && (day === t0 || col === 0 || d === 1) && "bs", band && (day === sel || col === 6 || d === len) && "be"].filter(Boolean).join(" ");
+      html += `<button type="button" class="${cls}" data-d="${day}"${off ? " disabled" : ""} aria-pressed="${day === sel}" aria-label="${esc(fmtDay(day))}"${day === t0 ? ' aria-current="date"' : ""}><span>${d}</span></button>`;
+    }
+    grid.innerHTML = html;
+    if (focus) grid.querySelector(`[data-d="${focus}"]`)?.focus();
+  };
+  const choose = (day, focus) => {
+    sel = day; [y, m] = day.split("-").map(Number); m--;
+    draw(focus && day); sfx.flip();
+    onPick(daysBetween(t0, day), day);
+  };
+  const month = k => { m += k; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } draw(); };
+  $("#calPrev").onclick = () => month(-1);
+  $("#calNext").onclick = () => month(1);
+  grid.onclick = e => { const b = e.target.closest("[data-d]"); if (b && !b.disabled) choose(b.dataset.d); };
+  // Arrow keys move the pick a day or a week (mirrored in right-to-left languages).
+  grid.onkeydown = e => {
+    const rtl = document.documentElement.dir === "rtl";
+    const k = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1, ArrowDown: 7, ArrowUp: -7 }[e.key];
+    if (!k) return;
+    e.preventDefault();
+    const from = sel || e.target.closest("[data-d]")?.dataset.d || min, to = addDays(from, k);
+    choose(to < min ? min : to > max ? max : to, true);
+  };
+  // Phones: a sideways swipe turns the month.
+  let sx = null, sy = 0;
+  grid.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") { sx = e.clientX; sy = e.clientY; } });
+  grid.addEventListener("pointerup", e => {
+    if (sx === null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const k = (dx < 0) !== (document.documentElement.dir === "rtl") ? 1 : -1;
+    if (!(k > 0 ? $("#calNext") : $("#calPrev")).disabled) month(k);
+  });
+  draw();
+  onPick(sel ? daysBetween(t0, sel) : 0, sel);
+  return { get: () => sel };
 }
 function viewDate() {
   const d = draft();
-  const start = d.examDate ? daysBetween(today(), d.examDate) : 42;
   view().innerHTML = frame("date", { title: t("dateTitle"), btn: t("next"),
-    body: `<div class="ob-mid"><div class="dbig"><b id="dDate"></b><span id="dRel"></span></div><div class="dbadge" id="dBadge"></div>${rulerHtml()}</div>` });
+    body: `<div class="ob-date">${calHtml()}<div id="calPlan" aria-live="polite"></div></div>` });
   bindStepBack("date");
-  let pick = null;
-  const r = bindRuler(start, (n, iso) => {
-    pick = iso;
-    const p = datePanel(n, iso, d.pages);
-    $("#dDate").textContent = p.date; $("#dRel").textContent = p.rel; $("#dBadge").innerHTML = p.badge;
-  });
+  const cal = bindCal(d.examDate, (n, iso) => { $("#calPlan").innerHTML = planHtml(n, iso, d.pages); $("#nextBtn").disabled = !iso; });
   $("#nextBtn").onclick = () => {
-    const iso = pick || r.get(), n = daysBetween(today(), iso), cur = draft();
+    const iso = cal.get(); if (!iso) return;
+    const n = daysBetween(today(), iso), cur = draft();
     cur.examDate = iso; cur.minutes = minutesFor(cur.pages, n); cur.days = 7; cur.step = "tutor"; saveDraft(cur);
     api("update_order", { orderToken: cur.orderToken, examDate: cur.examDate, minutes: cur.minutes, days: 7 }).catch(() => { });
     nav("#/new/tutor");
@@ -327,7 +498,7 @@ const pickable = () => TUTORS;
 export function carouselHtml() {
   const one = copy => pickable().map((x, i) => `<div class="slot" data-i="${i}"${copy === 1 ? "" : ' aria-hidden="true"'}><div class="fig">${tutorArt(x.id)}</div></div>`).join("");
   return `<div class="car" id="car" dir="ltr">${one(0)}${one(1)}${one(2)}</div><div class="car-floor" aria-hidden="true"></div>
-    <div class="tinfo"><b id="tName"></b></div><div class="dots" id="dots" aria-hidden="true">${pickable().map(() => "<i></i>").join("")}</div>`;
+    <div class="tinfo"><b id="tName"></b><span class="ttag" id="tTag"></span></div><div class="dots" id="dots" aria-hidden="true">${pickable().map(() => "<i></i>").join("")}</div>`;
 }
 export function bindCarousel(startId, onChange) {
   const c = $("#car"), n = pickable().length, slots = [...c.children];
@@ -335,6 +506,7 @@ export function bindCarousel(startId, onChange) {
   // how far to scroll so slot s sits exactly in the middle of the carousel
   const centre = s => { const sr = s.getBoundingClientRect(), cr = c.getBoundingClientRect(); return c.scrollLeft + sr.left + sr.width / 2 - cr.left - cr.width / 2; };
   const paint = () => {
+    if (!c.isConnected) return; // the step was left before this frame (Back, or a fast test): nothing to paint
     const cr = c.getBoundingClientRect(), mid = cr.left + cr.width / 2;
     let best = 0, bd = 1e9;
     slots.forEach((s, i) => {
@@ -346,7 +518,7 @@ export function bindCarousel(startId, onChange) {
     });
     abs = best;
     const i = best % n;
-    if (i !== cur) { cur = i; $("#tName").textContent = pickable()[i].name; [...$("#dots").children].forEach((d, j) => d.classList.toggle("on", j === i)); onChange(pickable()[i]); }
+    if (i !== cur) { cur = i; $("#tName").textContent = pickable()[i].name; $("#tTag").textContent = persona(pickable()[i].id, "tag") || ""; [...$("#dots").children].forEach((d, j) => d.classList.toggle("on", j === i)); onChange(pickable()[i]); }
   };
   // Once the swipe has fully stopped on a copy, jump to the same tutor in the middle copy. The jump must look like nothing:
   // no size transition on the figures (they would visibly shrink and regrow) and never mid-swipe or mid-snap (that
@@ -384,44 +556,125 @@ function viewTutor() {
         if (r.proCap) toast(errText("pro_cap"));
         return nav("#/wait");
       }
-      const y = draft(); y.slug = r.slug; y.step = "account"; saveDraft(y);
-      nav("#/new/account");
+      const y = draft(); y.slug = r.slug; y.step = "source"; saveDraft(y);
+      nav("#/new/source");
     } catch (e) { toast(errText(e.code)); btn.disabled = false; }
   };
+}
+
+/* ---------- step 4: where did you hear about us (Marek, 2026-11-15, like Duolingo's) ---------- */
+// One tap and Next; "somewhere else" covers the rest, so nobody is stuck. The answer goes with the signup (pc_students.source),
+// so the launch can tell which channel brings students. The free lessons are already building while the student answers.
+const SRC_ICONS = {
+  tiktok: `<svg viewBox="0 0 24 24"><path fill="#25F4EE" d="M9.4 9.9v-1a7 7 0 0 0-1-.1 6.3 6.3 0 0 0-3.6 11.5A6.3 6.3 0 0 1 9.4 9.9z"/><path fill="#25F4EE" d="M9.6 21.2a2.9 2.9 0 0 0 2.9-2.8V3.2h2.6a4.8 4.8 0 0 1-.1-1h-3.6v15.3a2.9 2.9 0 0 1-4.2 2.5 2.9 2.9 0 0 0 2.4 1.2zM19.9 8V7a4.8 4.8 0 0 1-2.7-.8A4.8 4.8 0 0 0 19.9 8z"/><path fill="#FE2C55" d="M17.2 6.2A4.8 4.8 0 0 1 16 3.2h-1a4.8 4.8 0 0 0 2.2 3zM8.4 13.7a2.9 2.9 0 0 0-1.3 5.4 2.9 2.9 0 0 1 3.3-4.5v-3.9a6.3 6.3 0 0 0-1-.1h-.1v3a2.9 2.9 0 0 0-.9-.1z"/><path fill="#FE2C55" d="M19.9 8v2.9a8.2 8.2 0 0 1-4.8-1.5v6.9a6.3 6.3 0 0 1-9.8 5.2 6.3 6.3 0 0 0 10.9-4.3V10.3a8.2 8.2 0 0 0 4.8 1.5V8.9a4.9 4.9 0 0 1-1.1-.1z"/><path fill="currentColor" d="M15.1 16.3V9.4a8.2 8.2 0 0 0 4.8 1.5V8a4.8 4.8 0 0 1-2.7-1.8 4.8 4.8 0 0 1-2.2-3h-2.5v15.2a2.9 2.9 0 0 1-5.3 1.6 2.9 2.9 0 0 1 2.2-5.3v-3a6.3 6.3 0 0 0-4.5 10.7 6.3 6.3 0 0 0 10.2-6.1z"/></svg>`,
+  instagram: `<svg viewBox="0 0 24 24"><defs><radialGradient id="igG" cx="30%" cy="107%" r="150%"><stop offset="0" stop-color="#fdf497"/><stop offset=".05" stop-color="#fdf497"/><stop offset=".45" stop-color="#fd5949"/><stop offset=".6" stop-color="#d6249f"/><stop offset=".9" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igG)"/><rect x="6.5" y="6.5" width="11" height="11" rx="5.5" fill="none" stroke="#fff" stroke-width="1.9"/><circle cx="17.3" cy="6.7" r="1.2" fill="#fff"/></svg>`,
+  youtube: `<svg viewBox="0 0 24 24"><rect x="1.5" y="5" width="21" height="14.5" rx="4.5" fill="#FF0033"/><path d="M10 9v6.5l5.6-3.25z" fill="#fff"/></svg>`,
+  google: `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.2-2.7l-3.5-2.7c-1 .6-2.2 1-3.7 1-2.9 0-5.3-1.9-6.2-4.5H2.2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.2 7.1l3.6 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>`,
+  friend: `<svg viewBox="0 0 24 24"><circle cx="8.5" cy="8" r="3.6" fill="#FFB020"/><path d="M1.8 20a6.7 6.7 0 0 1 13.4 0z" fill="#FFB020"/><circle cx="16.8" cy="9.2" r="3" fill="#58CC02"/><path d="M13.4 20a5.6 5.6 0 0 1 9-4.5V20z" fill="#58CC02"/></svg>`,
+  other: `<svg viewBox="0 0 24 24"><path d="M4 4.5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8.5L6.5 21v-3.5H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" fill="var(--accent)"/><circle cx="8" cy="11" r="1.3" fill="#fff"/><circle cx="12" cy="11" r="1.3" fill="#fff"/><circle cx="16" cy="11" r="1.3" fill="#fff"/></svg>`,
+};
+function viewSource() {
+  const d = draft();
+  let pick = SOURCES.includes(d.source) ? d.source : "";
+  view().innerHTML = frame("source", { say: d.tutor, title: persona(d.tutor, "src", { brand: t("brand") }) || t("srcSay", { brand: t("brand") }), btn: t("next"),
+    body: `<div class="src-grid" id="src" role="radiogroup" aria-labelledby="obTitle">${SOURCES.map(s => `<button type="button" class="src" role="radio" aria-checked="${pick === s}" data-s="${s}"><span class="src-i" aria-hidden="true">${SRC_ICONS[s]}</span><b>${esc(t("src_" + s))}</b></button>`).join("")}</div>` });
+  bindStepBack("source");
+  const next = $("#nextBtn"); next.disabled = !pick;
+  $("#src").onclick = e => {
+    const b = e.target.closest("[data-s]"); if (!b) return;
+    pick = b.dataset.s; sfx.flip(); next.disabled = false;
+    $$("#src .src").forEach(x => x.setAttribute("aria-checked", x.dataset.s === pick));
+  };
+  // arrow keys move the pick, like any radio group
+  $("#src").onkeydown = e => {
+    const k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]; if (!k) return;
+    e.preventDefault();
+    const i = (Math.max(0, SOURCES.indexOf(pick)) + k + SOURCES.length) % SOURCES.length;
+    $(`#src [data-s="${SOURCES[i]}"]`).click(); $(`#src [data-s="${SOURCES[i]}"]`).focus();
+  };
+  next.onclick = async () => {
+    if (!pick) return;
+    const x = draft(); x.source = pick;
+    // the student allowed notifications earlier (another subject, or on this site before): no need to ask, just subscribe
+    if (pushState() === "granted" && !x.push) x.push = await subscribe(tutorName(x.tutor)).catch(() => null);
+    x.step = showNotify(x) ? "notify" : "account"; saveDraft(x);
+    nav("#/new/" + x.step);
+  };
+}
+
+/* ---------- step 5: reminders (Marek, 2026-11-15, like Duolingo's) ---------- */
+// Explains the browser's question before it comes: a picture of the prompt with an arrow at "Allow". Browsers only show the
+// real prompt after a tap, and a "Block" is for good, so the student should know what it is for. One reminder a day at 18:00,
+// only on a day they haven't studied yet, and none after the exam. Skipped where push can't work (iPhone Safari in a tab).
+function viewNotify() {
+  const d = draft(), site = location.hostname.replace(/^www\./, "") || "proanicku.cz";
+  const mock = `<div class="nf" aria-hidden="true"><div class="nf-box"><span class="nf-x">${CLOSE}</span><b class="nf-site">${esc(t("notifyWants", { site }))}</b>
+    <span class="nf-row">${I('<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>')}${esc(t("notifyShow"))}</span><div class="nf-btns"><span>${esc(t("notifyBlock"))}</span><span class="on">${esc(t("notifyAllow"))}</span></div></div>
+    <svg class="nf-arrow" viewBox="0 0 40 56"><path d="M20 52V8M6 22 20 6l14 16" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+  view().innerHTML = frame("notify", { say: d.tutor, title: persona(d.tutor, "notify") || t("notifySay"), btn: t("notifyGo"), skip: t("notifySkip"),
+    body: `${mock}<p class="ob-note">${esc(t("notifyNote", { time: remindTime() }))}</p>` });
+  bindStepBack("notify");
+  const done = () => { const x = draft(); x.notifyAsked = true; x.step = "account"; saveDraft(x); nav("#/new/account"); };
+  $("#nextBtn").onclick = async () => {
+    const btn = $("#nextBtn"); btn.disabled = true;
+    const sub = await askPush(tutorName(d.tutor)).catch(() => null);
+    if (sub) { const x = draft(); x.push = sub; saveDraft(x); toast(t("notifyOn", { time: remindTime() })); }
+    done();
+  };
+  $("#skipBtn").onclick = done;
 }
 
 /* ---------- account, while the free lessons build (not counted in the progress bar) ---------- */
 function viewAccount() {
   const d = draft(), y = new Date().getFullYear(), a = d.acc || {};
-  const card = `<div class="ob-course"><span class="sq">${esc((d.files[0]?.name || "P")[0].toUpperCase())}</span><div><b>${t("accCourse")}</b><span>${t("accCourseSub", { pages: pagesTxt(d.pages || 0), date: d.examDate ? esc(fmtDay(d.examDate)) : "", tutor: esc(tutorWith(d.tutor)) })}</span></div></div>`;
+  const card = `<div class="ob-course"><span class="sq">${esc((d.files[0]?.name || "P")[0].toUpperCase())}</span><div><b>${t("accCourse")}</b><span>${t("accCourseSub", { pages: pagesTxt(d.pages || 0), date: d.examDate ? esc(fmtDay(d.examDate)) : "", tutor: esc(tutorWith(d.tutor)) })}</span><small class="ob-price" id="accPrice" hidden></small></div></div>`;
   view().innerHTML = frame("account", { title: t("accTitle"), sub: t("accSub"), btn: t("accGo"),
-    body: `${card}<form id="f" class="ob-form" novalidate>
+    body: `${card}<form id="f" class="ob-form" novalidate>${G_BOX()}<p class="ob-gas" id="gAs" hidden></p>
       <label class="ob-lbl" for="aName">${t("accName")}</label><input class="ob-in" id="aName" autocomplete="given-name" maxlength="80" placeholder="${t("accNamePh")}" value="${esc(a.name || "")}">
-      <label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}">
-      <div class="ob-two"><div><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
+      <div id="aEmailBox"><label class="ob-lbl" for="aEmail">${t("accEmail")}</label><input class="ob-in" id="aEmail" type="email" autocomplete="email" maxlength="200" placeholder="${t("accEmailPh")}" value="${esc(a.email || "")}"></div>
+      <div class="ob-two" id="aTwo"><div id="aPassBox"><label class="ob-lbl" for="aPass">${t("accPass")}</label><input class="ob-in" id="aPass" type="password" autocomplete="new-password" maxlength="200" placeholder="${t("accPassPh")}"></div>
       <div><label class="ob-lbl" for="aYear">${t("accYear")}</label><input class="ob-in" id="aYear" type="number" inputmode="numeric" min="${y - 100}" max="${y}" placeholder="2004" value="${esc(a.year || "")}"></div></div>
       <label class="ob-lbl" for="aPhone">${t("accPhone")} <span>${t("accOptional")}</span></label><input class="ob-in" id="aPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="+420 777 123 456">
-      <p class="ob-lbl" id="aSrcL">${t("accSrc")} <span>${t("accOptional")}</span></p><div class="ob-src" id="aSrc" role="radiogroup" aria-labelledby="aSrcL">${SOURCES.map(s => `<button type="button" role="radio" aria-checked="${a.source === s}" data-s="${s}">${t("src_" + s)}</button>`).join("")}</div>
       <label class="ob-check"><input type="checkbox" id="aPrivacy"><span>${t("accPrivacy").replace("%", `<a href="#/privacy" target="_blank" rel="noopener">${t("accPrivacyLink")}</a>`)}</span></label>
       <label class="ob-check"><input type="checkbox" id="aMkt"><span>${t("accMarketing")}</span></label>
       <p class="ob-err" id="err" hidden role="alert"></p>
     </form><p class="ob-note">${t("accHave")} <a href="#/login">${t("accLogin")}</a></p>` });
   $("#nextBtn").setAttribute("form", "f"); $("#nextBtn").type = "submit";
-  $("#stepBack").onclick = () => nav("#/");
+  bindStepBack("account");
+  // The price before signup (launch checklist 17), here rather than on the landing, which stays clean (Marek, 12 Nov).
+  // The plan that fits these slides, in Kč for Czech and $ otherwise, as pc-api's currencyFor charges.
+  storeConfig().then(c => {
+    const ps = c.plans || [], el = $("#accPrice"), slides = (d.files || []).reduce((a, f) => a + slidesOf(f.name, f.pages || 0), 0);
+    const p = ps.find(x => x.slides >= slides) || ps.at(-1);
+    // The price never breaks across lines: "287 Kč / měs." stays together.
+    if (p && el) { el.textContent = t("welcomePrice", { price: `${money(p, lang() === "cs" ? "czk" : "usd")} / ${t("stMonthShort")}`.replace(/ /g, " ") }); el.hidden = false; }
+  }).catch(() => { });
   const err = $("#err"), show = code => { err.textContent = errText(code); err.hidden = false; sfx.wrong(); err.scrollIntoView({ block: "center" }); };
   if (!d.slug) api("queue_free", { orderToken: d.orderToken }).then(r => { const x = draft(); if (x) { x.slug = r.slug; saveDraft(x); } }).catch(e => fail(err, e));
   // Remembers what's typed on this device, except the password and phone, so a reload doesn't lose it.
-  let source = SOURCES.includes(a.source) ? a.source : "";
+  // the answer from the "where did you hear about us" step (older drafts kept it here, on this form)
+  const source = [d.source, a.source].find(x => SOURCES.includes(x)) || "";
   const keep = () => { const x = draft(); if (x) { x.acc = { name: $("#aName").value, email: $("#aEmail").value, year: $("#aYear").value, source }; saveDraft(x); } };
   ["#aName", "#aEmail", "#aYear"].forEach(s => $(s).oninput = keep);
-  // One tap; tapping the picked chip again clears it.
-  $("#aSrc").onclick = e => { const b = e.target.closest("button"); if (!b) return; source = source === b.dataset.s ? "" : b.dataset.s; $("#aSrc").querySelectorAll("button").forEach(x => x.setAttribute("aria-checked", x.dataset.s === source)); sfx.flip(); keep(); };
+  // With Google the email and password give way to "With Google: x@gmail.com · Change"; the name comes filled in but stays
+  // editable (it's what the tutor calls you), and the year and the privacy tick are still asked. The token lives only here.
+  let gTok = null;
+  const withGoogle = on => { $("#gAs").hidden = !on; $("#gBox").hidden = on; $("#aEmailBox").hidden = on; $("#aPassBox").hidden = on; $("#aTwo").classList.toggle("one", on); };
+  googleButton($("#gBox"), token => {
+    const c = tokenClaims(token);
+    gTok = token; err.hidden = true;
+    if (!$("#aName").value.trim()) $("#aName").value = c.given_name || c.name || "";
+    $("#gAs").innerHTML = `<span>${esc(t("gAs", { email: c.email || "" }))}</span><button type="button" class="ob-glink" id="gChange">${t("gChange")}</button>`;
+    $("#gChange").onclick = () => { gTok = null; withGoogle(false); $("#aEmail").focus(); };
+    withGoogle(true); keep();
+    $($("#aName").value.trim() ? "#aYear" : "#aName").focus();
+  });
   $("#f").onsubmit = async e => {
     e.preventDefault(); err.hidden = true;
-    const v = { name: $("#aName").value.trim(), email: $("#aEmail").value.trim(), password: $("#aPass").value, birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
+    const v = { name: $("#aName").value.trim(), ...(gTok ? { google: gTok } : { email: $("#aEmail").value.trim(), password: $("#aPass").value }), birthYear: Math.round(+$("#aYear").value), phone: $("#aPhone").value.trim(), privacy: $("#aPrivacy").checked, marketing: $("#aMkt").checked, source };
     if (!v.name) return show("bad_name");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) return show("bad_email");
-    if (v.password.length < 8) return show("bad_password");
+    if (!gTok && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email)) return show("bad_email");
+    if (!gTok && v.password.length < 8) return show("bad_password");
     if (!(v.birthYear >= y - 100 && v.birthYear <= y)) return show("bad_year");
     if (y - v.birthYear < MIN_AGE) return show("too_young");
     if (v.phone && !/^\+?\d{9,15}$/.test(v.phone.replace(/[\s()-]/g, ""))) return show("bad_phone");
@@ -432,11 +685,17 @@ function viewAccount() {
       store.del("invite");
       if (r.gift === "ok") toast(t("giftOk"));
       store.set("session", { token: r.session, slug: r.slug });
-      store.set("email", v.email); store.set("name", v.name);
+      store.set("email", gTok ? tokenClaims(gTok).email : v.email); store.set("name", v.name);
+      // the reminder subscription from the notifications step can only be saved once there is an account
+      const push = draft()?.push;
+      if (push) sendSub(r.session, push).catch(() => { });
       store.del("draft");
       confetti(); sfx.done();
       nav("#/wait");
-    } catch (er) { fail(err, er); btn.disabled = false; btn.textContent = t("accGo"); }
+    } catch (er) {
+      if (gTok && er.code === "bad_google") { gTok = null; withGoogle(false); } // the token lasts an hour: past that, the button again
+      fail(err, er); btn.disabled = false; btn.textContent = t("accGo");
+    }
   };
 }
 
@@ -785,10 +1044,13 @@ function route() {
     hideNav(); plain();
     const d = draft();
     if (!d) return nav("#/");
-    const step = d.slug ? "account" : parts[1] || d.step; // once the free lessons are queued, the setup can't change
+    // once the free lessons are queued, files, date and tutor can't change; the last three steps can still be revisited
+    let step = parts[1] || d.step;
+    if (d.slug && !AFTER.includes(step)) step = AFTER.includes(d.step) ? d.step : "account";
+    if (step === "notify" && !showNotify(d)) { step = "account"; if (d.step === "notify") { d.step = "account"; saveDraft(d); } }
     if (step !== (parts[1] || d.step)) return nav("#/new/" + step);
     if (STEPS.indexOf(step) > STEPS.indexOf(d.step || "files")) return nav("#/new/" + (d.step || "files"));
-    const stepView = { files: viewFiles, date: viewDate, tutor: viewTutor, account: viewAccount }[step];
+    const stepView = { files: viewFiles, date: viewDate, tutor: viewTutor, source: viewSource, notify: viewNotify, account: viewAccount }[step];
     return stepView ? stepView() : nav("#/");
   }
   if (parts[0] === "s") return courseRoute(parts.slice(1), nav, render);

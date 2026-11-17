@@ -111,31 +111,11 @@ body.plain .app{padding-bottom:0}
 .ob-sum.over{color:var(--wrong)} .ob-sum.over svg, .ob-sum.over b{color:var(--wrong)}
 
 /* date */
-.dbig{text-align:center}
-.dbig b{display:block; font:800 clamp(26px, 7.4vw, 40px)/1.1 var(--head); letter-spacing:-.01em; text-wrap:balance}
-.dbig span{display:block; color:var(--muted); font-size:17px; margin-top:6px}
-.dbadge{text-align:center; margin:18px 0 22px; min-height:40px}
 .badge{display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font:800 16px var(--head)}
 .badge svg{width:20px; height:20px}
 .badge.sprint{background:color-mix(in srgb, var(--wrong) 14%, var(--surface)); color:var(--wrong)}
 .badge.tempo{background:var(--accent-soft); color:var(--accent-ink)}
 .badge.chill{background:color-mix(in srgb, var(--done) 16%, var(--surface)); color:var(--done)}
-.ruler{position:relative; height:96px; margin:0 calc(-1 * var(--gutter))}
-.rscroll{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; height:100%; padding:0 calc(50% - 6px); box-sizing:border-box; outline:none}
-.rscroll::-webkit-scrollbar{display:none}
-@media (pointer:fine){.rscroll{cursor:grab}.rscroll.drag{cursor:grabbing; scroll-snap-type:none; user-select:none}}
-/* every day is exactly 12 px wide (bindRuler's scroll math depends on it); ticks hang from one baseline at 52px */
-.rd{flex:0 0 12px; width:12px; min-width:0; height:100%; scroll-snap-align:center; position:relative; display:block}
-.rd:before{content:""; position:absolute; left:5px; bottom:44px; width:2px; height:12px; border-radius:2px; background:var(--line)}
-.rd.rd-wk:before{height:22px; background:color-mix(in srgb, var(--muted) 55%, var(--line))}
-.rd.rd-mo:before{height:30px; background:var(--muted)}
-.rd small{position:absolute; left:6px; top:60px; transform:translateX(-50%); font:600 13px/1 var(--font); color:var(--muted); white-space:nowrap}
-.rd.rd-mo small{font-weight:800; color:var(--text)}
-.rd.rd-off{scroll-snap-align:none; opacity:.35}
-.needle{position:absolute; left:50%; top:10px; width:4px; height:42px; margin-left:-2px; border-radius:4px; background:var(--accent); pointer-events:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
-.needle:before{content:""; position:absolute; left:50%; top:-9px; margin-left:-6px; border:6px solid transparent; border-top-color:var(--accent)}
-/* fade the edges with a mask, not a painted gradient: a painted var(--bg) never quite matches the page behind it */
-.rscroll{-webkit-mask-image:linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); mask-image:linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)}
 
 /* tutor carousel */
 .car{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:10px 0 0; margin:0 calc(-1 * var(--gutter)); outline:none}
@@ -147,6 +127,8 @@ body.plain .app{padding-bottom:0}
 .car-floor{height:14px; width:170px; margin:-6px auto 0; border-radius:50%; background:radial-gradient(closest-side, #0000001f, transparent)}
 .tinfo{text-align:center; margin-top:14px}
 .tinfo b{display:block; font:800 30px var(--head)}
+.tinfo .ttag{display:block; margin-top:2px; color:var(--wolf); font-size:16px; font-weight:700; line-height:1.3}
+.tinfo .ttag:empty{display:none}
 .dots{display:flex; justify-content:center; gap:6px; margin-top:12px}
 .dots i{width:7px; height:7px; border-radius:9px; background:var(--line); transition:width .15s}
 .dots i.on{width:20px; background:var(--accent)}
@@ -156,6 +138,8 @@ body.plain .app{padding-bottom:0}
 .ob-course .sq,.subrow .sq{flex:none; width:40px; height:40px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font:800 17px var(--head)}
 .ob-course b{display:block; font:800 16px var(--head)}
 .ob-course span{color:var(--muted); font-size:14px}
+.ob-course .ob-price{display:block; margin-top:4px; color:var(--accent-ink); font-size:14px; font-weight:800}
+.ob-course .ob-price[hidden]{display:none}
 .ob-form{display:flex; flex-direction:column}
 .ob-lbl{font:700 14px var(--font); margin:12px 0 6px}
 .ob-lbl span{color:var(--muted); font-weight:500}
@@ -164,16 +148,22 @@ body.plain .app{padding-bottom:0}
 .ob-in.code{text-align:center; letter-spacing:.2em; text-transform:uppercase; font-weight:800; font-size:22px}
 .ob-form .ob-in + .ob-in{margin-top:10px}
 .ob-form .btn-p{margin-top:16px}
-.ob-src{display:flex; flex-wrap:wrap; gap:8px}
-.ob-src button{min-height:42px; padding:0 14px; border:1.5px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text); font:600 15px var(--font); cursor:pointer}
-.ob-src button[aria-checked="true"]{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, var(--surface)); color:var(--accent-ink)}
-.ob-src button:focus-visible{outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
 .ob-two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.ob-two.one{grid-template-columns:1fr}
+/* Continue with Google: Google's own button, then "or" above the email form; once used, one line says which address */
+.ob-g{width:100%; margin-top:4px}
+.ob-gbtn{display:flex; justify-content:center; min-height:44px}
+.ob-or{display:flex; align-items:center; gap:12px; margin:16px 0 0; color:var(--muted); font-size:14px; font-weight:700}
+.ob-or::before,.ob-or::after{content:""; flex:1; height:1.5px; background:var(--line)}
+.ob-gas{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 0; padding:12px 14px; border:1.5px solid var(--line); border-radius:14px; background:var(--surface); font-size:15px; font-weight:700; text-align:left}
+.ob-gas span{min-width:0; overflow-wrap:anywhere}
+.ob-glink{flex:none; border:0; background:none; padding:6px 0; color:var(--accent-ink); font:800 15px var(--font); cursor:pointer}
 .ob-check{display:flex; gap:10px; align-items:flex-start; margin-top:14px; font-size:15px; line-height:1.4; cursor:pointer}
 .ob-check input{width:22px; height:22px; flex:none; accent-color:var(--accent); margin:0}
 .ob-check a{color:var(--accent-ink); font-weight:700}
 .ob-login{display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:20px}
 .ob-login .ob-form{width:100%; margin-top:18px}
+.ob-login .ob-g{margin-top:20px}
 .ob-mini{width:96px; height:96px}
 
 /* unlock, legal, wait */
@@ -206,6 +196,18 @@ body.plain .app{padding-bottom:0}
 .sh-search svg{width:20px; height:20px; flex:none}
 .sh-search input{flex:1; min-width:0; border:0; background:none; outline:none; color:var(--text); font:500 17px var(--font)}
 .sh-list{display:flex; flex-direction:column; gap:8px; margin:14px 0}
+/* The language sheet: title and search stay put and only the list scrolls, in a thin rounded bar inside the sheet's
+   padding (it used to be the whole sheet's native bar, running along the rounded edge). */
+.sh-lang{display:flex; flex-direction:column; overflow:hidden}
+.sh-lang > *{flex:none}
+.sh-lang .sh-list{flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin-inline-end:-12px; padding-inline-end:6px}
+.sh-lang .lrow{flex:none}
+.sh-lang .sh-list::-webkit-scrollbar{width:6px}
+.sh-lang .sh-list::-webkit-scrollbar-track{background:transparent}
+.sh-lang .sh-list::-webkit-scrollbar-thumb{background:var(--line); border-radius:99px}
+.sh-lang .sh-list::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+.sh-lang .sh-list::-webkit-scrollbar-button{display:none; width:0; height:0}
+@supports (-moz-appearance:none){ .sh-lang .sh-list{scrollbar-width:thin; scrollbar-color:var(--line) transparent} }
 .lrow,.subrow{display:flex; align-items:center; gap:12px; width:100%; border:1.5px solid var(--line); background:var(--surface); color:var(--text); border-radius:16px; padding:12px 14px; text-align:start; font:inherit; cursor:pointer; box-sizing:border-box}
 .lrow.on,.subrow.on{border-color:#3B82F6; background:color-mix(in srgb, #3B82F6 9%, var(--surface))}
 .lrow b{font:700 17px var(--font)}
@@ -224,8 +226,6 @@ body.plain .app{padding-bottom:0}
 .chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:6px 0 18px}
 .chip{border:1.5px solid var(--line); background:var(--surface); color:var(--text); border-radius:999px; padding:10px 16px; font:700 15px var(--font); cursor:pointer}
 .chip.on{border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink)}
-.sh .dbig b{font-size:30px}
-.sh .ruler{margin:0 -18px 18px}
 .sh-car{padding-bottom:4px}
 .sh .car{margin:0 -18px}
 
@@ -1143,80 +1143,96 @@ body .pc-rest.slim .rest-bar{height:5px; margin-top:6px}
   .hc.in *, .hc.in .flask{animation:none !important}
 }
 
-/* ---------- landing (logged-out first page): one big drop box ---------- */
+/* ---------- landing (logged-out first page), 2026-11-15: Penny turning your stuff into a course on the left, one line and two buttons on the right ---------- */
+/* Duolingo's homepage is the model: a moving picture, a headline, a filled button and an outlined one. Files dropped anywhere
+   still count (the dashed overlay shows while dragging). */
 body.landing .app{max-width:1040px}
 .ld{display:flex; flex-direction:column; min-height:100dvh; padding-top:max(10px, env(safe-area-inset-top)); box-sizing:border-box; overflow-x:clip}
-.ld-top{display:flex; align-items:center; gap:10px; min-height:52px}
-.ld-logo{display:flex; align-items:center; gap:8px; font:800 22px var(--head); letter-spacing:-.01em}
-.ld-logo .ham{width:38px; height:38px}
+.ld-top{display:flex; align-items:center; gap:10px; min-height:56px}
+.ld-logo{display:flex; align-items:center; gap:8px; font:800 24px var(--head); letter-spacing:-.01em; color:var(--accent)}
 .ld-gap{flex:1}
-.ld-in{display:flex; align-items:center; min-height:40px; padding:0 16px; border-radius:999px; border:2px solid var(--line); border-bottom-width:4px; background:var(--surface);
-  color:var(--accent-ink); font:800 15px var(--font); text-decoration:none; box-sizing:border-box; white-space:nowrap}
-.ld-in:active{border-bottom-width:2px; transform:translateY(2px)}
-.ld-main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px 0 18px}
-.ld-h{font:800 clamp(36px, 9vw, 64px)/1.02 var(--head); letter-spacing:-.025em; margin:0; max-width:15ch; text-wrap:balance}
-.ld-h em{font-style:normal; color:var(--accent); background:linear-gradient(transparent 68%, var(--accent-soft) 68% 92%, transparent 92%)}
-.ld-sub{color:var(--muted); font-size:17px; line-height:1.45; margin:14px 0 0; max-width:38ch; text-wrap:balance}
-.ld-box{position:relative; width:min(100%, 600px); margin-top:64px}
-.ld-peek{position:absolute; top:-62px; right:44px; width:96px; height:96px; z-index:0}
-.ld-peek .ham{width:96px; height:96px; display:block}
-.ld-drop{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; min-height:270px; padding:28px 20px;
-  border:3px dashed color-mix(in srgb, var(--accent) 55%, var(--line)); border-radius:32px; background:var(--surface); color:var(--text);
-  box-shadow:0 8px 0 color-mix(in srgb, var(--accent) 22%, var(--line)); cursor:pointer; font-family:var(--font); box-sizing:border-box;
-  transition:transform .15s var(--ease), box-shadow .15s var(--ease), background .15s, border-color .15s}
-.ld-drop:hover{transform:translateY(-3px); box-shadow:0 11px 0 color-mix(in srgb, var(--accent) 22%, var(--line)); border-color:var(--accent)}
-.ld-drop:active{transform:translateY(5px); box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 22%, var(--line))}
-.ld-drop:focus-visible{outline:4px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:5px}
-.ld-plus{display:grid; place-items:center; width:96px; height:96px; border-radius:50%; background:var(--accent); color:#fff; box-shadow:0 6px 0 var(--accent-ink); margin-bottom:12px;
-  transition:transform .25s var(--ease)}
-.ld-plus svg{width:48px; height:48px}
-.ld-drop b{font:800 22px var(--head); letter-spacing:-.01em}
-.ld-drag{color:var(--text); font-weight:600; font-size:15px; display:none}
-.ld-types{color:var(--muted); font-size:14px}
-.ld.over .ld-drop{background:var(--accent-soft); border-style:solid; border-color:var(--accent); transform:scale(1.02)}
-.ld.over .ld-plus{transform:rotate(90deg) scale(1.08)}
-.ld-drop.busy{pointer-events:none}
-.ld-drop.busy .ld-plus svg{animation:ld-spin .8s linear infinite}
+.ld-hero{flex:1; display:grid; grid-template-columns:minmax(0, 1fr); align-items:center; justify-items:center; gap:6px; padding:4px 0 28px; text-align:center}
+.ld-art{position:relative; width:min(100%, 330px); aspect-ratio:1; container-type:inline-size}
+/* The picture: the student's files on the left, Penny in the middle, the course as a path of levels round her up to the
+   exam trophy. Positions come inline in percent of the square box (moves in cqw; the box is square). The timing is one
+   keyframe set per piece, written by app.js next to the picture. Layers so moves don't fight: .fl pops in and bobs,
+   .mv does the moves, the svg holds the tilt. Without motion it's the finished picture: files, Penny, full path. */
+.ld-art > *{position:absolute}
+.ld-art svg{display:block; width:100%; height:auto}
+.fl{z-index:3}
+.fl .mv > svg{rotate:var(--r, 0deg)}
+.fl.in .mv > svg{filter:drop-shadow(0 5px 6px #1d1f3a2e)}
+.fl.nd .mv{transform-origin:50% 60%}
+.cw-penny{z-index:2}
+.cw-penny .mv{transform-origin:50% 92%}
+.ld-road{inset:0; height:100%; z-index:1; overflow:visible; fill:none; stroke-linecap:round; stroke-width:2.2}
+.ld-road .r0{stroke:var(--edge); stroke-dasharray:.01 4.4}
+.ld-road .r1{stroke:var(--accent); stroke-dasharray:100 101}
+.ld-slot{z-index:1}
+.ld-slot .s1, .ld-tro.off .s1{fill:var(--line)}
+.ld-slot .s2, .ld-tro.off .s2{fill:var(--edge)}
+.ld-tro.off .g{fill:var(--surface); stroke:var(--surface)}
+.ld-tro{z-index:2}
+.ld-tro.on{z-index:3}
+.ld-tglow, .ld-glow{aspect-ratio:1; border-radius:50%; pointer-events:none; opacity:0}
+.ld-tglow{z-index:1; background:radial-gradient(closest-side, #ffd76a, #ffd76a55 55%, transparent)}
+.ld-glow{z-index:4; background:radial-gradient(closest-side, #fff7c2, #ffe58a99 45%, transparent)}
+.ld-spk{z-index:5; opacity:0}
+.ld-ping{z-index:2; aspect-ratio:1; border-radius:50%; border:.7cqw solid var(--accent); box-sizing:border-box; opacity:0}
+.cf{z-index:5; aspect-ratio:2; border-radius:1px; opacity:0}
+.ld-copy{display:flex; flex-direction:column; align-items:center; width:100%; max-width:520px}
+.ld-h{font:800 clamp(30px, 8.4vw, 52px)/1.06 var(--head); letter-spacing:-.02em; margin:0; max-width:16ch; text-wrap:balance}
+.ld-h em{font-style:normal; color:var(--accent)}
+.ld-sub{color:var(--muted); font-size:17px; line-height:1.45; margin:12px 0 0; max-width:36ch; text-wrap:balance}
+.ld-cta{display:flex; flex-direction:column; gap:12px; width:min(100%, 360px); margin-top:24px}
+.ld-b{display:flex; align-items:center; justify-content:center; gap:10px; min-height:54px; padding:0 22px; border-radius:16px; box-sizing:border-box; cursor:pointer;
+  font:800 16px var(--head); letter-spacing:.05em; text-transform:uppercase; text-decoration:none; transition:transform .1s var(--ease), box-shadow .1s var(--ease), filter .15s}
+.ld-b svg{width:22px; height:22px; flex:none}
+.ld-go{border:0; background:var(--accent); color:var(--on-accent); box-shadow:0 4px 0 color-mix(in srgb, var(--accent) 66%, #000)}
+.ld-go:hover{filter:brightness(1.06)}
+.ld-have{border:2px solid var(--edge); background:var(--surface); color:var(--accent-ink); box-shadow:0 4px 0 var(--edge)}
+.ld-have:hover{background:var(--fill)}
+.ld-b:active{transform:translateY(4px); box-shadow:0 0 0 transparent}
+.ld-b:focus-visible{outline:3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset:3px}
+.ld-go.busy{pointer-events:none}
+.ld-go.busy svg{animation:ld-spin .8s linear infinite}
 @keyframes ld-spin{to{transform:rotate(360deg)}}
-.ld-tag{position:absolute; z-index:2; padding:8px 14px; border-radius:999px; font:800 14px var(--font); box-shadow:0 3px 0 #0000001a; pointer-events:none; white-space:nowrap}
-.ld-tag.t1{left:-34px; top:34px; transform:rotate(-8deg); background:var(--blue-soft); color:var(--blue-ink)}
-.ld-tag.t2{right:-30px; bottom:74px; transform:rotate(7deg); background:var(--green-soft); color:var(--green-ink)}
-.ld-tag.t3{left:-14px; bottom:-16px; transform:rotate(4deg); background:var(--purple-soft); color:var(--purple-lip)}
-.ld .ob-err{max-width:600px}
-.ld-resume{display:flex; flex-direction:column; align-items:center; gap:14px; width:min(100%, 420px); margin-top:28px}
-.ld-resume .ham{width:120px; height:120px}
-.ld-steps{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 18px; list-style:none; padding:0; margin:40px 0 0; font:700 15px var(--font)}
-.ld-steps li{display:flex; align-items:center; gap:8px}
-.ld-steps i{display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink); font:800 14px var(--head); font-style:normal}
-.ld-price{margin:16px 0 0; padding:9px 16px; border-radius:999px; background:var(--surface); border:2px solid var(--line); font:700 15px var(--font)}
-.ld-foot{padding:6px 0 calc(16px + env(safe-area-inset-bottom))}
-@media (hover:hover) and (pointer:fine){ .ld-drag{display:block} }
-@media (max-width:520px){
-  .ld-main{padding-top:18px}
-  .ld-box{margin-top:58px}
-  .ld-drop{min-height:230px; border-radius:28px}
-  .ld-plus{width:84px; height:84px}
-  .ld-plus svg{width:42px; height:42px}
-  .ld-tag{font-size:13px; padding:6px 11px}
-  .ld-tag.t1{left:-6px; top:-14px}
-  .ld-tag.t2{right:-6px; bottom:50px}
-  .ld-tag.t3{left:10px; bottom:-14px}
-  .ld-peek{right:26px; top:-56px; width:84px; height:84px}
-  .ld-peek .ham{width:84px; height:84px}
-  .ld-steps{flex-direction:column; align-items:flex-start; margin-top:32px}
-  .ld-in{padding:0 12px; font-size:14px}
+.ld-resume{align-self:center}
+.ld-types{color:var(--muted); font-size:14px; margin:14px 0 0; max-width:36ch}
+.ld-drag{display:none}
+@media (hover:hover) and (pointer:fine){ .ld-drag{display:inline} }
+.ld .ob-err{max-width:360px}
+/* the three steps: a quiet strip under the hero */
+.ld-steps{display:flex; justify-content:center; gap:20px 48px; flex-wrap:wrap; list-style:none; margin:0; padding:22px 0 18px; border-top:2px solid var(--line)}
+.ld-steps li{display:flex; align-items:center; gap:12px; font:800 14px/1.3 var(--head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); text-align:start}
+.ld-si{display:grid; place-items:center; width:44px; height:44px; flex:none; border-radius:14px; background:var(--accent-soft); color:var(--accent-ink)}
+.ld-si svg{width:22px; height:22px}
+.ld-steps small{display:block; font:800 11px var(--head); color:var(--accent); letter-spacing:.08em}
+.ld-foot{padding:0 0 calc(14px + env(safe-area-inset-bottom))}
+/* files dragged over the page */
+.ld-over{position:fixed; inset:12px; z-index:50; display:none; place-items:center; border:3px dashed var(--accent); border-radius:28px;
+  background:color-mix(in srgb, var(--accent-soft) 90%, transparent); pointer-events:none}
+.ld.over .ld-over{display:grid}
+.ld-over div{display:flex; flex-direction:column; align-items:center; gap:10px; font:800 26px var(--head); color:var(--accent-ink)}
+.ld-over .ham{width:120px; height:120px}
+@media (max-width:700px){
+  .ld-steps{flex-direction:column; align-items:flex-start; gap:12px; padding-top:18px}
 }
-@media (min-width:900px){
-  .ld-drop{min-height:310px}
+@media (min-width:860px){
+  .ld-hero{grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:64px; justify-items:center; padding:24px 0 56px}
+  .ld-art{width:100%; max-width:480px}
+  .ld-cta{width:min(100%, 380px)}
 }
 @media (prefers-reduced-motion:no-preference){
-  .ld-tag{animation:ld-bob 4s ease-in-out infinite}
-  .ld-tag.t2{animation-delay:-1.3s} .ld-tag.t3{animation-delay:-2.6s}
-  .ld-peek{animation:ld-peek .7s var(--ease) .2s both}
+  .fl{animation:ld-pop .6s cubic-bezier(.2,1.5,.4,1) var(--p, 0s) both, ld-bob var(--t, 3s) ease-in-out infinite}
+  .fl.nd{animation:none}
+  .cw-penny{animation:ld-pop .8s cubic-bezier(.2,1.4,.4,1) both, ld-bob 3s ease-in-out infinite}
+  .ld-slot, .ld-tro.off, .ld-road{animation:ld-fade .5s .2s both}
 }
-@keyframes ld-bob{50%{translate:0 -6px}}
-@keyframes ld-peek{from{translate:0 50px}}
-@media (prefers-reduced-motion:reduce){ .ld-drop, .ld-plus{transition:none} .ld-drop.busy .ld-plus svg{animation-duration:2.4s} }
+@keyframes ld-pop{from{transform:scale(0); opacity:0}}
+@keyframes ld-bob{0%, 100%{translate:0 0} 50%{translate:0 -1.4cqw}}
+@keyframes ld-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){ .ld-b{transition:none} .ld-go.busy svg{animation-duration:2.4s} }
 
 /* ---------- 2026-11-12: More menu, same-size subject button, gold finished chapter, settings in the frame ---------- */
 /* the subject button never changes size with the subject's name */
@@ -1274,3 +1290,82 @@ body.landing .app{max-width:1040px}
 
 /* a failed build: write to us, try again, sign out */
 .pc-failed{display:grid; gap:10px}
+
+/* ---------- setup, 2026-11-15: the tutor says the question (source, reminders), the month calendar ---------- */
+.ob-say{display:flex; align-items:center; gap:12px; margin:18px 0 0}
+.ob-say-art{width:92px; flex:none}
+.ob-say-art > *{display:block; width:100%; height:auto}
+.ob-bub{position:relative; flex:1; min-width:0; margin:0; padding:14px 18px; border:2px solid var(--edge); border-radius:18px; background:var(--surface);
+  font:800 21px/1.25 var(--head); letter-spacing:-.005em; color:var(--text); text-wrap:balance}
+/* the tail points at the tutor (on the other side in right-to-left languages, where the row flips) */
+.ob-bub:before{content:""; position:absolute; top:50%; left:-9px; width:14px; height:14px; margin-top:-8px; background:var(--surface);
+  border-left:2px solid var(--edge); border-bottom:2px solid var(--edge); transform:rotate(45deg)}
+[dir=rtl] .ob-bub:before{left:auto; right:-9px; transform:rotate(-135deg)}
+
+/* where did you hear about us */
+.src-grid{display:grid; grid-template-columns:minmax(0, 1fr); gap:10px}
+@media (min-width:520px){ .src-grid{grid-template-columns:repeat(2, minmax(0, 1fr))} }
+.src{display:flex; align-items:center; gap:14px; min-height:62px; padding:10px 16px; border:2px solid var(--edge); border-bottom-width:4px; border-radius:16px;
+  background:var(--surface); color:var(--text); font:800 17px var(--head); text-align:start; cursor:pointer; box-sizing:border-box;
+  transition:transform .1s var(--ease), border-color .12s, background .12s}
+.src:hover{background:var(--fill)}
+.src:active{transform:translateY(2px); border-bottom-width:2px; margin-bottom:2px}
+.src:focus-visible{outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent)}
+.src[aria-checked="true"]{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent-ink)}
+.src-i{width:32px; height:32px; flex:none}
+.src-i svg{display:block; width:100%; height:100%}
+
+/* reminders: a picture of the browser's question, an arrow at Allow */
+.nf{display:flex; flex-direction:column; width:min(100%, 340px); margin:10px auto 0}
+.nf-box{position:relative; padding:18px 18px 16px; border:2px solid var(--edge); border-radius:16px; background:var(--surface); box-shadow:0 14px 30px -14px #0008; text-align:start}
+.nf-x{position:absolute; top:14px; inset-inline-end:14px; width:18px; height:18px; color:var(--muted)}
+.nf-x svg{display:block; width:100%; height:100%}
+.nf-site{display:block; padding-inline-end:26px; font:700 15px/1.35 var(--font); overflow-wrap:anywhere}
+.nf-row{display:flex; align-items:center; gap:10px; margin:12px 0 18px; color:var(--muted); font-size:15px}
+.nf-row svg{width:20px; height:20px; flex:none}
+.nf-btns{display:flex; justify-content:flex-end; gap:8px}
+.nf-btns span{padding:8px 14px; border:2px solid var(--edge); border-radius:999px; font:800 13px var(--font); letter-spacing:.03em; text-transform:uppercase; color:var(--accent-ink)}
+.nf-btns .on{border-color:var(--accent); background:var(--accent); color:var(--on-accent); box-shadow:0 0 0 4px var(--accent-soft)}
+.nf-arrow{align-self:flex-end; width:34px; height:48px; margin:10px 24px 0; color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){ .nf-arrow{animation:nf-bob 1.4s ease-in-out infinite} }
+@keyframes nf-bob{50%{translate:0 -8px}}
+
+/* the exam date: one month at a time, the days to the exam tinted */
+.ob-date{display:flex; flex-direction:column; gap:14px}
+.mcal{padding:12px 10px 10px; border:2px solid var(--edge); border-radius:20px; background:var(--surface)}
+.cal-hd{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 2px 6px}
+.cal-hd b{font:800 18px var(--head); text-transform:capitalize}
+.cal-nav{display:grid; place-items:center; width:40px; height:40px; padding:0; border:2px solid var(--edge); border-bottom-width:4px; border-radius:12px; background:var(--surface); color:var(--text); cursor:pointer}
+.cal-nav svg{width:20px; height:20px}
+.cal-nav.nx svg, [dir=rtl] .cal-nav svg{transform:scaleX(-1)}
+[dir=rtl] .cal-nav.nx svg{transform:none}
+.cal-nav:active{transform:translateY(2px); border-bottom-width:2px}
+.cal-nav:disabled{opacity:.3; cursor:default; transform:none; border-bottom-width:4px}
+.cal-wd, .cal-grid{display:grid; grid-template-columns:repeat(7, minmax(0, 1fr))}
+.cal-wd span{padding:4px 0 6px; text-align:center; font:700 12px var(--font); letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.cal-grid{row-gap:4px; touch-action:pan-y}
+.cd{position:relative; display:grid; place-items:center; height:44px; padding:0; border:0; background:none; color:var(--text); font:700 16px var(--font); font-variant-numeric:tabular-nums; cursor:pointer}
+.cd span{position:relative; z-index:1; display:grid; place-items:center; width:40px; height:40px; border-radius:50%}
+.cd:hover:not(:disabled):not(.sel) span{background:var(--fill)}
+.cd.off{color:var(--muted); opacity:.45; cursor:default}
+.cd.today{opacity:1; color:var(--accent-ink); font-weight:800}
+.cd.today span:after{content:""; position:absolute; bottom:4px; left:50%; width:5px; height:5px; margin-left:-2.5px; border-radius:50%; background:var(--accent)}
+/* the band from today to the exam: rounded where it starts and ends and at the ends of each week */
+.cd.band:before{content:""; position:absolute; inset:2px 0; background:var(--accent-soft)}
+.cd.bs:before{inset-inline-start:max(0px, calc(50% - 20px)); border-start-start-radius:20px; border-end-start-radius:20px}
+.cd.be:before{inset-inline-end:max(0px, calc(50% - 20px)); border-start-end-radius:20px; border-end-end-radius:20px}
+.cd.sel span{background:var(--accent); color:var(--on-accent); font-weight:800; box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 64%, #000)}
+.cd:focus-visible{outline:none}
+.cd:focus-visible span{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent)}
+.cd.sel:focus-visible span{box-shadow:0 3px 0 color-mix(in srgb, var(--accent) 64%, #000), 0 0 0 5px color-mix(in srgb, var(--accent) 35%, transparent)}
+.cal-plan{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:66px; padding:12px 16px; border-radius:16px; background:var(--fill); box-sizing:border-box}
+.cal-plan .t{min-width:0}
+.cal-plan .t b{display:block; font:800 17px/1.25 var(--head)}
+.cal-plan .t span{display:block; margin-top:2px; color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums}
+.cal-plan .badge{flex:none; padding:6px 12px; font-size:14px}
+.cal-plan .badge svg{width:18px; height:18px}
+.cal-plan.empty{justify-content:flex-start; color:var(--muted); font-weight:700; font-size:15px}
+.cal-plan.empty svg{width:30px; height:30px; flex:none}
+.sh .mcal{margin:4px 0 12px}
+.sh #calPlan{margin-bottom:16px}
+@media (max-width:360px){ .cd span{width:36px; height:36px} .cd.bs:before{inset-inline-start:max(0px, calc(50% - 18px))} .cd.be:before{inset-inline-end:max(0px, calc(50% - 18px))} .ob-say-art{width:76px} .ob-bub{font-size:19px} }

@@ -1,5 +1,6 @@
 {
   "testMode": true,
+  "google": { "clientId": "" },
   "operator": {
     "name": "",
     "id": "",
