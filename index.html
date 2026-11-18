@@ -380,6 +380,10 @@ body.tabletop .floaties.fixed{display:none}
 .table-decor{position:fixed; inset:0; z-index:0; pointer-events:none; display:none}
 body.tabletop .table-decor{display:block}
 body.ck-table .table-decor .mug{display:none}   /* the cookie buttons reach down to where the cocoa stands */
+body.ck-end .table-decor{display:none}   /* the end screen: just the table and confetti, no leaves */
+/* on the table the ticket's punched notches show only their inner half, in the table's brown */
+body.tabletop .voucher .stub::before,body.tabletop .voucher .stub::after{background:#3b2216; box-shadow:inset 0 2px 3px rgba(0,0,0,.45)}
+body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .voucher .stub::after{clip-path:inset(0 50% 0 0)}
 .table-decor > *{position:absolute}
 .table-decor svg{display:block; width:100%; height:auto}
 .table-decor .lf svg{fill:currentColor}
@@ -1243,8 +1247,9 @@ function go(i){
   const s = scenes[cur];
   s.hidden = false;
   /* from the parcel on, the 18. 11. chapter happens on the table */
-  document.body.classList.toggle("tabletop", ["m-table", "m-shelf", "m-letter", "m-cookies"].includes(s.dataset.s) || s.dataset.ch === "month");
+  document.body.classList.toggle("tabletop", ["m-table", "m-shelf", "m-letter", "m-cookies", "m-final"].includes(s.dataset.s) || s.dataset.ch === "month");
   document.body.classList.toggle("ck-table", s.dataset.s === "m-cookies");
+  document.body.classList.toggle("ck-end", s.dataset.s === "m-final");
   s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter");
   window.scrollTo(0, 0);
   $("back").hidden = !(cur >= 2 && !s.hasAttribute("data-noback"));
@@ -1285,7 +1290,9 @@ function wrong(){
 function unlock(target){
   $("pin").classList.add("ok"); buzz([20, 40, 20]);
   const pr = $("pin").getBoundingClientRect();
-  $("fx").classList.add("top"); burst(pr.left + pr.width / 2, pr.top + pr.height / 2, isMonth() ? 14 : 40, 9, isMonth());
+  $("fx").classList.add("top");
+  if (!(target === "game" && keptPrize()))                 /* back to an end screen she already won: confetti there, no leaves */
+    burst(pr.left + pr.width / 2, pr.top + pr.height / 2, isMonth() ? 14 : 40, 9, isMonth());
   setTimeout(() => $("fx").classList.remove("top"), 2200);
   if (target === "game") openGame(true);
   else if (isMonth()) go(idx("m-intro"));                  /* od 18. 11. začíná rovnou novou částí */
@@ -1503,10 +1510,36 @@ function party(){
   }, 120);
   if (!fxRaf) fxRaf = requestAnimationFrame(step);
 }
+/* the end of Deal or No Deal: two light bursts of confetti from the bottom corners, then a short drizzle. No leaves */
+const CONF_COLS = ["#f4cf96", "#ffb35c", "#e0823a", "#fff3e2", "#f2b134", "#ff8a3d"];
+const conf = (x, y, vx, vy) => ({ x, y, vx, vy, w: 5 + Math.random() * 4, h: 9 + Math.random() * 6, r: Math.random() * 6,
+  vr: (Math.random() - .5) * .16, ph: Math.random() * 6, c: CONF_COLS[(Math.random() * CONF_COLS.length) | 0], conf: true });
+function confetti(){
+  buzz([40, 80, 40]);
+  if (reduce) return;
+  for (let i = 0; i < 40; i++){
+    const left = i % 2 === 0, a = (left ? -1.05 : -2.09) + (Math.random() - .5) * .5, v = 11 + Math.random() * 6;
+    parts.push(conf(left ? -6 : innerWidth + 6, innerHeight + 6, Math.cos(a) * v, Math.sin(a) * v));
+  }
+  let k = 0;
+  const drizzle = setInterval(() => {
+    parts.push(conf(Math.random() * innerWidth, -16, (Math.random() - .5) * .6, 1 + Math.random()));
+    if (!fxRaf) fxRaf = requestAnimationFrame(step);
+    if (++k > 30) clearInterval(drizzle);
+  }, 160);
+  if (!fxRaf) fxRaf = requestAnimationFrame(step);
+}
 function step(){
   cx.clearRect(0, 0, innerWidth, innerHeight);
-  parts = parts.filter(p => p.y < innerHeight + 40 && p.x < innerWidth + 60);
+  parts = parts.filter(p => p.y < innerHeight + 40 && p.x < innerWidth + 60 && (!p.conf || p.vy < 0 || p.y < innerHeight + 20));
   for (const p of parts){
+    if (p.conf){                                            /* paper confetti: shoots up, then flutters down */
+      p.ph += .12; p.vy = Math.min(p.vy + .22, 2.4); p.vx *= .985;
+      p.x += p.vx + Math.sin(p.ph) * .6; p.y += p.vy; p.r += p.vr;
+      cx.save(); cx.globalAlpha = .92; cx.fillStyle = p.c; cx.translate(p.x, p.y); cx.rotate(p.r); cx.scale(1, Math.cos(p.ph));
+      cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore();
+      continue;
+    }
     if (p.spark){                                           /* a short warm streak that cools and fades */
       p.vx *= .93; p.vy = p.vy * .93 + .05; p.x += p.vx; p.y += p.vy; p.life -= .028;
       if (p.life <= 0){ p.y = innerHeight + 99; continue; }
@@ -1826,7 +1859,7 @@ function showFinal(){
   go(idx("m-final"));
   setVoucher($("prizeVoucher"), p, false);
   $("prizeLine").innerHTML = "To je pro dnešek vše,<br>pošli Markovi, co jsi vyhrála&nbsp;:)";
-  setTimeout(party, 350);
+  setTimeout(confetti, 350);
 }
 async function shareScore(){
   const p = keptPrize();
@@ -2029,7 +2062,7 @@ if (!reduce){ const lv = isMonth(); floaties(document.body, lv ? 8 : 12, true, l
   document.body.prepend(d);
 })();
 document.addEventListener("pointerdown", e => {
-  if (reduce || e.target.closest('[data-ch="month"].is-locked, .ck-stage, .ck-grid, .dond-title')) return;
+  if (reduce || document.body.classList.contains("ck-end") || e.target.closest('[data-ch="month"].is-locked, .ck-stage, .ck-grid, .dond-title')) return;
   const h = document.createElement("span");
   h.className = "tap-heart";
   h.style.left = e.clientX + "px"; h.style.top = e.clientY + "px";
