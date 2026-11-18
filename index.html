@@ -965,7 +965,7 @@ const MONTH = {
   prizes: [                               // rande v sušenkách: kolik rande, tolik sušenek. Od nejmenšího po nejlepší
     { badge:"popcorn", tag:"Filmový večer",       name:"Piknik v obýváku a film podle tebe" },
     { badge:"paint",   tag:"Umělecký večer",      name:"Společné malování obrazu do našeho budoucího domova" },
-    { badge:"books",   tag:"Knihy a second hand", name:"Za pár stovek si navzájem vybereme dárek" },
+    { badge:"books",   tag:"Čtecí večer",         name:"Navzájem si vybereme knihu a dáme čtecí večer" },
     { badge:"bowling", tag:"Akční rande",         name:"Bowling, herna nebo jiná zábava" },
     { badge:"sunset",  tag:"Západ slunce",        name:"Kafe nebo zmrzka s sebou a západ slunce z vyhlídky" },
     { badge:"trip",    tag:"Velký výlet",         name:"Celodenní výlet s překvapením" }
@@ -1767,7 +1767,7 @@ function renderCookies(deal, line){
     : view === "stage"
       ? (left === 1 ? "Poslední sušenka. Co v ní bude, to platí. Rozlouskni ji!" : `Sušenka číslo ${ckPick + 1}. Tak se podíváme, co v ní je. Rozlouskni ji!`)
       : !cracked ? "Howdy, Aničko! " + INTRO[1]
-      : ["Odvážná! ", "Wasted on you! ", "Pryč s ním! "][(cracked - 1) % 3]
+      : ["Odvážná! ", "Pryč s ním! "][(cracked - 1) % 2]
         + (left === 1 ? "Zbývá poslední sušenka. Co v ní bude, to platí." : `${left >= 5 ? "Zbývá" : "Zbývají"} ${left} ${susenek(left)}. Vyber si další.`));
   say(ckLine);
 }
@@ -1825,7 +1825,7 @@ function showFinal(){
   if (!p) return openCookies();
   go(idx("m-final"));
   setVoucher($("prizeVoucher"), p, false);
-  $("prizeLine").textContent = "Tohle rande je tvoje. Udělej si screenshot a pošli mi ho. Těším se.";
+  $("prizeLine").innerHTML = "To je pro dnešek vše,<br>pošli Markovi, co jsi vyhrála&nbsp;:)";
   setTimeout(party, 350);
 }
 async function shareScore(){
