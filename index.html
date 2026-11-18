@@ -609,8 +609,6 @@ body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .
 @keyframes bubblePop{from{opacity:0; transform:scale(.5)} to{opacity:1; transform:none}}
 .bubble p{margin:0; color:var(--paper-ink); font:600 1.42rem/1.18 var(--hand)}
 .spot{font-family:var(--hand); font-size:1.9rem; line-height:1.1; color:var(--candle); margin:0}
-.toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 24px); transform:translateX(-50%); z-index:40; background:var(--candle); color:var(--wine);
-  font:700 .95rem/1.3 var(--body); padding:12px 18px; border-radius:14px; max-width:86vw; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.4); animation:rise .3s ease both}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important; transition-duration:.01ms!important; transition-delay:0s!important}
@@ -912,12 +910,8 @@ body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .
 
   <!-- G5: the date she kept -->
   <section class="scene center" data-s="m-final" data-noback hidden>
-    <p class="eyebrow">ze sušenky ti vypadlo</p>
     <div class="voucher" id="prizeVoucher"></div>
     <p class="lead" id="prizeLine"></p>
-    <div class="stack">
-      <button class="btn" id="sharePrize">Pošli to Markovi</button>
-    </div>
   </section>
 
 </main>
@@ -1860,18 +1854,6 @@ function showFinal(){
   setVoucher($("prizeVoucher"), p, false);
   $("prizeLine").innerHTML = "To je pro dnešek vše,<br>pošli Markovi, co jsi vyhrála&nbsp;:)";
   setTimeout(confetti, 350);
-}
-async function shareScore(){
-  const p = keptPrize();
-  if (!p) return;
-  const text = `Ze sušenky štěstí mi vypadlo: ${p.name}`;
-  try{ if (navigator.share){ await navigator.share({ text }); return; } }catch(e){ if (e && e.name === "AbortError") return; }
-  try{ await navigator.clipboard.writeText(text); toast("Zkopírováno, vlož mi to do zprávy."); }catch(e){ toast(text); }
-}
-$("sharePrize").addEventListener("click", shareScore);
-function toast(msg){
-  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
-  document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
 }
 
 /* ---------- oh, I almost forgot: the handwritten letter ---------- */
