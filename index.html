@@ -329,7 +329,7 @@ button{touch-action:manipulation; -webkit-user-select:none; user-select:none; -w
 .stop[data-ch="month"] .badge-btn{margin-top:auto}
 .stop[data-ch="month"] .slot{min-height:132px}
 [data-s="m-shelf"] .shelf{margin-top:auto}
-.peek{font-family:var(--hand); font-size:1.5rem; color:var(--muted); margin-top:6px; animation:fadepulse 2.4s ease-in-out infinite}
+.peek{font-family:var(--hand); font-size:1.5rem; color:var(--muted); margin-top:2px; padding:4px 14px; animation:fadepulse 2.4s ease-in-out infinite}
 .actions{margin-top:auto; padding-top:10px; width:100%; display:flex; justify-content:center}
 .actions > button{width:min(270px, 100%); height:54px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font:700 1rem/1 var(--body)}
 @media (max-height:700px){ .shelf svg{max-width:124px} .shelf{gap:8px 12px} }
@@ -597,10 +597,12 @@ body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .
 .stolen{display:flex; flex-direction:column; align-items:center; gap:16px; animation:rise .5s ease both}
 .stolen[hidden]{display:none}
 /* he drops back down on his thread, sways, and talks; the bubble's tail points up at him */
-.speaker{--off:min(85px, 20vw); position:relative; width:84px; height:80px; margin:0 calc(var(--off) * 2) -6px 0; transform-origin:50% -40vh;
-  animation:spiderDrop .8s cubic-bezier(.3,1.35,.5,1) both, dangle 3.6s ease-in-out .8s infinite}
-.speaker::before{content:""; position:absolute; left:50%; bottom:55%; width:2px; height:100vh; margin-left:-1px; background:linear-gradient(rgba(251,233,236,0), rgba(251,233,236,.55))}
-.speaker .spider{position:relative; left:auto; top:auto; margin:0; width:84px; transform:none; transition:none}
+/* the drop and the sway sit on two elements: iPhone Safari lost the whole spider when both animated one element's transform */
+.speaker{--off:min(85px, 20vw); position:relative; width:84px; height:80px; margin:0 calc(var(--off) * 2) -6px 0;
+  animation:spiderDrop .8s cubic-bezier(.3,1.35,.5,1) backwards}
+.speaker .swing{position:absolute; inset:0; transform-origin:50% -40vh; animation:dangle 3.6s ease-in-out .8s infinite}
+.speaker .swing::before{content:""; position:absolute; left:50%; bottom:55%; width:2px; height:100vh; margin-left:-1px; background:linear-gradient(rgba(251,233,236,0), rgba(251,233,236,.55))}
+.speaker .spider{display:block; position:relative; left:auto; top:auto; margin:0; width:84px; transform:none; transition:none}
 @keyframes spiderDrop{from{transform:translateY(-75vh)} to{transform:none}}
 @keyframes dangle{0%,100%{transform:rotate(0)} 50%{transform:rotate(2.5deg)}}
 .bubble{position:relative; width:min(320px, 86vw); background:var(--sheet); color:var(--paper-ink); border-radius:24px; padding:16px 20px 18px; text-align:left;
@@ -793,6 +795,7 @@ body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .
             <path d="M0 78 V22 Q0 14 8 14 H112 V78 Z" fill="url(#mBody)"/>
             <path d="M0 22 Q0 14 8 14 H112 V24 H0Z" fill="#fff" opacity=".35"/>
             <path d="M0 70 H112 V78 H0Z" fill="#000" opacity=".12"/>
+            <text x="45" y="63" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" font-size="19" fill="#5b3b25">Ms Brown</text>
             <path d="M90 78 V36 A22 22 0 0 1 134 36 V78 Z" fill="#2a1d18"/>
             <g class="mb-parcel"><rect x="96" y="50" width="34" height="24" rx="2" fill="#c49a6c"/><path d="M113 50 V74 M96 62 H130" stroke="#efe3c8" stroke-width="2.4"/></g>
             <g class="mb-door"><path d="M90 78 V36 A22 22 0 0 1 134 36 V78 Z" fill="#f1ece3" stroke="#8f877b" stroke-width="1.5"/><rect x="106" y="17" width="12" height="5" rx="2" fill="#8f877b"/></g>
@@ -879,7 +882,7 @@ body.tabletop .voucher .stub::before{clip-path:inset(0 0 0 50%)} body.tabletop .
       </div>
     </div>
     <div class="stolen" id="stolen" hidden>
-      <div class="speaker" aria-hidden="true"><span class="spider" data-spider></span></div>
+      <div class="speaker" aria-hidden="true"><div class="swing"><span class="spider" data-spider></span></div></div>
       <div class="bubble"><p id="spiderSays"></p></div>
       <p class="spot" id="letterSpot"></p>
     <div class="stack">
@@ -1244,6 +1247,10 @@ function go(i){
   document.body.classList.toggle("tabletop", ["m-table", "m-shelf", "m-letter", "m-cookies", "m-final"].includes(s.dataset.s) || s.dataset.ch === "month");
   document.body.classList.toggle("ck-table", s.dataset.s === "m-cookies");
   document.body.classList.toggle("ck-end", s.dataset.s === "m-final");
+  /* iPhone Safari paints its top and bottom bars in the page colour: the table's brown, the night sky by the mailbox, wine elsewhere */
+  const bar = document.body.classList.contains("tabletop") ? "#412a1c" : s.dataset.s === "m-intro" ? "#1c0912" : "#2b0c15";
+  document.documentElement.style.backgroundColor = bar;
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", bar);
   s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter");
   window.scrollTo(0, 0);
   $("back").hidden = !(cur >= 2 && !s.hasAttribute("data-noback"));
@@ -1631,6 +1638,9 @@ let save = {};
 if (!PREVIEW){ try{ save = Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || "{}")); }catch(e){} }
 if (save.ck && !Array.isArray(save.ck.picked)) delete save.ck;   /* an old test round from before the six cookies */
 const persist = () => { if (!PREVIEW) try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} };
+/* 18. 11. 2026: test rounds wiped once, so the cookies start fresh for her (each phone does this only once) */
+const FRESH = "2026-11-18";
+if (!PREVIEW && save.fresh !== FRESH){ save = { fresh: FRESH }; persist(); }
 const susenek = n => plural(n, ["sušenka", "sušenky", "sušenek"]);
 const keptPrize = () => save.ck && save.ck.kept != null ? MONTH.prizes[save.ck.seq[save.ck.kept]] : null;
 
@@ -1763,7 +1773,7 @@ function enterCookies(){
     t.classList.add("out"); setTimeout(() => { t.hidden = true; }, 650);
     ckHost.classList.remove("wait");
     renderCookies(true, INTRO[0]);
-    ckTimers.push(setTimeout(() => { if (!ckPicked().length && ckPick == null) say(ckLine = INTRO[1]); }, 2600));
+    ckTimers.push(setTimeout(() => { if (!ckPicked().length && ckPick == null) say(ckLine = INTRO[1]); }, 4100));
   };
   t.onclick = reveal;
   ckTimers.push(setTimeout(reveal, 3400));
