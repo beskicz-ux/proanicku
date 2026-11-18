@@ -491,7 +491,6 @@ body.ck-table .table-decor .mug{display:none}   /* the cookie buttons reach down
 .ck-cookie svg{width:100%; height:100%; display:block; overflow:visible}
 .ck-cookie .half{transform-box:view-box; transform-origin:80px 96px; transition:transform .75s cubic-bezier(.2,1.3,.4,1), opacity .5s ease}
 .ck-stage.snap .half{transition:none}
-.ck-medal-wrap{flex:none; display:block}
 .ck-cookie .crack{opacity:0; transition:opacity .2s ease}
 .ck-stage.idle .ck-cookie{animation:ckwob 2.8s ease-in-out infinite}
 .ck-stage.tap1 .ck-cookie{animation:ckhit .35s ease both}
@@ -506,24 +505,15 @@ body.ck-table .table-decor .mug{display:none}   /* the cookie buttons reach down
 @keyframes ckwob{0%,82%,100%{transform:rotate(0)} 86%{transform:rotate(-5deg)} 90%{transform:rotate(4deg)} 94%{transform:rotate(-2deg)}}
 @keyframes ckhit{30%{transform:scale(.94) rotate(-3deg)} 70%{transform:scale(1.03) rotate(2deg)}}
 @keyframes ckdrop{0%{transform:translateY(-120px) scale(.8); opacity:0} 100%{transform:none; opacity:1}}
-.slip{position:absolute; left:50%; top:118px; width:min(320px, 88vw); transform:translate(-50%, 0) rotate(-1.5deg); perspective:900px; cursor:pointer; outline:none; z-index:2;
-  -webkit-tap-highlight-color:transparent}
+.slip{position:absolute; left:50%; top:118px; width:min(340px, 90vw); transform:translate(-50%, 0) rotate(-1.5deg); z-index:2}
 .slip.out{animation:slipout .8s cubic-bezier(.25,1.25,.4,1) both}
 @keyframes slipout{0%{transform:translate(-50%, -60px) rotate(0) scale(.08, .4); opacity:0} 35%{opacity:1} 100%{transform:translate(-50%, 0) rotate(-1.5deg) scale(1); opacity:1}}
-.slip-in{position:relative; transition:transform .7s cubic-bezier(.3,1.2,.4,1); transform-style:preserve-3d}
-.slip.flip .slip-in{transform:rotateX(180deg)}
-.slip-face{background:#fffaf0; color:#a3252f; border-radius:3px; padding:14px 18px 12px; box-shadow:0 12px 24px -8px rgba(0,0,0,.55);
-  backface-visibility:hidden; -webkit-backface-visibility:hidden;
-  background-image:repeating-linear-gradient(0deg, transparent 0 23px, rgba(163,37,47,.06) 23px 24px)}
-.slip-face.back{position:absolute; inset:0; transform:rotateX(180deg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px}
-.slip-face.back small{font:700 .7rem/1 var(--body); letter-spacing:.2em; text-transform:uppercase; color:rgba(163,37,47,.7)}
-.slip-face.back b{font:700 1.6rem/1 var(--hand); letter-spacing:.04em}
-.slip-prize{display:flex; align-items:center; gap:12px; padding:2px 0 8px; text-align:left}
-.slip-prize .medal{flex:none; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; box-shadow:inset 0 -3px 0 rgba(0,0,0,.16)}
-.slip-prize b{display:block; font:700 1.12rem/1.22 var(--body); color:#4a1a26; text-wrap:balance}
-.flip-hint{position:absolute; right:8px; bottom:5px; font:600 .9rem/1 var(--hand); color:rgba(163,37,47,.5)}
+.slip-face{display:flex; align-items:center; gap:14px; padding:12px 18px 12px 14px; background:#fffaf0; border-radius:3px; box-shadow:0 12px 24px -8px rgba(0,0,0,.55)}
+.slip-face .medal{flex:none; width:60px; height:60px; border-radius:50%; display:grid; place-items:center; box-shadow:inset 0 -3px 0 rgba(0,0,0,.16)}
+.slip-face p{margin:0; max-width:none; font:700 1.15rem/1.28 var(--body); color:#4a1a26; text-align:left; text-wrap:balance}
 .ck-hint{margin:0; font:700 1.5rem/1 var(--hand); color:#fff3e2; text-shadow:0 2px 10px rgba(0,0,0,.5); animation:hintbob 1.8s ease-in-out infinite}
 #ckNext.arm{background:#a3252f; color:#fff3e2; border-color:transparent}
+#ckActions .btn{width:min(300px, 100%)}   /* "Fakt? Tohle rande zmizí navždy" stays on one line */
 /* Deal or No Deal: the cookies wait on the table in two rows, numbered like the boxes on the show */
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
 .ck-host{transition:opacity .5s ease, transform .6s cubic-bezier(.3,1.5,.5,1)}
@@ -906,15 +896,7 @@ body.ck-table .table-decor .mug{display:none}   /* the cookie buttons reach down
     <div class="ck-grid" id="ckGrid" hidden></div>
     <div class="ck-stage" id="ckStage" hidden>
       <button class="ck-cookie" id="ckCookie" aria-label="Rozlousknout sušenku"></button>
-      <div class="slip" id="ckSlip" role="button" tabindex="0" aria-label="Otočit lísteček" hidden>
-        <div class="slip-in">
-          <div class="slip-face front">
-            <div class="slip-prize"><span class="ck-medal-wrap" id="ckMedal"></span><b id="ckPrize"></b></div>
-            <span class="flip-hint">otoč ↻</span>
-          </div>
-          <div class="slip-face back"><small>šťastná čísla</small><b id="ckLucky"></b></div>
-        </div>
-      </div>
+      <div class="slip" id="ckSlip" hidden><div class="slip-face"><span id="ckMedal"></span><p id="ckPrize"></p></div></div>
     </div>
     <p class="ck-hint" id="ckHint" hidden>ťukni a rozlouskni</p>
     <div class="stack" id="ckActions" hidden>
@@ -979,11 +961,8 @@ const MONTH = {
     code: "Na konci dopisu je kód. Až ho najdeš, zadej ho tady."
   },
   gameCode: "222",                        // kód z dopisu, otevře Deal or No Deal
-  game: {
-    lucky: [18, 10, 1810, 222, 8, 4, 1, 30]           // "šťastná čísla" na zadní straně lístečků (vybere se náhodně 4)
-  },
   prizes: [                               // rande v sušenkách: kolik rande, tolik sušenek. Od nejmenšího po nejlepší
-    { badge:"popcorn", tag:"Filmový večer",       name:"Piknik v obýváku a film podle tebe, bez remcání" },
+    { badge:"popcorn", tag:"Filmový večer",       name:"Piknik v obýváku a film podle tebe" },
     { badge:"paint",   tag:"Umělecký večer",      name:"Večer, kdy spolu malujeme" },
     { badge:"books",   tag:"Knihy a second hand", name:"Za pár stovek si navzájem vybereme dárek" },
     { badge:"bowling", tag:"Akční rande",         name:"Bowling, herna nebo jiná zábava" },
@@ -1687,8 +1666,6 @@ function fillSlip(k){
   const c = save.ck, p = MONTH.prizes[c.seq[k]];
   $("ckPrize").textContent = p.name;
   $("ckMedal").innerHTML = prizeMedal(p);
-  $("ckLucky").textContent = c.lucky[k].join(" · ");
-  ckSlip.classList.remove("flip");
 }
 /* More-gon Wa-leen: a raccoon parody of her favourite country singer, hosting "Deal or No Deal" */
 const MOREGON = `<svg viewBox="0 0 120 140">
@@ -1802,7 +1779,7 @@ ckGrid.addEventListener("click", e => {
 function crack(){
   if (ckBusy || ckOpen() || ckPick == null) return;
   clearCk(); ckBusy = true;
-  if (!save.ck) save.ck = { seq: cookieSeq(CK_N), lucky: Array.from({length: CK_N}, () => shuffle(MONTH.game.lucky.slice()).slice(0, 4)), picked: [], open: false, kept: null };
+  if (!save.ck) save.ck = { seq: cookieSeq(CK_N), picked: [], open: false, kept: null };
   save.ck.picked.push(ckPick); save.ck.open = true; ckPick = null; persist();   /* saved before she sees it, so a reload can't re-roll */
   fillSlip(save.ck.picked.length - 1);
   $("ckHint").hidden = true;
@@ -1818,9 +1795,6 @@ function crack(){
   ckTimers.push(setTimeout(split, 340));
 }
 ckCookie.addEventListener("click", crack);
-const flipSlip = () => { if (!ckBusy) ckSlip.classList.toggle("flip"); };
-ckSlip.addEventListener("click", flipSlip);
-ckSlip.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); flipSlip(); } });
 $("ckNext").addEventListener("click", () => {
   if (ckBusy || !ckOpen()) return;
   if (!armTimer){
