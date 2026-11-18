@@ -233,6 +233,16 @@ p.lead{color:var(--ink); font-size:1.1rem}
 .pad button:focus-visible{outline:2px solid var(--candle); outline-offset:3px}
 .pad button[data-del]{font:400 1.4rem/1 var(--body); border-color:transparent; background:none; color:var(--muted)}
 @media (max-height:620px){ .lock-seal{display:none} .pad{gap:12px 20px} .pad button{width:64px; height:64px} .pad{grid-template-columns:repeat(3, 64px)} }
+/* 18. 11.: autumn code screen, warm brown with an orange sunset glow and an amber seal */
+#lock.autumn{background:radial-gradient(ellipse 95% 58% at 50% 112%, rgba(236,140,58,.42), rgba(196,90,44,.14) 55%, transparent 75%),
+  radial-gradient(ellipse 70% 40% at 50% -8%, rgba(255,196,120,.12), transparent 70%), linear-gradient(#3b2015, #2b150d 60%, #24110a)}
+#lock.autumn .lock-seal{background:radial-gradient(circle at 35% 30%, #f4b05a, #d06d2c 58%, #96441b); color:#fff3e0}
+#lock.autumn .pin span{border-color:rgba(240,196,150,.6)}
+#lock.autumn .pin span.on{background:#ec9a45; border-color:#ec9a45}
+#lock.autumn .pad button{border-color:rgba(240,180,120,.3); background:rgba(255,170,90,.08); color:#fff3e4}
+#lock.autumn .pad button:active{background:rgba(255,170,90,.26)}
+#lock.autumn .pad button[data-del]{background:none; border-color:transparent; color:rgba(240,210,180,.75)}
+#lock.autumn #lockHint{color:#f2a65a}
 
 
 /* ---------- Phone friendliness ---------- */
@@ -1326,6 +1336,7 @@ const params = new URLSearchParams(location.search);
 const PREVIEW = params.has("nahled");                     /* proanicku.cz/?nahled = Marek si to může projít dřív */
 const UNLOCK = new Date(MONTH.unlock).getTime();
 const isMonth = () => PREVIEW || Date.now() >= UNLOCK;
+if (isMonth()) $("lock").classList.add("autumn");   /* from 18. 11. the code screen is warm brown and orange */
 
 /* lock screen: no confirm button — a right code opens by itself, a wrong one shakes once it is as long as the longest code.
    1810 = our page, 222 (from the letter) = the game */
