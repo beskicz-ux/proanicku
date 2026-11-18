@@ -476,7 +476,8 @@ body.ck-table .table-decor .mug{display:none}   /* the cookie buttons reach down
 .scene.cookies{gap:14px}
 /* the host of the show: More-gon Wa-leen, a raccoon with a backwards cap, a mullet, a moustache and a chain */
 .ck-host{display:flex; align-items:flex-end; gap:4px; width:min(360px, 94vw); margin:-4px 0 2px}
-.ck-host .mw{flex:none; width:96px; height:112px; animation:bobY 3.2s ease-in-out infinite}
+.ck-host .mw{flex:none; width:96px; height:112px}
+.ck-host .mw .mg-bob{animation:bobY 3.2s ease-in-out infinite}   /* he bobs, the podium stays put */
 .ck-host .mw svg{display:block; width:100%; height:100%; overflow:visible}
 .ck-say{position:relative; flex:1; min-width:0; margin-bottom:30px; background:var(--sheet); color:var(--paper-ink); border-radius:18px; padding:9px 14px 11px; text-align:left;
   box-shadow:0 14px 24px -12px rgba(0,0,0,.6); transform-origin:0 85%}
@@ -1669,8 +1670,9 @@ function fillSlip(k){
 }
 /* More-gon Wa-leen: a raccoon parody of her favourite country singer, hosting "Deal or No Deal" */
 const MOREGON = `<svg viewBox="0 0 120 140">
-  <path d="M26 139 C9 127 8 106 21 94" stroke="#9fa6ae" stroke-width="12" fill="none" stroke-linecap="round"/>
-  <path d="M26 139 C9 127 8 106 21 94" stroke="#2d2c33" stroke-width="12" fill="none" stroke-dasharray="6 7" stroke-dashoffset="4"/>
+  <g class="mg-bob">
+  <path d="M25 128 C10 120 8 106 21 94" stroke="#9fa6ae" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="M25 128 C10 120 8 106 21 94" stroke="#2d2c33" stroke-width="12" fill="none" stroke-dasharray="6 7" stroke-dashoffset="4"/>
   <path d="M16 140 C18 117 35 104 60 104 C85 104 102 117 104 140Z" fill="#26242c"/>
   <path d="M50 104 L60 115 L70 104Z" fill="#9fa6ae"/>
   <path d="M47 105 C50 117 70 117 73 105" stroke="#e8c15a" stroke-width="1.8" fill="none"/>
@@ -1700,6 +1702,12 @@ const MOREGON = `<svg viewBox="0 0 120 140">
   <path d="M81.5 106.5 A7.5 7.5 0 0 1 88.5 102.7" stroke="#8b8b94" stroke-width="1.6" fill="none" stroke-linecap="round"/>
   <rect x="84" y="117" width="14" height="15" rx="6.5" fill="#9fa6ae" transform="rotate(-22 91 124.5)"/>
   <path d="M85.5 121 h5 M86.6 125 h5" stroke="#7f868e" stroke-width="1.1" stroke-linecap="round" transform="rotate(-22 91 124.5)"/>
+  </g>
+  <ellipse cx="60" cy="140.5" rx="50" ry="3.5" fill="rgba(0,0,0,.28)"/>
+  <path d="M13 126 H107 L103 140 H17Z" fill="#7a1f2b"/>
+  <path d="M23 130.5 H97 L95.2 136.5 H24.8Z" fill="none" stroke="#e8b04a" stroke-width="1.3" opacity=".75"/>
+  <rect x="7" y="119" width="106" height="8" rx="4" fill="#e8b04a"/>
+  <path d="M12 121.3 H108" stroke="#fff3d0" stroke-width="1.3" stroke-linecap="round" opacity=".6"/>
 </svg>`;
 $("ckHostArt").innerHTML = MOREGON;
 const INTRO = ["Howdy, Aničko! Vítej v Deal or No Deal.",
